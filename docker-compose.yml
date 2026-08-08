@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: libtv
+      POSTGRES_PASSWORD: libtv
+      POSTGRES_DB: libtv
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U libtv -d libtv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: libtv
+      MINIO_ROOT_PASSWORD: libtvsecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 libtv libtvsecret; do sleep 1; done;
+      mc mb --ignore-existing local/libtv-assets;
+      mc anonymous set download local/libtv-assets;
+      exit 0;
+      "
+
+volumes:
+  pg_data:
+  redis_data:
+  minio_data:

@@ -1,0 +1,33 @@
+{
+  "name": "libtv-studio-complete",
+  "private": true,
+  "version": "2.0.0",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @libtv/web --filter @libtv/api --filter @libtv/worker dev",
+    "dev:web": "pnpm --filter @libtv/web dev",
+    "dev:backend": "pnpm --parallel --filter @libtv/api --filter @libtv/worker dev",
+    "typecheck": "pnpm -r typecheck",
+    "db:push": "pnpm --filter @libtv/db db:push",
+    "smoke": "tsx scripts/smoke.ts",
+    "validate:source": "python3 scripts/validate-source.py",
+    "standalone": "node standalone/server.mjs",
+    "test:standalone": "node standalone/e2e.mjs",
+    "test:standalone:pro": "node standalone/e2e-pro.mjs",
+    "test:video-node": "node standalone/video-node-e2e.mjs",
+    "test:agnes": "node standalone/agnes-provider-e2e.mjs",
+    "test:providers": "node standalone/provider-contract-e2e.mjs",
+    "test:agent": "node standalone/agent-e2e.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.2"
+  },
+  "dependencies": {
+    "@tabler/icons": "3.36.0"
+  }
+}

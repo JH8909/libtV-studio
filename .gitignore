@@ -1,0 +1,13 @@
+node_modules
+.pnpm-store
+.env
+.DS_Store
+dist
+.next
+coverage
+*.log
+*.tsbuildinfo
+standalone/data/
+artifacts/
+
+.upstream

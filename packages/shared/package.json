@@ -1,0 +1,9 @@
+{
+  "name": "@libtv/shared",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": { "zod": "^4.1.8" },
+  "devDependencies": { "typescript": "~6.0.2" }
+}

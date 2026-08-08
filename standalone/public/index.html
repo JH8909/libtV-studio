@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LibTV Studio</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar compact-topbar">
+      <div class="workspace-crumbs">
+        <button class="workspace-icon" title="工作区" aria-label="工作区"><i class="ui-icon" style="--icon:url('/vendor/icons/border-all.svg')"></i></button>
+        <select id="projectSelect" class="project-select"></select>
+        <button id="newProjectBtn" class="top-chip" title="新建项目" aria-label="新建项目"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+        <span id="saveState" class="save-state">已保存</span>
+      </div>
+      <div class="top-actions">
+        <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
+        <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
+        <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
+        <button id="exportBtn" class="top-chip primary-soft" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
+        <button id="agentBtn" class="top-chip" aria-label="Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span></button>
+      </div>
+    </header>
+
+    <main class="stage-shell">
+      <section class="canvas-wrap full-canvas-wrap">
+        <div id="canvas" class="canvas">
+          <svg id="edgesSvg" class="edges-svg"><g id="edgesLayer"></g></svg>
+          <div id="canvasWorld" class="canvas-world"></div>
+        </div>
+
+        <div class="canvas-bottom-toolbar">
+          <button id="addNodeBtn" class="tool-btn strong" title="添加节点" aria-label="添加节点"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <span class="toolbar-sep"></span>
+          <div class="toolbar-tool-group" id="mouseTools" aria-label="鼠标操作">
+            <button data-tool="pan" class="tool-btn" title="抓手 (H)" aria-label="抓手"><i class="ui-icon" style="--icon:url('/vendor/icons/hand-stop.svg')"></i></button>
+          </div>
+          <span class="toolbar-sep"></span>
+          <button id="canvasUndoBtn" class="tool-btn" title="撤销" aria-label="撤销"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-back-up.svg')"></i></button>
+          <button id="canvasRedoBtn" class="tool-btn" title="重做" aria-label="重做"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-forward-up.svg')"></i></button>
+          <span class="toolbar-sep"></span>
+          <button id="fitBtn" class="tool-btn" title="适配" aria-label="适配画布"><i class="ui-icon" style="--icon:url('/vendor/icons/arrows-maximize.svg')"></i></button>
+          <button id="zoomOutBtn" class="tool-btn" title="缩小" aria-label="缩小"><i class="ui-icon" style="--icon:url('/vendor/icons/minus.svg')"></i></button>
+          <span id="zoomLabel" class="zoom-label">100%</span>
+          <button id="zoomInBtn" class="tool-btn" title="放大" aria-label="放大"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="helpBtn" class="tool-btn" title="快捷键" aria-label="快捷键"><i class="ui-icon" style="--icon:url('/vendor/icons/help-circle.svg')"></i></button>
+        </div>
+
+        <div id="connectionToast" class="connection-toast hidden">拖到目标输入端口</div>
+        <div id="canvasHint" class="canvas-hint">拖拽空白处框选 · 双击或右键添加节点</div>
+      </section>
+
+      <aside id="assetDrawer" class="floating-drawer left-drawer hidden-drawer">
+        <div class="drawer-header"><strong>素材管理</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
+        <div id="assetList" class="asset-list"></div>
+      </aside>
+
+      <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
+        <div class="drawer-header"><strong>属性</strong><button data-close-drawer="inspectorDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+        <div id="previewStage" class="preview-stage"></div>
+        <div class="preview-controls"><button id="previewPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>播放</span></button><span id="previewTime" class="muted"></span></div>
+        <div id="inspector" class="inspector empty-state">选择节点、连线或 Timeline Clip</div>
+        <div class="section-divider"></div>
+        <div class="drawer-subtitle">生成任务</div>
+        <div id="jobList" class="job-list"></div>
+      </aside>
+
+      <aside id="agentDrawer" class="floating-drawer right-drawer agent-drawer hidden-drawer" aria-label="创意策划 Agent">
+        <div class="drawer-header"><div><strong>创意策划 Agent</strong><span class="agent-local-badge">本地记录</span></div><div><button id="agentNewBtn" class="icon-btn" title="新对话" aria-label="新对话"><i class="ui-icon" style="--icon:url('/vendor/icons/message-plus.svg')"></i></button><button data-close-drawer="agentDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div id="agentMessages" class="agent-messages" aria-live="polite"></div>
+        <div id="agentProposal" class="agent-proposal"></div>
+        <div class="agent-compose">
+          <textarea id="agentInput" rows="3" maxlength="12000" placeholder="描述短片创意，或继续修改当前提案…" aria-label="给 Agent 的消息"></textarea>
+          <div class="agent-compose-actions"><select id="agentModelSelect" aria-label="策划模型" title="策划模型"></select><button id="agentCancelBtn" class="hidden">取消</button><button id="agentSendBtn" class="primary"><i class="ui-icon" style="--icon:url('/vendor/icons/send-2.svg')"></i><span>发送</span></button></div>
+        </div>
+      </aside>
+    </main>
+
+    <section id="timelineShell" class="timeline-shell collapsed">
+      <div class="timeline-header">
+        <div><strong>时间线</strong><span id="timelineMeta" class="muted"></span></div>
+        <div class="timeline-actions">
+          <button id="timelineUndoBtn" title="撤销" aria-label="撤销"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-back-up.svg')"></i></button><button id="timelineRedoBtn" title="重做" aria-label="重做"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-forward-up.svg')"></i></button>
+          <button id="addTextClipBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/file-text.svg')"></i><span>字幕</span></button>
+          <button id="timelineZoomOutBtn" title="缩小" aria-label="缩小"><i class="ui-icon" style="--icon:url('/vendor/icons/minus.svg')"></i></button><span id="timelineZoomLabel" class="muted">100%</span><button id="timelineZoomInBtn" title="放大" aria-label="放大"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="splitClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/cut.svg')"></i><span>切分</span></button><button id="duplicateClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制</span></button><button id="crossfadeBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/layers-subtract.svg')"></i><span>叠化</span></button>
+          <button id="timelineRefBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/link.svg')"></i><span>作为 AI 参考</span></button><button id="rippleDeleteBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/trash-x.svg')"></i><span>波纹删除</span></button><button id="deleteClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/trash.svg')"></i><span>删除</span></button>
+          <button id="timelineCloseBtn" title="收起时间线" aria-label="收起时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/chevron-down.svg')"></i></button>
+        </div>
+      </div>
+      <div class="timeline-ruler" id="timelineRuler"></div><div class="timeline-body" id="timelineBody"></div>
+    </section>
+  </div>
+
+  <div id="nodeMenu" class="node-menu hidden" role="menu">
+    <div class="node-menu-search"><input id="nodeMenuSearch" placeholder="搜索节点 / 模型功能…" autocomplete="off" /></div>
+    <div id="nodeMenuContent" class="node-menu-content"></div>
+  </div>
+
+  <div id="nodeContextMenu" class="context-menu hidden"></div>
+
+  <div id="providerModal" class="modal-backdrop hidden">
+    <section class="provider-modal">
+      <div class="modal-header"><div><strong>第三方模型 / API</strong><small>密钥只保存在本机 Standalone data 目录</small></div><button id="providerModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+      <div id="providerSettingsForm" class="provider-settings-form"></div>
+      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存并刷新模型</button></div>
+    </section>
+  </div>
+
+  <div id="helpModal" class="modal-backdrop hidden">
+    <section class="help-modal"><div class="modal-header"><strong>画布快捷键</strong><button id="helpModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div><div class="help-grid">
+      <div><kbd>双击</kbd><span>添加节点</span></div><div><kbd>右键</kbd><span>节点 / 画布菜单</span></div>
+      <div><kbd>V</kbd><span>选择工具</span></div><div><kbd>H / Space</kbd><span>抓手工具</span></div>
+      <div><kbd>C</kbd><span>连线工具</span></div><div><kbd>Delete</kbd><span>删除选中</span></div>
+      <div><kbd>⌘/Ctrl Z</kbd><span>撤销</span></div><div><kbd>F</kbd><span>适配画布</span></div>
+    </div></section>
+  </div>
+
+  <!-- compatibility controls kept for existing command handlers -->
+  <div class="hidden" aria-hidden="true"><button id="addPromptBtn"></button><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
+  <div id="toastRoot" class="toast-root"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

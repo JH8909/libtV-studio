@@ -1,0 +1,14 @@
+{
+  "name": "@libtv/canvas",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": {
+    "@libtv/shared": "workspace:*",
+    "@xyflow/react": "12.9.0",
+    "react": "19.2.1",
+    "zustand": "5.0.8"
+  },
+  "devDependencies": { "@types/react": "^19.2.17", "typescript": "~6.0.2" }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@libtv/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=../../.env --import tsx --watch src/server.ts",
+    "start": "node --env-file=../../.env --import tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.1.0",
+    "@libtv/db": "workspace:*",
+    "@libtv/media-gateway": "workspace:*",
+    "@libtv/shared": "workspace:*",
+    "drizzle-orm": "^0.44.5",
+    "fastify": "^5.6.0",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": { "tsx": "^4.23.1", "typescript": "~6.0.2" }
+}

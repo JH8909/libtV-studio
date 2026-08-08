@@ -1,0 +1,14 @@
+{
+  "name": "@libtv/web",
+  "private": true,
+  "scripts": { "dev": "next dev -p 3000", "build": "next build", "start": "next start -p 3000", "typecheck": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": {
+    "@libtv/canvas": "workspace:*",
+    "@libtv/editor": "workspace:*",
+    "@libtv/shared": "workspace:*",
+    "next": "15.5.19",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
+  },
+  "devDependencies": { "@types/node": "^24.10.1", "@types/react": "^19.2.17", "@types/react-dom": "^19.2.3", "typescript": "~6.0.2" }
+}
