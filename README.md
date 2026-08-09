@@ -2,7 +2,7 @@
 
 A local-first AI video creation workspace inspired by the current LibTV product interaction model: a full-screen spatial canvas, direct text/image/video nodes, third-party model APIs, reusable Assets and a professional frame Timeline.
 
-**No ComfyUI. No local GPU runtime.** The Standalone version runs on Node.js 22+ without `npm install`, PostgreSQL, Redis, MinIO or Docker. Mock text/image/video models are always available, so the complete workflow can be tested offline.
+**No ComfyUI. No local GPU runtime.** The Standalone version runs on Node.js 22+ without `npm install`, PostgreSQL, Redis, MinIO or Docker. Generation uses the third-party providers configured in the local model settings.
 
 ## Start
 
@@ -79,11 +79,24 @@ One image node automatically selects the correct capability from its inputs:
 - Connected image reference → `image.edit`
 
 Current providers:
-- Mock Image — always available
 - Seedream through Volcengine Ark
 - fal image models
 
 Image nodes expose prompt, model, aspect ratio/quality controls and show generated output inline. Provider results are downloaded into the project Asset Library before reuse.
+
+LibTV-style node interactions (v2.2):
+- **参考素材 panel** — Image and Video nodes can attach references directly from the Asset Library (no edges required). Roles are auto-assigned by asset kind and video mode (`first-frame` / `last-frame` / `reference-image` / `reference-video` / `reference-audio`) and can be switched or removed inside the node.
+- **Best-of-N variants** — set 变体 to 2 or 4 and one Image generation returns that many candidates; pick the keeper on the node's filmstrip. The selected image is what flows downstream and to the Timeline.
+- **添加到时间线** on Image nodes (parity with Video nodes); double-click an image/video preview to open it full-size.
+- **▶ 运行全部 (whole-workflow execution)** — the bottom toolbar play button runs every generation node in dependency order and waits for each step, so an Image node connected to a Video node automatically produces the first-frame before the Video node runs. Downstream nodes re-render the moment an upstream node completes.
+- **拖节点到节点自动连线** — drag an Image/Text/Video node onto another node and release to auto-connect with the right reference role (`first-frame` / `reference-image` / `reference-video`); hover a node to see its ports, or drag output → input for exact linking. Click a connection to select it, `Delete` to break it.
+- **连线光效与节点状态** — satisfied connections glow and flow in green, unsatisfied ones are dashed grey, failed are red; generation nodes show a live status badge (排队中 / 生成中 x% / 成功 / 失败).
+- **点生成自动补跑依赖** — pressing 生成 on a Video node whose first-frame image hasn't been produced yet automatically runs the Image node first, then the Video node; if the image fails, the video is not run.
+- **节点内进度可视化** — generation nodes show a live phase badge (排队中 / 准备中 / 生成中 / 下载中 / 收尾中 · N%) driven by the job's `phase` field.
+- **拖拽高亮目标** — while dragging a node over a connectable target, the target glows green; release to auto-connect.
+- **全屏预览** — the ⛶ button opens the timeline preview full-screen (Esc closes).
+
+
 
 ## Video nodes
 
@@ -96,7 +109,6 @@ Video creation is represented by explicit presets instead of one overloaded gene
 Each video node can switch explicitly between these four modes. Reference roles are normalized for the selected mode, missing required frames are rejected before submission, model duration/aspect/resolution controls follow registry constraints, and completed videos can be played or sent directly to the Timeline. Active jobs reconnect after a page reload; interrupted jobs become retryable instead of remaining stuck.
 
 Current providers:
-- Mock Video
 - Seedance / Volcengine Ark
 - Kling
 - Google Veo
@@ -191,6 +203,8 @@ Vendor result URLs never become the permanent project source. The runtime uses:
 
 Local/reference images in formats supported by the installed FFmpeg build are normalized to PNG before being sent inline or by public URL. PNG, JPEG, and WebP references are used directly.
 
+Assets are auto-tagged (kind + `generated`/`uploaded` + provider). The Asset drawer has filter chips (全部 / 生成 / 上传 / 图片 / 视频 / 音频), and the asset inspector can add/remove custom tags. Server filtering: `GET /api/projects/:id/assets?tag=X&kind=image` and `PATCH /api/projects/:id/assets/:id` (`{add:[],remove:[]}`).
+
 ## Timeline editor
 
 The existing v1.2 OpenChatCut-style editing surface remains intact:
@@ -210,6 +224,15 @@ The existing v1.2 OpenChatCut-style editing surface remains intact:
 - Selected clip → AI Reference with `timelineItemId`, `sourceInFrame`, `sourceOutFrame`
 - HTTP Range (`206`) media serving for stable video seek/preview
 
+### Professional editing (LibTV-style)
+
+The clip inspector adds a **专业编辑** section for two LibTV-style controllable regeneration flows. Both reuse the existing generation invariants (references, constraints, job state) and both require FFmpeg for keyframe extraction:
+
+- **重拍此段 (anchor-locked reshoot)** — `POST /api/projects/:id/timeline/reshoot`. The server extracts the clip's source boundary frames (`anchor-in` at `sourceInFrame`, `anchor-out` at `sourceOutFrame`) into image assets and submits a `video.first_last_frame` generation with those anchors as references. On success the new video **replaces the clip in place**, preserving timing, track, transform and fades.
+- **续写接片 (tail-frame continuation)** — `POST /api/projects/:id/timeline/extend`. The last source frame of the selected clip becomes the `first-frame` of a `video.image_to_video` generation; on success a new clip is **appended right after** the selected one. Chain it repeatedly to build long sequences.
+
+Anchor/tail keyframes are materialized in the project Asset Library (`source: keyframe`) and are reusable as references elsewhere.
+
 ## FFmpeg export
 
 Timeline → MP4 supports:
@@ -224,34 +247,16 @@ Timeline → MP4 supports:
 
 ## Regression tests
 
-Product loop:
-
-```bash
-node standalone/e2e.mjs
-```
-
 Creative planning Agent, provider contracts, proposal revision and graph application:
 
 ```bash
 node standalone/agent-e2e.mjs
 ```
 
-Professional Timeline/export:
-
-```bash
-node standalone/e2e-pro.mjs
-```
-
 Provider contracts using local fake vendor endpoints — no paid request:
 
 ```bash
 node standalone/provider-contract-e2e.mjs
-```
-
-Video node modes, validation, cancellation and persistence:
-
-```bash
-node standalone/video-node-e2e.mjs
 ```
 
 v1.3 Provider Contract coverage:

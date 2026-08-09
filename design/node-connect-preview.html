@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>节点交互原型 · Phase 1 (LibTV Studio)</title>
+<style>
+  :root{
+    --bg:#0b0d11; --panel:#14171e; --line:#262c37; --text:#e8ebef; --muted:#8a93a3;
+    --accent:#6f5cff; --ok:#7fd6a2; --fail:#ff8792; --run:#9fe7ff; --warn:#f0c988;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:#0f1217;flex-wrap:wrap}
+  .topbar h1{font-size:14px;margin:0;font-weight:700}
+  .topbar .sub{font-size:11px;color:var(--muted)}
+  .topbar .spacer{flex:1}
+  .btn{background:#1a1f28;border:1px solid #2c333f;color:var(--text);border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer}
+  .btn:hover{border-color:#4a6a8e}
+  .btn.primary{background:var(--accent);border-color:#9184ff}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer}
+  .toggle input{accent-color:var(--fail)}
+  .hintbar{display:flex;gap:18px;align-items:center;padding:6px 14px;font-size:12px;color:var(--muted);background:#10141a;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .hintbar kbd{background:#1c2129;border:1px solid #313846;border-radius:4px;padding:1px 5px;font-size:11px}
+  .wrap{flex:1;position:relative;overflow:auto;background:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);background-size:24px 24px}
+  #world{position:relative;width:2200px;height:1300px}
+  svg#edges{position:absolute;inset:0;width:2200px;height:1300px;overflow:visible;pointer-events:none}
+  .edge-path{fill:none;stroke:currentColor;stroke-width:2.5}
+  .edge-glow{stroke-width:6;opacity:.3;filter:drop-shadow(0 0 4px currentColor)}
+  .edge-main.pending{stroke-dasharray:7 6}
+  .edge-main.satisfied{stroke-dasharray:6 5;animation:edgeFlow 1.1s linear infinite}
+  .edge-main.edge-selected{stroke-width:4;filter:drop-shadow(0 0 7px currentColor)}
+  .edge-hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:pointer}
+  @keyframes edgeFlow{to{stroke-dashoffset:-11}}
+  .edge-label{font-size:10px;fill:var(--muted);pointer-events:none}
+  .node{position:absolute;width:260px;background:var(--panel);border:1px solid #2c333f;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);user-select:none}
+  .node.dragging{opacity:.85;z-index:20}
+  .node.hovered{border-color:#4a6a8e}
+  .node-head{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:grab;position:relative}
+  .node-head:active{cursor:grabbing}
+  .node-title{font-size:13px;font-weight:700;flex:1;display:flex;align-items:center;gap:6px}
+  .badge{font-size:10px;border-radius:999px;padding:2px 7px;background:#232a35;color:var(--muted);white-space:nowrap}
+  .badge.run{background:#173a49;color:var(--run)}
+  .badge.done{background:#1c3a2a;color:var(--ok)}
+  .badge.failed{background:#4a2027;color:var(--fail)}
+  .node-body{padding:10px 12px;display:grid;gap:9px}
+  .preview{height:92px;border:1px dashed #333b48;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);background:#0e1116;overflow:hidden;position:relative}
+  .preview .img{width:100%;height:100%;object-fit:cover;display:block}
+  .preview .vid{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px}
+  .preview .prog{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(11,13,17,.82)}
+  .progbar{width:70%;height:7px;border-radius:4px;background:#232a35;overflow:hidden}
+  .progbar>span{display:block;height:100%;background:var(--run);transition:width .12s}
+  .preview .err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--fail);background:rgba(30,10,14,.9);padding:6px;text-align:center}
+  textarea.inp{width:100%;resize:vertical;min-height:44px;background:#0e1116;border:1px solid #2c333f;border-radius:7px;color:var(--text);padding:6px;font-size:12px;font-family:inherit}
+  .actions{display:flex;gap:7px;align-items:center}
+  .actions button{flex:1}
+  .mode-chip{font-size:10px;color:var(--run);background:#173a49;border-radius:999px;padding:2px 8px}
+  .refs{display:grid;gap:5px}
+  .ref{display:flex;align-items:center;gap:7px;font-size:11px;border:1px solid #2c333f;border-radius:7px;padding:5px 7px;background:#0e1116}
+  .ref .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .ref .dot.idle{background:#3a4350}.ref .dot.run{background:var(--run)}.ref .dot.done{background:var(--ok)}.ref .dot.failed{background:var(--fail)}
+  .ref .role{font-size:9px;color:var(--muted);margin-left:auto}
+  .ref .rm{margin-left:2px;background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px}
+  .ref .rm:hover{color:var(--fail)}
+  .port{position:absolute;width:13px;height:13px;border-radius:50%;border:2px solid #0b0d11;background:#4a5a72;opacity:.25;transition:opacity .12s,background .12s;cursor:crosshair;z-index:5}
+  .port.out{right:-7px;top:96px}
+  .port.in{left:-7px;top:96px}
+  .node:hover .port,.port.hot{opacity:1;background:var(--accent)}
+  .port.hot{box-shadow:0 0 0 3px rgba(111,92,255,.35)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#1a1f28;border:1px solid #3a4556;border-radius:9px;padding:9px 16px;font-size:13px;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:70vw}
+  .toast.err{border-color:#6b2f3a;color:var(--fail)}
+  .foot{display:flex;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);background:#0f1217}
+  .legend{display:flex;gap:14px;align-items:center}
+  .legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🎬 节点交互原型</h1>
+    <span class="sub">Phase 1 · 只模拟交互，不调用真实生成</span>
+    <span class="spacer"></span>
+    <label class="toggle"><input type="checkbox" id="failMode"> 模拟图片生成失败</label>
+    <button class="btn" id="runAllBtn">▶ 运行全部</button>
+    <button class="btn" id="resetBtn">↻ 重置</button>
+  </div>
+
+  <div class="hintbar">
+    <span>① 拖 <b>图片</b> 节点到 <b>视频</b> 节点上松手 → 自动连线（角色=首帧）</span>
+    <span>② 点视频节点 <b>生成</b> → 若首帧图没生成，自动先出图再出视频</span>
+    <span>③ 悬停节点看端口；也可从输出口 <kbd>拖</kbd> 到输入口精确连线</span>
+    <span>④ 勾选「模拟图片生成失败」可看失败兜底</span>
+    <span>⑤ 点击连线可选中，按 <kbd>Delete</kbd> 断开</span>
+  </div>
+
+  <div class="wrap" id="wrap">
+    <svg id="edges"></svg>
+    <div id="world"></div>
+  </div>
+
+  <div class="foot">
+    <span>连线图例：</span>
+    <span class="legend"><i style="border-color:#4a5a72"></i>未满足(虚线)</span>
+    <span class="legend"><i style="border-color:var(--ok);box-shadow:0 0 6px var(--ok)"></i>已满足(发光流动)</span>
+    <span class="legend"><i style="border-color:var(--fail)"></i>失败</span>
+    <span style="flex:1"></span>
+    <span>原型不联网 · 双击 index 打开即可</span>
+  </div>
+
+<script>
+'use strict';
+const NODE_W = 260, PORT_Y = 96;
+const $ = s => document.querySelector(s);
+const wrap = $('#wrap'), world = $('#world'), svg = $('#edges');
+
+/* ---------- state ---------- */
+const nodes = [
+  { id:'text', type:'prompt', title:'📝 文本', kind:'text', x:60, y:150, text:'雨夜城市，一辆银色跑车驶过，电影级灯光', status:'idle', progress:0, error:'', output:null, refs:[] },
+  { id:'img',  type:'imageGen', title:'🖼 图片', kind:'image', x:430, y:110, prompt:'银色跑车 特写 电影光', status:'idle', progress:0, error:'', output:null, refs:[] },
+  { id:'vid',  type:'videoGen', title:'🎬 视频', kind:'video', x:800, y:110, prompt:'车向前行驶，镜头跟随', status:'idle', progress:0, error:'', output:null, refs:[] },
+  { id:'asset',type:'asset', title:'🎞 素材', kind:'video', filename:'航拍素材.mp4', x:800, y:430, status:'idle', progress:0, error:'', output:null, refs:[] },
+];
+let edges = [];
+let selectedEdge = null;
+let drag = null;         // {node, startX, startY, startX0, startY0, moved}
+let connect = null;      // {from, x, y}
+let failMode = false;
+let toastTimer = null;
+
+const byId = id => nodes.find(n => n.id === id);
+
+/* ---------- layout helpers ---------- */
+function nodeRect(n){ return { x:n.x, y:n.y, w:NODE_W, h: elOf(n).offsetHeight }; }
+function elOf(n){ return world.querySelector(`[data-id="${n.id}"]`); }
+function outPoint(n){ return { x:n.x + NODE_W, y:n.y + PORT_Y }; }
+function inPoint(n){ return { x:n.x, y:n.y + PORT_Y }; }
+
+/* ---------- edge creation rules ---------- */
+function inferRole(src, tgt){
+  if(src.kind === 'text') return null;
+  if(tgt.type === 'imageGen') return 'reference-image';
+  if(tgt.type === 'videoGen'){
+    if(src.kind === 'image'){ const hasFirst = edges.some(e => e.target===tgt.id && byId(e.source).kind==='image' && e.role==='first-frame'); return hasFirst ? 'last-frame' : 'first-frame'; }
+    if(src.kind === 'video') return 'reference-video';
+    if(src.kind === 'audio') return 'reference-audio';
+  }
+  return null;
+}
+function canConnect(src, tgt){
+  if(src === tgt) return false;
+  if(!['imageGen','videoGen'].includes(tgt.type)) return false;
+  if(edges.some(e => e.source===src.id && e.target===tgt.id)) return false;
+  if(src.kind === 'text') return true;
+  if(src.type === 'imageGen') return ['imageGen','videoGen'].includes(tgt.type);
+  if(src.type === 'videoGen') return tgt.type === 'videoGen';
+  if(src.type === 'asset') return ['imageGen','videoGen'].includes(tgt.type);
+  return false;
+}
+function createEdge(srcId, tgtId, silent){
+  const src = byId(srcId), tgt = byId(tgtId);
+  const role = inferRole(src, tgt);
+  edges.push({ id:`e${edges.length+1}`, source:srcId, target:tgtId, role });
+  if(tgt.type === 'videoGen'){
+    const mode = tgt.refs.some(r => r.role === 'first-frame') ? 'first_frame' : (tgt.refs.some(r => r.role === 'reference-video') ? 'reference' : null);
+    // keep mode derived live
+  }
+  if(!silent){
+    const roleTxt = role ? `（角色=${role}）` : '';
+    toast(`已连接：${src.title} → ${tgt.title} ${roleTxt}`);
+  }
+  syncRefs(); render(); updateEdges();
+}
+
+/* ---------- auto connect on drop ---------- */
+function dropTargetFor(node){
+  const c = { x: node.x + NODE_W/2, y: node.y + elOf(node).offsetHeight/2 };
+  let best = null, bestArea = 0;
+  for(const o of nodes){
+    if(o === node) continue;
+    const r = nodeRect(o);
+    const inflate = 14;
+    const ix = Math.max(0, Math.min(c.x, r.x+r.w+inflate) - Math.max(c.x, r.x-inflate));
+    const iy = Math.max(0, Math.min(c.y, r.y+r.h+inflate) - Math.max(c.y, r.y-inflate));
+    const area = ix * iy;
+    if(area > bestArea){ bestArea = area; best = o; }
+  }
+  if(best && canConnect(node, best)) return best;
+  return null;
+}
+
+/* ---------- rendering ---------- */
+function statusOf(src){
+  if(!src) return 'done';
+  if(src.type === 'prompt' || src.type === 'asset') return 'done';
+  return src.status === 'done' ? 'done' : src.status === 'running' ? 'run' : src.status === 'failed' ? 'failed' : 'idle';
+}
+function render(){
+  world.innerHTML = nodes.map(n => {
+    const badge = n.type === 'prompt' ? '' : badgeHtml(n);
+    const preview = previewHtml(n);
+    const refs = (n.type === 'videoGen' || n.type === 'imageGen') && n.refs.length ? refsHtml(n) : '';
+    const body = bodyHtml(n);
+    const ports = n.type === 'prompt' ? outPort('out') : n.type === 'asset' ? outPort('out') : outPort('out') + inPort('in');
+    return `<div class="node" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px">
+      <div class="node-head">${ports}<div class="node-title">${n.title}${modeChip(n)}</div>${badge}</div>
+      <div class="node-body">${preview}${body}${refs}</div>
+    </div>`;
+  }).join('');
+  bindNodes();
+}
+function badgeHtml(n){
+  const map = { idle:['待运行',''], run:[`运行中 ${n.progress}%`,'run'], done:['成功','done'], failed:['失败','failed'] };
+  const [label, cls] = map[n.status] || map.idle;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function modeChip(n){
+  if(n.type === 'videoGen'){
+    const first = n.refs.some(r => r.role === 'first-frame');
+    const refV = n.refs.some(r => r.role === 'reference-video');
+    return first ? `<span class="mode-chip">首帧视频</span>` : refV ? `<span class="mode-chip">参考视频</span>` : `<span class="mode-chip">文生视频</span>`;
+  }
+  if(n.type === 'imageGen') return n.refs.length ? `<span class="mode-chip">图生图</span>` : `<span class="mode-chip">文生图</span>`;
+  return '';
+}
+function previewHtml(n){
+  if(n.type === 'prompt') return '';
+  if(n.type === 'asset') return `<div class="preview"><span style="font-size:26px">🎞</span></div>`;
+  let inner = '';
+  if(n.status === 'running') inner = `<div class="prog"><div style="font-size:11px">生成中…</div><div class="progbar"><span style="width:${n.progress}%"></span></div></div>`;
+  else if(n.status === 'failed') inner = `<div class="err">⚠ ${esc(n.error)}</div>`;
+  else if(n.status === 'done' && n.output) inner = n.output;
+  else inner = `<span>待生成</span>`;
+  return `<div class="preview">${inner}</div>`;
+}
+function bodyHtml(n){
+  if(n.type === 'prompt') return `<textarea class="inp" data-field="text">${esc(n.text)}</textarea>`;
+  if(n.type === 'asset') return `<div style="font-size:11px;color:var(--muted)">${esc(n.filename)} · 作为参考源拖到视频节点</div>`;
+  const gen = n.type === 'imageGen' ? '生成图片' : '生成视频';
+  return `<textarea class="inp" data-field="prompt">${esc(n.prompt)}</textarea><div class="actions"><button class="btn primary" data-act="generate">▶ ${gen}</button><button class="btn" data-act="rerun" title="重新生成">↻</button></div>`;
+}
+function refsHtml(n){
+  return `<div class="refs">${n.refs.map(r => {
+    const src = byId(r.source);
+    const st = statusOf(src);
+    const label = src ? (src.type==='asset' ? src.filename : src.title) : '?';
+    return `<div class="ref"><span class="dot ${st}"></span><span>${esc(label)}</span>${r.role?`<span class="role">${esc(r.role)}</span>`:''}<button class="rm" data-rm="${esc(r.source)}" title="移除">✕</button></div>`;
+  }).join('')}</div>`;
+}
+function outPort(kind){ return `<span class="port out" data-port="out" title="拖此点连线"></span>`; }
+function inPort(){ return `<span class="port in" data-port="in" title="接收连线"></span>`; }
+
+/* ---------- edge drawing ---------- */
+function updateEdges(){
+  svg.innerHTML = edges.map(e => {
+    const s = byId(e.source), t = byId(e.target);
+    if(!s || !t) return '';
+    const p1 = outPoint(s), p2 = inPoint(t);
+    const c = Math.max(50, Math.abs(p2.x - p1.x) * .42);
+    const d = `M ${p1.x} ${p1.y} C ${p1.x+c} ${p1.y}, ${p2.x-c} ${p2.y}, ${p2.x} ${p2.y}`;
+    const st = statusOf(s);
+    const cls = st === 'failed' ? 'failed' : st === 'done' ? 'satisfied' : 'pending';
+    const color = st === 'failed' ? 'var(--fail)' : st === 'done' ? 'var(--ok)' : '#4a5a72';
+    const sel = selectedEdge === e.id;
+    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2 - 9;
+    return `<path class="edge-hit" d="${d}" data-edge="${e.id}"></path>` +
+      `<path class="edge-path edge-glow ${cls}" d="${d}" style="color:${color}"></path>` +
+      `<path class="edge-path edge-main ${cls}${sel?' edge-selected':''}" d="${d}" style="color:${color}"></path>` +
+      `<text class="edge-label" x="${mx}" y="${my}" text-anchor="middle">${esc(e.role||'text')}</text>`;
+  }).join('');
+  $$('.edge-hit', svg).forEach(p => p.addEventListener('click', ev => { ev.stopPropagation(); selectEdge(p.dataset.edge); }));
+}
+function selectEdge(id){
+  if(selectedEdge === id){ selectedEdge = null; updateEdges(); return; }
+  selectedEdge = id; updateEdges();
+  toast('已选中连线 · 按 Delete 断开');
+}
+function deselectEdge(){
+  if(!selectedEdge) return;
+  selectedEdge = null; updateEdges();
+}
+function removeEdgeId(id){
+  const e = edges.find(x => x.id === id); if(!e) return;
+  edges = edges.filter(x => x.id !== id);
+  selectedEdge = null; syncRefs(); render(); updateEdges();
+  toast('已断开连接');
+}
+function drawTemp(){
+  const t = document.querySelector('.edge-temp'); if(t) t.remove();
+  if(!connect) return;
+  const from = byId(connect.from);
+  const p1 = outPoint(from);
+  const c = Math.max(50, Math.abs(connect.x - p1.x) * .42);
+  const d = `M ${p1.x} ${p1.y} C ${p1.x+c} ${p1.y}, ${connect.x-c} ${connect.y}, ${connect.x} ${connect.y}`;
+  const el = document.createElementNS('http://www.w3.org/2000/svg','path');
+  el.setAttribute('class','edge-temp edge-path'); el.setAttribute('d', d); el.setAttribute('stroke-dasharray','7 6');
+  svg.appendChild(el);
+}
+
+/* ---------- binding ---------- */
+function bindNodes(){
+  $$('[data-field]').forEach(inp => inp.addEventListener('input', () => {
+    const n = byId(inp.closest('.node').dataset.id);
+    n[inp.dataset.field] = inp.value;
+  }));
+  $$('[data-act="generate"]').forEach(b => b.addEventListener('click', () => generate(byId(b.closest('.node').dataset.id))));
+  $$('[data-act="rerun"]').forEach(b => b.addEventListener('click', () => { const n = byId(b.closest('.node').dataset.id); resetNode(n); generate(n); }));
+  $$('[data-rm]').forEach(b => b.addEventListener('click', () => removeEdge(b.dataset.rm, b.closest('.node').dataset.id)));
+  $$('.node-head').forEach(h => h.addEventListener('pointerdown', startDrag));
+  $$('.port.out').forEach(p => p.addEventListener('pointerdown', startPortDrag));
+}
+function $$(s, root){ return Array.from((root||document).querySelectorAll(s)); }
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+/* ---------- drag node body → move or auto-connect ---------- */
+function startDrag(ev){
+  if(ev.button !== 0) return;
+  if(ev.target.closest('.port')) return;
+  const head = ev.currentTarget;
+  const n = byId(head.closest('.node').dataset.id);
+  const rect = wrap.getBoundingClientRect();
+  drag = { node:n, startX:ev.clientX, startY:ev.clientY, x0:n.x, y0:n.y, moved:false };
+  head.setPointerCapture(ev.pointerId);
+  ev.preventDefault();
+}
+function moveDrag(ev){
+  if(!drag) return;
+  const rect = wrap.getBoundingClientRect();
+  const dx = ev.clientX - drag.startX, dy = ev.clientY - drag.startY;
+  const n = drag.node;
+  n.x = Math.round((drag.x0 + dx) / 10) * 10;
+  n.y = Math.round((drag.y0 + dy) / 10) * 10;
+  drag.moved = true;
+  const el = elOf(n); if(el){ el.style.left = n.x+'px'; el.style.top = n.y+'px'; }
+  updateEdges(); drawTemp();
+}
+function endDrag(ev){
+  if(!drag) return;
+  const n = drag.node;
+  const wasMoved = drag.moved;
+  drag = null;
+  const t = dropTargetFor(n);
+  if(t) createEdge(n.id, t.id);
+  else if(wasMoved) updateEdges();
+}
+
+/* ---------- port drag → exact connect ---------- */
+function startPortDrag(ev){
+  if(ev.button !== 0) return;
+  const n = byId(ev.currentTarget.closest('.node').dataset.id);
+  const rect = wrap.getBoundingClientRect();
+  connect = { from:n.id, x:ev.clientX - rect.left + wrap.scrollLeft, y:ev.clientY - rect.top + wrap.scrollTop };
+  ev.currentTarget.setPointerCapture(ev.pointerId);
+  ev.preventDefault();
+  drawTemp();
+}
+function movePort(ev){
+  if(!connect) return;
+  const rect = wrap.getBoundingClientRect();
+  connect.x = ev.clientX - rect.left + wrap.scrollLeft;
+  connect.y = ev.clientY - rect.top + wrap.scrollTop;
+  drawTemp();
+}
+function endPort(ev){
+  if(!connect) return;
+  const from = connect.from;
+  connect = null;
+  document.querySelector('.edge-temp')?.remove();
+  const tgtEl = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.node');
+  if(tgtEl){
+    const tgt = byId(tgtEl.dataset.id);
+    if(canConnect(byId(from), tgt)) createEdge(from, tgt.id);
+  }
+}
+
+/* ---------- edges management ---------- */
+function removeEdge(sourceId, targetId){
+  const e = edges.find(x => x.source===sourceId && x.target===targetId);
+  edges = edges.filter(x => !(x.source===sourceId && x.target===targetId));
+  if(selectedEdge === e?.id) selectedEdge = null;
+  syncRefs(); render(); updateEdges();
+}
+function syncRefs(){
+  for(const n of nodes){
+    if(n.type === 'imageGen' || n.type === 'videoGen'){
+      n.refs = edges.filter(e => e.target === n.id).map(e => ({ source:e.source, role:e.role }));
+    }
+  }
+}
+
+/* ---------- generation simulation ---------- */
+function generate(n){
+  if(n.type === 'prompt' || n.type === 'asset') return;
+  if(n.status === 'running') return toast('该节点正在生成中', true);
+  if(n.type === 'videoGen'){
+    const first = n.refs.find(r => r.role === 'first-frame');
+    if(first){
+      const src = byId(first.source);
+      if(src.status === 'failed') return toast('首帧图片生成失败，视频未运行', true);
+      if(src.status === 'done'){ return runNode(n); }
+      toast('检测到首帧图片未生成，自动先生成首帧图…');
+      runNode(src).then(ok => {
+        if(!ok) return toast('首帧图片失败，视频未运行', true);
+        toast('首帧图就绪，开始生成视频…');
+        runNode(n);
+      });
+      return;
+    }
+  }
+  runNode(n);
+}
+function runNode(n){
+  if(n.status === 'running') return Promise.resolve(false);
+  n.status = 'running'; n.progress = 0; n.error = '';
+  render(); updateEdges();
+  const fail = failMode && n.type === 'imageGen';
+  const duration = fail ? 900 : 2400;
+  return new Promise(resolve => {
+    const iv = setInterval(() => {
+      n.progress = Math.min(100, n.progress + 7);
+      if(fail && n.progress >= 30){
+        clearInterval(iv);
+        n.status = 'failed'; n.error = '模拟失败：模型超时';
+        render(); updateEdges(); toast(`${n.title} 生成失败：模型超时`, true);
+        resolve(false); return;
+      }
+      if(n.progress >= 100){
+        clearInterval(iv);
+        n.status = 'done';
+        n.output = n.type === 'imageGen'
+          ? `<img class="img" src="data:image/svg+xml;utf8,${encodeURIComponent(gradientSvg())}" alt="">`
+          : `<div class="vid" style="background:linear-gradient(160deg,#172a44,#0d1b2e)">▶</div>`;
+        render(); updateEdges(); toast(`${n.title} 生成完成`);
+        resolve(true); return;
+      }
+      render();
+    }, duration / 14);
+  });
+}
+function gradientSvg(){
+  const hue = Math.floor(Math.random() * 360);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="170"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},60%,42%)"/><stop offset="1" stop-color="hsl(${(hue+70)%360},65%,22%)"/></linearGradient></defs><rect width="300" height="170" fill="url(#g)"/></svg>`;
+}
+function resetNode(n){ n.status='idle'; n.progress=0; n.error=''; n.output=null; }
+function resetAll(){
+  for(const n of nodes) resetNode(n);
+  edges = []; selectedEdge = null; syncRefs(); render(); updateEdges(); toast('已重置');
+}
+
+/* ---------- run all (topo) ---------- */
+async function runAll(){
+  const order = nodes.filter(n => n.type==='imageGen' || n.type==='videoGen');
+  let ok = 0, fail = 0;
+  for(const n of order){
+    if(n.status === 'done'){ ok++; continue; }
+    const before = n.status;
+    await generate(n);
+    if(n.status === 'done') ok++; else fail++;
+  }
+  toast(`运行全部完成：成功 ${ok}，失败 ${fail}`, fail ? true : false);
+}
+
+/* ---------- toast ---------- */
+function toast(msg, isErr){
+  const el = document.createElement('div');
+  el.className = 'toast' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ---------- global events ---------- */
+wrap.addEventListener('pointermove', ev => { moveDrag(ev); movePort(ev); });
+wrap.addEventListener('pointerup', ev => { endDrag(ev); endPort(ev); });
+wrap.addEventListener('click', ev => { if(!ev.target.closest('.node') && !ev.target.closest('.edge-hit')) deselectEdge(); });
+document.addEventListener('keydown', ev => { if((ev.key==='Delete'||ev.key==='Backspace') && selectedEdge){ ev.preventDefault(); removeEdgeId(selectedEdge); } });
+$('#failMode').addEventListener('change', e => failMode = e.target.checked);
+$('#resetBtn').addEventListener('click', resetAll);
+$('#runAllBtn').addEventListener('click', runAll);
+
+/* ---------- init ---------- */
+syncRefs(); render(); updateEdges();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync, rmSync } from 'node:fs';
 import { promises as fsp } from 'node:fs';
 import { basename, dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,11 +17,15 @@ const DATA = resolve(process.env.DATA_DIR || join(ROOT, 'data'));
 const ASSETS_DIR = join(DATA, 'assets');
 const EXPORTS_DIR = join(DATA, 'exports');
 const DB_FILE = join(DATA, 'db.json');
-const FIXTURES = join(ROOT, 'fixtures');
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES || 512 * 1024 * 1024);
 const MAX_REMOTE_BYTES = Number(process.env.MAX_REMOTE_BYTES || 1024 * 1024 * 1024);
+const MAX_PROVIDER_ATTEMPTS = 3;
+const PROVIDER_RETRY_BASE_MS = Math.max(20, Number(process.env.PROVIDER_RETRY_BASE_MS || 1000));
+const MAX_PROVIDER_BUSY_ATTEMPTS = Math.max(1, Number(process.env.MAX_PROVIDER_BUSY_ATTEMPTS || 5));
+const PROVIDER_BUSY_RETRY_BASE_MS = Math.max(20, Number(process.env.PROVIDER_BUSY_RETRY_BASE_MS || 10_000));
+const MAX_PROVIDER_RETRY_DELAY_MS = 60_000;
 const PROVIDER_SETTINGS_FILE = join(DATA, 'provider-settings.json');
 let providerSettings = {};
 try { if (existsSync(PROVIDER_SETTINGS_FILE)) providerSettings = JSON.parse(readFileSync(PROVIDER_SETTINGS_FILE,'utf8')); } catch { providerSettings = {}; }
@@ -86,6 +90,69 @@ function saveDb() {
   return saveChain;
 }
 
+const providerRunning = new Set();
+const jobControllers = new Map();
+let schedulerTimer = null;
+
+function abortError() { return Object.assign(new Error('canceled'), { name: 'AbortError' }); }
+function sleep(ms, signal) {
+  if (!signal) return new Promise(resolve => setTimeout(resolve, ms));
+  if (signal.aborted) return Promise.reject(abortError());
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { signal.removeEventListener('abort', cancel); resolve(); }, ms);
+    const cancel = () => { clearTimeout(timer); reject(abortError()); };
+    signal.addEventListener('abort', cancel, { once: true });
+  });
+}
+function isSerializedMediaJob(job) { return /^(image|video|audio)\./.test(job.capability); }
+function retryDelay(error, attempt, baseMs = PROVIDER_RETRY_BASE_MS) {
+  const hinted = Number(error?.retryAfterMs);
+  return Math.min(MAX_PROVIDER_RETRY_DELAY_MS, hinted > 0 ? hinted : baseMs * 2 ** Math.max(0, attempt - 1));
+}
+function providerRetryPhase(error) {
+  if (error?.status === 429) return 'rate_limited';
+  if (error?.status === 503 && /queue\s+(?:is\s+)?full|capacity|overloaded|server\s+busy|temporar(?:ily)?\s+unavailable|队列.*满|服务.*繁忙|稍后重试/i.test(String(error?.message || ''))) return 'provider_busy';
+  return '';
+}
+function findExistingJob(projectId, requestId, sourceKey) {
+  const jobs = Object.values(state.jobs).filter(job => job.projectId === projectId);
+  if (requestId) {
+    const exact = jobs.find(job => job.requestId === requestId);
+    if (exact) return exact;
+  }
+  return sourceKey ? jobs.find(job => job.sourceKey === sourceKey && ['queued','processing'].includes(job.status)) : null;
+}
+async function enqueueGeneration(jobRequest, { requestId, sourceNodeId, sourceKey } = {}) {
+  const stableRequestId = String(requestId || randomUUID());
+  const key = String(sourceKey || (sourceNodeId ? `node:${sourceNodeId}` : ''));
+  const existing = findExistingJob(jobRequest.projectId, stableRequestId, key);
+  if (existing) return existing;
+  const id = randomUUID(); const ts = now();
+  const job = { id, projectId:jobRequest.projectId, capability:jobRequest.capability, providerId:jobRequest.providerId, modelId:jobRequest.modelId, status:'queued', phase:'queued', progress:0, attempt:0, nextAttemptAt:null, requestId:stableRequestId, sourceNodeId:String(sourceNodeId || ''), sourceKey:key, request:jobRequest, outputAssetIds:[], createdAt:ts, updatedAt:ts };
+  state.jobs[id] = job; await saveDb(); setImmediate(scheduleJobs); return job;
+}
+function scheduleJobs() {
+  if (schedulerTimer) { clearTimeout(schedulerTimer); schedulerTimer = null; }
+  const current = Date.now(); let nextAt = Infinity;
+  const queued = Object.values(state.jobs).filter(job => job.status === 'queued').sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+  for (const job of queued) {
+    const due = job.nextAttemptAt ? Date.parse(job.nextAttemptAt) : 0;
+    if (due > current) { nextAt = Math.min(nextAt, due); continue; }
+    if (isSerializedMediaJob(job) && providerRunning.has(job.providerId)) continue;
+    startJob(job);
+  }
+  if (Number.isFinite(nextAt)) schedulerTimer = setTimeout(scheduleJobs, Math.max(1, nextAt - Date.now()));
+}
+function startJob(job) {
+  if (job.status !== 'queued') return;
+  if (isSerializedMediaJob(job)) providerRunning.add(job.providerId);
+  job.status = 'processing'; job.phase = 'preparing'; job.nextAttemptAt = null; job.attempt = Number(job.attempt || 0) + 1; job.updatedAt = now();
+  const controller = new AbortController(); jobControllers.set(job.id, controller);
+  void runJob(job.id, controller.signal).finally(() => {
+    jobControllers.delete(job.id); if (isSerializedMediaJob(job)) providerRunning.delete(job.providerId); scheduleJobs();
+  });
+}
+
 const interruptedJobs = Object.values(state.jobs).filter(job => ['queued','processing'].includes(job.status));
 if (interruptedJobs.length) {
   const interruptedAt = new Date().toISOString();
@@ -137,15 +204,19 @@ async function readJson(req, max = 4 * 1024 * 1024) {
 }
 
 function projectOr404(id) { return state.projects[id]; }
-function projectAssets(projectId) { return Object.values(state.assets).filter(a => a.projectId === projectId).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); }
+function projectAssets(projectId, { tag, kind } = {}) {
+  const all = Object.values(state.assets)
+    .filter(a => a.projectId === projectId)
+    .map(a => (a.tags ? a : { ...a, tags: computeInitialTags({kind:a.kind, metadata:a.metadata, source:a.metadata?.source||'upload'}) }));
+  let filtered = all;
+  if (tag) filtered = filtered.filter(a => a.tags.includes(tag));
+  if (kind) filtered = filtered.filter(a => a.kind === kind);
+  return filtered.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+}
 function projectJobs(projectId) { return Object.values(state.jobs).filter(j => j.projectId === projectId).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); }
 
 function listModels() {
-  const models = [
-    { providerId:'mock', modelId:'mock-text', displayName:'Mock Text', capabilities:['text.generate'], constraints:{}, configured:true },
-    { providerId:'mock', modelId:'mock-image', displayName:'Mock Image', capabilities:['image.generate','image.edit'], constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4']}, configured:true },
-    { providerId:'mock', modelId:'mock-video', displayName:'Mock Video', capabilities:['video.generate','video.image_to_video','video.first_last_frame','video.reference'], constraints:{durations:[2],aspectRatios:['16:9','9:16']}, configured:true },
-  ];
+  const models = [];
   if (OPENAI_COMPAT_API_KEY) models.push({providerId:'openai-compatible',modelId:OPENAI_COMPAT_TEXT_MODEL,displayName:`Text · ${OPENAI_COMPAT_TEXT_MODEL}`,capabilities:['text.generate'],constraints:{},configured:true});
   if (AGNES_API_KEY) models.push(
     {providerId:'agnes',modelId:AGNES_TEXT_MODEL,displayName:`Agnes Text · ${AGNES_TEXT_MODEL}`,capabilities:['text.generate'],constraints:{},configured:true},
@@ -154,7 +225,7 @@ function listModels() {
   );
   if (ARK_API_KEY) {
     models.push({providerId:'seedream',modelId:ARK_IMAGE_MODEL,displayName:`Seedream · ${ARK_IMAGE_MODEL}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4'],resolutions:['1K','2K','4K'],maxImageRefs:10},configured:true});
-    models.push({providerId:'seedance',modelId:ARK_VIDEO_MODEL,displayName:`Seedance · ${ARK_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video'],constraints:{durations:[5,10],aspectRatios:['16:9','9:16']},configured:true});
+    models.push({providerId:'seedance',modelId:ARK_VIDEO_MODEL,displayName:`Seedance · ${ARK_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.reference'],constraints:{durations:[4,5,6,8,10,12,15],aspectRatios:['16:9','9:16'],resolutions:['480p','720p','1080p'],audioModes:['ambient','silent','music','voiceover','full'],maxImageRefs:10,maxAudioRefs:1},configured:true});
   }
   if (FAL_KEY) models.push(
     {providerId:'fal',modelId:FAL_IMAGE_MODEL,displayName:`fal · ${FAL_IMAGE_MODEL}`,capabilities:['image.generate'],constraints:{},configured:true},
@@ -183,6 +254,30 @@ async function availableAgentModels() {
   }catch{return configured;}
 }
 
+const GENERATION_REFERENCE_ROLES = new Set(['first-frame','last-frame','reference-image','reference-video','reference-audio']);
+const SEMANTIC_REFERENCE_ROLES = new Set(['subject','style','composition','content','motion','audio','continuity']);
+function normalizeGenerationReference(value) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const ref = { ...raw, assetId: String(raw.assetId || ''), role: String(raw.role || '') };
+  ref.source = raw.source || (raw.timelineItemId ? 'timeline' : raw.sourceNodeId ? 'node' : 'asset');
+  if (!['asset','node','timeline'].includes(ref.source)) throw Object.assign(new Error(`unsupported reference source: ${ref.source}`), { status: 400 });
+  ref.semanticRole = raw.semanticRole || (['first-frame','last-frame'].includes(ref.role) ? 'continuity' : ref.role === 'reference-video' ? 'motion' : ref.role === 'reference-audio' ? 'audio' : 'subject');
+  if (!SEMANTIC_REFERENCE_ROLES.has(ref.semanticRole)) throw Object.assign(new Error(`unsupported semantic reference role: ${ref.semanticRole}`), { status: 400 });
+  if (raw.label != null) ref.label = String(raw.label).slice(0, 240);
+  if (raw.region != null) {
+    const region = Object.fromEntries(['x','y','width','height'].map(key => [key, Number(raw.region?.[key])]));
+    if (!Object.values(region).every(Number.isFinite) || region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0 || region.x + region.width > 1 || region.y + region.height > 1) throw Object.assign(new Error('reference region must fit within normalized 0..1 bounds'), { status: 400 });
+    ref.region = region;
+  }
+  const range = raw.timelineRange || (raw.timelineItemId ? { startFrame: raw.sourceInFrame, endFrame: raw.sourceOutFrame } : null);
+  if (range) {
+    const startFrame = Number(range.startFrame), endFrame = Number(range.endFrame);
+    if (!Number.isFinite(startFrame) || !Number.isFinite(endFrame) || startFrame < 0 || endFrame <= startFrame) throw Object.assign(new Error('timeline reference has an empty source range'), { status: 400 });
+    ref.timelineRange = { startFrame, endFrame };
+  }
+  return ref;
+}
+
 function validateGenerationRequest(model, body, references) {
   const prompt = String(body.prompt || '').trim();
   if (!prompt) throw Object.assign(new Error('prompt is required'), { status: 400 });
@@ -197,6 +292,10 @@ function validateGenerationRequest(model, body, references) {
   if (c.resolutions?.length && params.resolution && !c.resolutions.includes(params.resolution)) {
     throw Object.assign(new Error(`resolution must be one of: ${c.resolutions.join(', ')}`), { status: 400 });
   }
+  if (body.capability.startsWith('image.')) {
+    const variants = Math.round(Number(params.variants || 1) || 1);
+    if (variants < 1 || variants > 4) throw Object.assign(new Error('variants must be between 1 and 4'), { status: 400 });
+  }
   const counts = { image: 0, video: 0, audio: 0 };
   let first = 0, last = 0, refVideo = 0;
   for (const ref of references) {
@@ -209,8 +308,9 @@ function validateGenerationRequest(model, body, references) {
     if (['first-frame','last-frame','reference-image'].includes(ref.role) && asset.kind !== 'image') throw Object.assign(new Error(`${ref.role} requires an image asset`), { status: 400 });
     if (ref.role === 'reference-video' && asset.kind !== 'video') throw Object.assign(new Error('reference-video requires a video asset'), { status: 400 });
     if (ref.role === 'reference-audio' && asset.kind !== 'audio') throw Object.assign(new Error('reference-audio requires an audio asset'), { status: 400 });
-    if (!['first-frame','last-frame','reference-image','reference-video','reference-audio'].includes(ref.role)) throw Object.assign(new Error(`unsupported reference role: ${ref.role}`), { status: 400 });
-    if (ref.timelineItemId && Number(ref.sourceOutFrame || 0) <= Number(ref.sourceInFrame || 0)) throw Object.assign(new Error('timeline reference has an empty source range'), { status: 400 });
+    if (!GENERATION_REFERENCE_ROLES.has(ref.role)) throw Object.assign(new Error(`unsupported reference role: ${ref.role}`), { status: 400 });
+    if (ref.timelineItemId && !ref.timelineRange && Number(ref.sourceOutFrame || 0) <= Number(ref.sourceInFrame || 0)) throw Object.assign(new Error('timeline reference has an empty source range'), { status: 400 });
+    if (ref.timelineRange && Number(ref.timelineRange.endFrame) <= Number(ref.timelineRange.startFrame)) throw Object.assign(new Error('timeline reference has an empty source range'), { status: 400 });
   }
   if (body.capability === 'image.edit' && !counts.image) throw Object.assign(new Error('image.edit requires an image reference'), { status: 400 });
   if (last && !first) throw Object.assign(new Error('last-frame requires first-frame'), { status: 400 });
@@ -228,10 +328,23 @@ function validateGenerationRequest(model, body, references) {
   if (c.maxAudioRefs != null && counts.audio > c.maxAudioRefs) throw Object.assign(new Error(`too many audio references; maximum is ${c.maxAudioRefs}`), { status: 400 });
 }
 
+function preflightProviderRequest(model, request) {
+  // No longer enforce PUBLIC_BASE_URL for Agnes video - providerImageReferenceValue supports data-uri fallback
+}
+
+function computeInitialTags({kind, metadata, source}) {
+  const tags = [kind];
+  if (source === 'upload') tags.push('uploaded');
+  else tags.push('generated');
+  if (metadata?.provider) tags.push(String(metadata.provider).toLowerCase());
+  return [...new Set(tags)];
+}
+
 function addAsset({ projectId, kind, filename, mime, localPath, metadata = {}, source = 'upload' }) {
   const id = randomUUID();
   const rel = basename(localPath);
-  const asset = { id, projectId, kind, filename, mime, localPath: rel, publicUrl: `/media/assets/${encodeURIComponent(rel)}`, width: metadata.width, height: metadata.height, durationMs: metadata.durationMs, metadata: { ...metadata, source }, createdAt: now(), updatedAt: now() };
+  const tags = computeInitialTags({ kind, metadata, source });
+  const asset = { id, projectId, kind, filename, mime, localPath: rel, publicUrl: `/media/assets/${encodeURIComponent(rel)}`, width: metadata.width, height: metadata.height, durationMs: metadata.durationMs, metadata: { ...metadata, source }, tags, createdAt: now(), updatedAt: now() };
   state.assets[id] = asset;
   return asset;
 }
@@ -257,35 +370,11 @@ async function mediaMetadata(file) {
   } catch { return {}; }
 }
 
-async function mockImage(job) {
-  job.progress = 25; await saveDb(); await sleep(350);
-  const file = `${job.id}.png`; const target = join(ASSETS_DIR, file);
-  if (HAS_FFMPEG) await execFile('ffmpeg',['-y','-hide_banner','-loglevel','error','-f','lavfi','-i','color=c=0x121826:s=1280x720','-frames:v','1',target],{timeout:30000});
-  else await fsp.writeFile(target,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64'));
-  job.progress = 80; await saveDb(); await sleep(250);
-  return addAsset({ projectId: job.projectId, kind: 'image', filename: file, mime: 'image/png', localPath: target, metadata: { width: HAS_FFMPEG?1280:1, height: HAS_FFMPEG?720:1, prompt: job.request.prompt }, source: 'mock' });
-}
-
-async function mockVideo(job) {
-  job.progress = 20; await saveDb(); await sleep(500);
-  const file = `${job.id}.mp4`; const target = join(ASSETS_DIR, file);
-  copyFileSync(join(FIXTURES, 'mock-video.mp4'), target);
-  job.progress = 75; await saveDb(); await sleep(350);
-  return addAsset({ projectId: job.projectId, kind: 'video', filename: file, mime: 'video/mp4', localPath: target, metadata: { ...(await mediaMetadata(target)), prompt: job.request.prompt }, source: 'mock' });
-}
-
-async function mockText(job) {
-  job.progress=35; await saveDb(); await sleep(180);
-  const preset=job.request.params?.system||'AI 文本';
-  job.progress=80; await saveDb(); await sleep(180);
-  return `【Mock Text】\n${preset}\n\n输入：${job.request.prompt}\n\n1. 建立清晰主题与视觉目标\n2. 拆分主体动作、场景、镜头与声音\n3. 输出可继续连接到图片或视频节点的文本结果`;
-}
-
-async function openAICompatibleText(job) {
+async function openAICompatibleText(job, signal) {
   if(!OPENAI_COMPAT_API_KEY) throw new Error('OPENAI_COMPAT_API_KEY is not configured');
   const req=job.request; job.progress=12; await saveDb();
   const body={model:job.modelId,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
-  const r=await fetch(`${OPENAI_COMPAT_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${OPENAI_COMPAT_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetch(`${OPENAI_COMPAT_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${OPENAI_COMPAT_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal});
   const data=await r.json().catch(()=>({})); if(!r.ok) throw new Error(`Text API failed ${r.status}: ${data.error?.message||data.message||JSON.stringify(data).slice(0,500)}`);
   const content=data.choices?.[0]?.message?.content ?? data.output_text ?? data.text;
   if(typeof content==='string'&&content.trim()) return content.trim();
@@ -293,42 +382,52 @@ async function openAICompatibleText(job) {
   throw new Error('Text API returned no text content');
 }
 
-async function agnesRequest(url, options, label) {
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(`${label} failed ${response.status}: ${data.error?.message || data.message || JSON.stringify(data).slice(0,500)}`);
-    error.status = response.status;
-    const retryAfter = response.headers.get('retry-after');
-    if (retryAfter) {
-      const seconds = Number(retryAfter);
-      error.retryAfterMs = Number.isFinite(seconds) ? Math.max(0, seconds * 1000) : Math.max(0, Date.parse(retryAfter) - Date.now());
-    }
-    throw error;
+function providerHttpError(label, response, data) {
+  const error = new Error(`${label} failed ${response.status}: ${data?.error?.message || data?.message || String(data || '').slice(0,500)}`);
+  error.status = response.status;
+  const retryAfter = response.headers.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    error.retryAfterMs = Number.isFinite(seconds) ? Math.max(0, seconds * 1000) : Math.max(0, Date.parse(retryAfter) - Date.now());
   }
-  return data;
+  return error;
 }
 
-async function agnesTextGenerate(job) {
+async function agnesRequest(url, options, label, signal) {
+  const response = await fetch(url, { ...options, signal });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw providerHttpError(label, response, data);
+  return data;
+}
+async function providerJson(url, options, label, signal) {
+  const response=await fetch(url,{...options,signal});const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw providerHttpError(label,response,data);return data;
+}
+async function providerPollJson(url, options, label, signal) {
+  let delay=PROVIDER_RETRY_BASE_MS;
+  while(true){try{return await providerJson(url,options,label,signal);}catch(error){if(error?.status!==429)throw error;await sleep(Math.min(MAX_PROVIDER_RETRY_DELAY_MS,Math.max(delay,error.retryAfterMs||0)),signal);delay=Math.min(MAX_PROVIDER_RETRY_DELAY_MS,delay*2);}}
+}
+
+async function agnesTextGenerate(job, signal) {
   const req=job.request; job.progress=12; await saveDb();
   const body={model:job.modelId,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
-  const data=await agnesRequest(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes text');
+  const data=await agnesRequest(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes text',signal);
   const content=data.choices?.[0]?.message?.content;
   if(typeof content==='string'&&content.trim())return content.trim();
   if(Array.isArray(content))return content.map(x=>x?.text||x?.content||'').join('\n').trim();
   throw new Error('Agnes text returned no content');
 }
 
-async function agnesImageGenerate(job) {
+async function agnesImageGenerate(job, signal) {
   const req=job.request,refs=[];
   for(const reference of req.references||[]){const asset=state.assets[reference.assetId];if(asset?.projectId===job.projectId&&asset.kind==='image')refs.push(await providerImageReferenceValue(asset));}
   const extra_body={response_format:'url'};if(refs.length)extra_body.image=refs;
   const body={model:job.modelId,prompt:req.prompt,size:req.params?.quality||req.params?.resolution||'2K',ratio:req.params?.aspectRatio||'1:1',extra_body};
   job.progress=20;await saveDb();
-  const data=await agnesRequest(`${AGNES_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes image');
+  const data=await agnesRequest(`${AGNES_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes image',signal);
   const output=data.data?.[0];if(!output)throw new Error('Agnes image returned no output');
-  if(output.b64_json){const filename=`${job.id}-agnes.png`,target=join(ASSETS_DIR,filename);await fsp.writeFile(target,Buffer.from(output.b64_json,'base64'));return addAsset({projectId:job.projectId,kind:'image',filename,mime:'image/png',localPath:target,metadata:{...(await mediaMetadata(target)),provider:'agnes',model:job.modelId,prompt:req.prompt},source:'external'});}
-  if(output.url)return ingestRemoteAsset(job.projectId,job.id,'image',output.url,{provider:'agnes',providerUrl:output.url,model:job.modelId,prompt:req.prompt,agnesResult:data});
+  if(output.b64_json){const filename=`${job.id}-agnes.png`,target=join(ASSETS_DIR,filename);await fsp.writeFile(target,Buffer.from(output.b64_json,'base64'));return addAsset({projectId:job.projectId,kind:'image',filename,mime:'image/png',localPath:target,metadata:{...(await mediaMetadata(target)),provider:'agnes',providerUrl:typeof output.url==='string'?output.url:undefined,localOnly:!output.url,model:job.modelId,prompt:req.prompt},source:'external'});}
+  if(output.url)return ingestRemoteAsset(job.projectId,job.id,'image',output.url,{provider:'agnes',providerUrl:output.url,model:job.modelId,prompt:req.prompt,agnesResult:data},{},signal);
   throw new Error('Agnes image returned neither b64_json nor url');
 }
 
@@ -344,24 +443,33 @@ function agnesVideoDimensions(resolution='720p',ratio='16:9') {
 function agnesPublicAssetUrl(asset) {
   if(PUBLIC_BASE_URL)return `${PUBLIC_BASE_URL}/media/assets/${encodeURIComponent(basename(asset.localPath))}`;
   if(typeof asset.metadata?.providerUrl==='string'&&/^https:\/\//i.test(asset.metadata.providerUrl))return asset.metadata.providerUrl;
-  throw new Error('当前图片仅保存在本机，Agnes 视频无法访问。请重新运行 Agnes 图片节点后再生成视频；本地上传图片需在“模型/API → Agnes AI”配置素材公网地址');
+  throw Object.assign(new Error('该图片没有 Agnes 可访问的公网地址。请在“模型/API → Agnes AI”配置素材公网地址，或改用支持内联图片的模型。'),{status:422,code:'reference_not_public'});
 }
 
-async function agnesVideoGenerate(job) {
-  const req=job.request,duration=Number(req.params?.duration||5),numFrames=({3:81,5:121,10:241,18:441})[duration]||121,frameRate=24,{width,height}=agnesVideoDimensions(String(req.params?.resolution||'720p'),String(req.params?.aspectRatio||'16:9'));
-  const body={model:job.modelId,prompt:req.prompt,width,height,num_frames:numFrames,frame_rate:frameRate};
-  if(req.params?.seed!==undefined&&req.params?.seed!=='')body.seed=Number(req.params.seed);if(req.params?.negativePrompt)body.negative_prompt=req.params.negativePrompt;
-  const first=firstRef(job,['first-frame'],'image'),last=firstRef(job,['last-frame'],'image');
-  if(req.capability==='video.image_to_video'&&first)body.image=agnesPublicAssetUrl(first.asset);
-  if(req.capability==='video.first_last_frame'&&first&&last)body.extra_body={image:[agnesPublicAssetUrl(first.asset),agnesPublicAssetUrl(last.asset)],mode:'keyframes'};
-  const created=await agnesRequest(`${AGNES_BASE_URL}/videos`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes video submit');
-  const videoId=created.video_id||created.task_id||created.id;if(!videoId)throw new Error('Agnes video did not return video_id');job.providerTaskId=String(videoId);job.progress=Number(created.progress||5);await saveDb();
+async function agnesVideoGenerate(job, signal) {
+  const req=job.request;
+  let videoId=job.providerTaskId;
+  if(!videoId){
+    const duration=Number(req.params?.duration||5),numFrames=({3:81,5:121,10:241,18:441})[duration]||121,frameRate=24,{width,height}=agnesVideoDimensions(String(req.params?.resolution||'720p'),String(req.params?.aspectRatio||'16:9'));
+    const body={model:job.modelId,prompt:req.prompt,width,height,num_frames:numFrames,frame_rate:frameRate};
+    if(req.params?.seed!==undefined&&req.params?.seed!=='')body.seed=Number(req.params.seed);if(req.params?.negativePrompt)body.negative_prompt=req.params.negativePrompt;
+    const first=firstRef(job,['first-frame'],'image'),last=firstRef(job,['last-frame'],'image');
+    if(req.capability==='video.image_to_video'&&first)body.image=await providerImageReferenceValue(first.asset);
+    if(req.capability==='video.first_last_frame'&&first&&last){
+      const refs=[];
+      if(first)refs.push(await providerImageReferenceValue(first.asset));
+      if(last)refs.push(await providerImageReferenceValue(last.asset));
+      body.extra_body={image:refs,mode:'keyframes'};
+    }
+    const created=await agnesRequest(`${AGNES_BASE_URL}/videos`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes video submit',signal);
+    videoId=created.video_id||created.task_id||created.id;if(!videoId)throw new Error('Agnes video did not return video_id');job.providerTaskId=String(videoId);job.progress=Number(created.progress||5);await saveDb();
+  }
   const root=AGNES_BASE_URL.replace(/\/v1$/,'');const deadline=Date.now()+Number(process.env.AGNES_VIDEO_TIMEOUT_MS||20*60*1000),baseInterval=Math.max(20,Number(process.env.AGNES_POLL_INTERVAL_MS||5000));let interval=baseInterval;
-  while(Date.now()<deadline){await sleep(interval);if(job.status==='canceled')throw new Error('canceled');const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status');interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url;if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data});}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);job.progress=Math.max(job.progress||5,Number(data.progress||0));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status',signal);interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url||recursivelyFindUrl(data,'video');if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data},{},signal);}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);job.progress=Math.max(job.progress||5,Number(data.progress||0));await saveDb();}
   throw new Error('Agnes video generation timed out');
 }
 
-async function seedreamGenerate(job) {
+async function seedreamGenerate(job, signal) {
   if(!ARK_API_KEY) throw new Error('ARK_API_KEY is not configured');
   const req=job.request; const ratio=req.params?.aspectRatio; const body={model:job.modelId,prompt:ratio?`${req.prompt}\n画面比例：${ratio}`:req.prompt,size:req.params?.quality||req.params?.resolution||'2K',sequential_image_generation:'disabled',stream:false,response_format:'url',watermark:false}; if(req.params?.seed!==undefined&&req.params?.seed!=='')body.seed=Number(req.params.seed);
   if(req.capability==='image.edit'){
@@ -369,13 +477,10 @@ async function seedreamGenerate(job) {
     const images=[]; for(const x of refs.slice(0,10)) images.push(await providerImageReferenceValue(x.asset)); body.image=images.length===1?images[0]:images;
   }
   job.progress=15; await saveDb();
-  const r=await fetch(`${ARK_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json().catch(()=>({})); if(!r.ok) throw new Error(`Seedream failed ${r.status}: ${data.error?.message||data.message||JSON.stringify(data).slice(0,600)}`);
+  const data=await providerJson(`${ARK_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Seedream submit',signal);
   const url=data.data?.[0]?.url||recursivelyFindUrl(data,'image'); if(!url) throw new Error('Seedream result contains no image URL');
-  job.progress=90; await saveDb(); return ingestRemoteAsset(job.projectId,job.id,'image',url,{provider:'seedream',model:job.modelId,prompt:req.prompt,seedreamResult:data});
+  job.progress=90; await saveDb(); return ingestRemoteAsset(job.projectId,job.id,'image',url,{provider:'seedream',model:job.modelId,prompt:req.prompt,seedreamResult:data},{},signal);
 }
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function safeRemoteUrl(raw) {
   const url = new URL(raw);
@@ -429,50 +534,51 @@ function recursivelyFindUrl(value, kind) {
   return candidates.find(c => preferred.test(c.key) || preferred.test(c.url.toLowerCase()))?.url || candidates[0]?.url;
 }
 
-async function falGenerate(job) {
+async function falGenerate(job, signal) {
   if (!FAL_KEY) throw new Error('FAL_KEY is not configured');
   const req = job.request;
-  const input = { prompt: req.prompt || '' }; const fp=req.params||{}; if(fp.seed!==undefined&&fp.seed!=='')input.seed=Number(fp.seed); if(req.capability.startsWith('image.')){const map={'1:1':'square_hd','16:9':'landscape_16_9','9:16':'portrait_16_9','4:3':'landscape_4_3','3:4':'portrait_4_3'};if(fp.aspectRatio)input.image_size=map[fp.aspectRatio]||fp.aspectRatio;}else{if(fp.aspectRatio)input.aspect_ratio=fp.aspectRatio;if(fp.duration!=null)input.duration=fp.duration;if(fp.resolution)input.resolution=fp.resolution;if(fp.negativePrompt)input.negative_prompt=fp.negativePrompt;}
-  if (req.capability.includes('image_to_video') || req.capability === 'video.reference') {
-    const ref = (req.references || []).find(r => ['first-frame','reference-image'].includes(r.role)) || (req.references || [])[0];
-    if (!ref) throw new Error('image-to-video requires an image reference');
-    const asset = state.assets[ref.assetId];
-    if (!asset || asset.projectId !== job.projectId || asset.kind !== 'image') throw new Error('reference image not found in project');
-    input.image_url = await providerImageReferenceValue(asset);
-  }
   const queueUrl = `https://queue.fal.run/${job.modelId}`;
-  job.progress = 8; await saveDb();
-  const submit = await fetch(queueUrl, { method: 'POST', headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
-  if (!submit.ok) throw new Error(`fal submit failed ${submit.status}: ${(await submit.text()).slice(0,800)}`);
-  const ticket = await submit.json();
-  job.providerTaskId = ticket.request_id || ticket.requestId || job.id;
-  const statusUrl = ticket.status_url || ticket.statusUrl || `${queueUrl}/requests/${job.providerTaskId}/status`;
-  const resultUrl = ticket.response_url || ticket.responseUrl || `${queueUrl}/requests/${job.providerTaskId}`;
+  let requestId = job.providerTaskId;
+  if (!requestId) {
+    const input = { prompt: req.prompt || '' }; const fp=req.params||{}; if(fp.seed!==undefined&&fp.seed!=='')input.seed=Number(fp.seed); if(req.capability.startsWith('image.')){const map={'1:1':'square_hd','16:9':'landscape_16_9','9:16':'portrait_16_9','4:3':'landscape_4_3','3:4':'portrait_4_3'};if(fp.aspectRatio)input.image_size=map[fp.aspectRatio]||fp.aspectRatio;}else{if(fp.aspectRatio)input.aspect_ratio=fp.aspectRatio;if(fp.duration!=null)input.duration=fp.duration;if(fp.resolution)input.resolution=fp.resolution;if(fp.negativePrompt)input.negative_prompt=fp.negativePrompt;}
+    if (req.capability.includes('image_to_video') || req.capability === 'video.reference') {
+      const ref = (req.references || []).find(r => ['first-frame','reference-image'].includes(r.role)) || (req.references || [])[0];
+      if (!ref) throw new Error('image-to-video requires an image reference');
+      const asset = state.assets[ref.assetId];
+      if (!asset || asset.projectId !== job.projectId || asset.kind !== 'image') throw new Error('reference image not found in project');
+      input.image_url = await providerImageReferenceValue(asset);
+    }
+    job.progress = 8; await saveDb();
+    const ticket = await providerJson(queueUrl, { method: 'POST', headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, 'fal submit', signal);
+    requestId = ticket.request_id || ticket.requestId || job.id;
+    job.providerTaskId = requestId;
+    job.providerStatusUrl = ticket.status_url || ticket.statusUrl || `${queueUrl}/requests/${requestId}/status`;
+    job.providerResultUrl = ticket.response_url || ticket.responseUrl || `${queueUrl}/requests/${requestId}`;
+    await saveDb();
+  }
+  const statusUrl = job.providerStatusUrl || `${queueUrl}/requests/${requestId}/status`;
+  const resultUrl = job.providerResultUrl || `${queueUrl}/requests/${requestId}`;
   const deadline = Date.now() + Number(process.env.FAL_TIMEOUT_MS || 10 * 60 * 1000);
   while (Date.now() < deadline) {
-    await sleep(1200);
-    const statusResp = await fetch(statusUrl, { headers: { Authorization: `Key ${FAL_KEY}` } });
-    if (!statusResp.ok) throw new Error(`fal status failed ${statusResp.status}`);
-    const status = await statusResp.json();
+    await sleep(1200,signal);
+    const status = await providerPollJson(statusUrl, { headers: { Authorization: `Key ${FAL_KEY}` } }, 'fal status', signal);
     const s = String(status.status || '').toUpperCase();
     if (s.includes('COMPLETED') || s.includes('SUCCEEDED') || s === 'OK') break;
     if (s.includes('FAILED') || s.includes('ERROR') || s.includes('CANCEL')) throw new Error(`fal job ${s}: ${JSON.stringify(status).slice(0,600)}`);
     job.progress = Math.min(88, (job.progress || 8) + 4); await saveDb();
   }
   if (Date.now() >= deadline) throw new Error('fal generation timed out');
-  const resultResp = await fetch(resultUrl, { headers: { Authorization: `Key ${FAL_KEY}` } });
-  if (!resultResp.ok) throw new Error(`fal result failed ${resultResp.status}: ${(await resultResp.text()).slice(0,800)}`);
-  const result = await resultResp.json();
+  const result = await providerPollJson(resultUrl, { headers: { Authorization: `Key ${FAL_KEY}` } }, 'fal result', signal);
   const kind = req.capability.startsWith('image.') ? 'image' : 'video';
   const url = recursivelyFindUrl(result, kind);
   if (!url) throw new Error(`fal result contains no ${kind} URL`);
   job.progress = 92; await saveDb();
-  return await ingestRemoteAsset(job.projectId, job.id, kind, url, { provider: 'fal', model: job.modelId, prompt: req.prompt, falResult: result });
+  return await ingestRemoteAsset(job.projectId, job.id, kind, url, { provider: 'fal', model: job.modelId, prompt: req.prompt, falResult: result },{},signal);
 }
 
-async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, downloadHeaders = {}) {
+async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, downloadHeaders = {}, signal) {
   const url = await safeRemoteUrl(rawUrl);
-  const response = await fetch(url, { redirect: 'follow', headers: downloadHeaders });
+  const response = await fetch(url, { redirect: 'follow', headers: downloadHeaders, signal });
   if (!response.ok || !response.body) throw new Error(`output download failed ${response.status}`);
   const mime = contentTypeOnly(response.headers.get('content-type') || '') || (kind === 'image' ? 'image/png' : 'video/mp4');
   const remoteName = cleanFilename(basename(url.pathname) || `${jobId}.${kind === 'image' ? 'png' : 'mp4'}`);
@@ -497,50 +603,137 @@ async function assetBase64(asset, stripDataPrefix=false) {
   const bytes = await fsp.readFile(join(ASSETS_DIR, asset.localPath)); const b64=bytes.toString('base64'); return stripDataPrefix?b64:`data:${asset.mime||mimeFromExt(asset.localPath)};base64,${b64}`;
 }
 function firstRef(job, roles, kind) { for (const r of job.request.references||[]) { if (!roles.includes(r.role)) continue; const a=state.assets[r.assetId]; if(a&&a.projectId===job.projectId&&(!kind||a.kind===kind)) return {ref:r,asset:a}; } return null; }
-async function seedanceGenerate(job) {
-  if(!ARK_API_KEY) throw new Error('ARK_API_KEY is not configured'); const req=job.request; const duration=Math.max(1,Math.min(10,Number(req.params?.duration||5))); const resolution=req.params?.resolution||'720p';
-  const content=[{type:'text',text:`${req.prompt} --resolution ${resolution} --duration ${duration}`}]; const first=firstRef(job,['first-frame','reference-image'],'image');
-  if(first) content.push({type:'image_url',image_url:{url:await providerImageReferenceValue(first.asset)},role:'first_frame'});
-  const submit=await fetch(`${ARK_BASE_URL}/contents/generations/tasks`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:job.modelId,content})}); const data=await submit.json().catch(()=>({}));
-  if(!submit.ok) throw new Error(`Seedance submit failed ${submit.status}: ${data?.error?.message||data?.message||JSON.stringify(data).slice(0,500)}`); const taskId=data.id||data.task_id||data.data?.id||data.data?.task_id; if(!taskId) throw new Error('Seedance did not return task id'); job.providerTaskId=String(taskId); job.progress=10; await saveDb();
-  const deadline=Date.now()+Number(process.env.ARK_TIMEOUT_MS||15*60*1000); while(Date.now()<deadline){await sleep(1800);if(job.status==='canceled')return Promise.reject(new Error('canceled'));const r=await fetch(`${ARK_BASE_URL}/contents/generations/tasks/${taskId}`,{headers:{Authorization:`Bearer ${ARK_API_KEY}`}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(`Seedance status failed ${r.status}`);const payload=d.data&&typeof d.data==='object'?d.data:d;const st=String(payload.status||payload.task_status||'').toLowerCase();if(['succeeded','success','done','completed'].includes(st)){const url=recursivelyFindUrl(payload,'video');if(!url)throw new Error('Seedance result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'seedance',model:job.modelId,prompt:req.prompt});}if(['failed','fail','error','cancelled','canceled'].includes(st))throw new Error(`Seedance failed: ${payload.message||payload.error||st}`);job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Seedance generation timed out');
+const SEEDANCE_AUDIO_PREFIXES={
+  silent:'【声音配置】静音模式。不要生成环境音、动作音效、背景音乐、人声口播或旁白。',
+  ambient:'【声音配置】保留真实环境音和动作音效，例如脚步声、倒水声、开盖声、包装摩擦声、产品接触声和空间氛围声；不要人声口播，不要背景音乐。',
+  music:'【声音配置】生成真实环境音、动作音效和轻快背景音乐；不要人声口播或旁白。背景音乐不能盖过关键动作音效。',
+  voiceover:'【声音配置】生成真实环境音、动作音效和人声口播/旁白；背景音乐不生成或仅保留极轻的铺底音乐。口播节奏必须贴合画面动作。',
+  full:'【声音配置】环境音、动作音效、背景音乐和人声口播全部允许。环境音要贴合画面动作，背景音乐要符合广告节奏，人声口播要清晰自然。'
+};
+const SEEDANCE_PRODUCT_LOCK_PREFIX='【通用产品外观硬约束】\n产品外观唯一以产品参考图和本次产品专属约束为准。分镜图只用于参考镜头顺序、构图、人物/手部/身体局部动作、场景、光线和画面节奏，不用于参考或覆盖产品外观。所有镜头中的产品必须保持产品参考图里的真实品类、轮廓、结构、颜色、材质、纹理、比例、包装/组合关系和可见关键识别细节。禁止把 logo、标识、文字、图案、标签或结构细节移动到错误物理位置，禁止为了规避生成难度而删除、弱化、放大、缩小或强行摆正。';
+const SEEDANCE_GRID_PREFIX='【九宫格分镜直出规则】\n输入的3x3九宫格分镜图锁定9个镜头的读取顺序、构图、主体位置、场景、光线、人物/手部/产品动作、画面节奏和整体视觉风格。读取顺序固定为从上到下、从左到右。不得跳格、重排、合并成不可辨认的新镜头，也不得新增九宫格和脚本中不存在的场景、道具、人物动作或产品呈现方式。所有镜头必须符合真实物理世界逻辑。';
+function seedancePrompt(req){
+  const params=req.params||{},audioMode=SEEDANCE_AUDIO_PREFIXES[params.audioMode]?params.audioMode:'ambient',blocks=[SEEDANCE_AUDIO_PREFIXES[audioMode]];
+  if(params.referenceMode==='grid-storyboard')blocks.push(SEEDANCE_GRID_PREFIX);
+  if(params.injectProductLock===true||params.productLock)blocks.push(SEEDANCE_PRODUCT_LOCK_PREFIX);
+  if(params.productLock)blocks.push(`【本次产品专属约束】\n${String(params.productLock).trim()}`);
+  if(params.referenceNote)blocks.push(String(params.referenceNote).trim());
+  blocks.push(req.prompt);
+  return blocks.filter(Boolean).join('\n\n');
 }
-async function klingGenerate(job) {
-  if(!KLING_ACCESS_KEY||!KLING_SECRET_KEY) throw new Error('KLING_ACCESS_KEY / KLING_SECRET_KEY not configured'); const req=job.request,duration=String(req.params?.duration||5),aspect=req.params?.aspectRatio||'16:9'; const first=firstRef(job,['first-frame','reference-image'],'image'); const last=firstRef(job,['last-frame'],'image');
-  const mode=first?'image2video':'text2video'; const body={model_name:job.modelId,prompt:req.prompt,mode:req.params?.mode||'std',duration,aspect_ratio:aspect}; if(first)body.image=await providerImageBase64(first.asset); if(last)body.image_tail=await providerImageBase64(last.asset); if(req.params?.negativePrompt)body.negative_prompt=req.params.negativePrompt;
-  const headers={Authorization:`Bearer ${klingToken()}`,'Content-Type':'application/json'};const submit=await fetch(`${KLING_BASE_URL}/v1/videos/${mode}`,{method:'POST',headers,body:JSON.stringify(body)});const data=await submit.json().catch(()=>({}));if(!submit.ok||data.code!==0)throw new Error(`Kling submit failed: ${data.message||submit.status}`);const taskId=data.data?.task_id;if(!taskId)throw new Error('Kling did not return task id');job.providerTaskId=taskId;job.progress=10;await saveDb();
-  const deadline=Date.now()+Number(process.env.KLING_TIMEOUT_MS||15*60*1000);while(Date.now()<deadline){await sleep(1800);if(job.status==='canceled')return Promise.reject(new Error('canceled'));const r=await fetch(`${KLING_BASE_URL}/v1/videos/${mode}/${taskId}`,{headers:{Authorization:`Bearer ${klingToken()}`}});const d=await r.json().catch(()=>({}));if(!r.ok||d.code!==0)throw new Error(`Kling status failed: ${d.message||r.status}`);const td=d.data||{},st=String(td.task_status||'').toLowerCase();if(st==='succeed'){const url=td.task_result?.videos?.[0]?.url||recursivelyFindUrl(td,'video');if(!url)throw new Error('Kling result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'kling',model:job.modelId,prompt:req.prompt});}if(st==='failed')throw new Error(td.task_status_msg||'Kling generation failed');job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Kling generation timed out');
+async function seedanceGenerate(job, signal) {
+  if(!ARK_API_KEY) throw new Error('ARK_API_KEY is not configured'); const req=job.request,params=req.params||{};
+  let taskId=job.providerTaskId;
+  if(!taskId){
+    const duration=Math.max(4,Math.min(15,Number(params.duration||5))),resolution=params.resolution||'720p',ratio=params.aspectRatio||params.ratio||'9:16',audioMode=SEEDANCE_AUDIO_PREFIXES[params.audioMode]?params.audioMode:'ambient';
+    const content=[{type:'text',text:seedancePrompt(req)}];
+    for(const ref of req.references||[]){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId)continue;if(asset.kind==='image')content.push({type:'image_url',image_url:{url:await providerImageReferenceValue(asset)},role:ref.role==='first-frame'?'first_frame':'reference_image'});else if(asset.kind==='audio')content.push({type:'audio_url',audio_url:{url:await assetReferenceValue(asset)},role:'reference_audio'});else if(asset.kind==='video')content.push({type:'video_url',video_url:{url:await assetReferenceValue(asset)},role:'reference_video'});}
+    const body={model:job.modelId,content,ratio,duration,resolution,generate_audio:audioMode!=='silent'||params.generateAudio===true,watermark:params.watermark===true};
+    if(params.seed!==undefined&&params.seed!=='')body.seed=Number(params.seed);
+    if(params.returnLastFrame===true)body.return_last_frame=true;
+    const data=await providerJson(`${ARK_BASE_URL}/contents/generations/tasks`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Seedance submit',signal);
+    taskId=data.id||data.task_id||data.data?.id||data.data?.task_id; if(!taskId) throw new Error('Seedance did not return task id'); job.providerTaskId=String(taskId); job.progress=10; await saveDb();
+  }
+  const deadline=Date.now()+Number(process.env.ARK_TIMEOUT_MS||15*60*1000); while(Date.now()<deadline){await sleep(1800,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${ARK_BASE_URL}/contents/generations/tasks/${taskId}`,{headers:{Authorization:`Bearer ${ARK_API_KEY}`}},'Seedance status',signal);const payload=d.data&&typeof d.data==='object'?d.data:d;const st=String(payload.status||payload.task_status||'').toLowerCase();if(['succeeded','success','done','completed'].includes(st)){const url=recursivelyFindUrl(payload,'video');if(!url)throw new Error('Seedance result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'seedance',model:job.modelId,prompt:req.prompt},{},signal);}if(['failed','fail','error','cancelled','canceled'].includes(st))throw new Error(`Seedance failed: ${payload.message||payload.error||st}`);job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Seedance generation timed out');
 }
-async function veoGenerate(job) {
-  if(!GEMINI_API_KEY)throw new Error('GEMINI_API_KEY is not configured');const req=job.request;const instance={prompt:req.prompt};const first=firstRef(job,['first-frame'],'image'),last=firstRef(job,['last-frame'],'image'),video=firstRef(job,['reference-video'],'video');
-  if(first){const img=await normalizedProviderImage(first.asset);instance.image={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(last){const img=await normalizedProviderImage(last.asset);instance.lastFrame={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(video)instance.video={inlineData:{mimeType:video.asset.mime||'video/mp4',data:await assetBase64(video.asset,true)}};
-  const referenceImages=[];for(const ref of (req.references||[]).filter(r=>r.role==='reference-image').slice(0,3)){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId||asset.kind!=='image')continue;const img=await normalizedProviderImage(asset);referenceImages.push({image:{inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}},referenceType:'asset'});}if(referenceImages.length)instance.referenceImages=referenceImages;
-  const parameters={numberOfVideos:1,durationSeconds:Number(req.params?.duration||8),aspectRatio:req.params?.aspectRatio||'16:9',resolution:req.params?.resolution||'720p'};if(req.params?.seed!==undefined&&req.params?.seed!=='')parameters.seed=Number(req.params.seed);const submit=await fetch(`${VEO_BASE_URL}/models/${encodeURIComponent(job.modelId)}:predictLongRunning`,{method:'POST',headers:{'x-goog-api-key':GEMINI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({instances:[instance],parameters})});const data=await submit.json().catch(()=>({}));if(!submit.ok)throw new Error(`Veo submit failed ${submit.status}: ${data.error?.message||JSON.stringify(data).slice(0,500)}`);const op=data.name;if(!op)throw new Error('Veo did not return operation name');job.providerTaskId=op;job.progress=8;await saveDb();
-  const deadline=Date.now()+Number(process.env.VEO_TIMEOUT_MS||20*60*1000);while(Date.now()<deadline){await sleep(2500);if(job.status==='canceled')return Promise.reject(new Error('canceled'));const r=await fetch(`${VEO_BASE_URL}/${op}`,{headers:{'x-goog-api-key':GEMINI_API_KEY}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(`Veo status failed ${r.status}: ${d.error?.message||''}`);if(d.done){if(d.error)throw new Error(`Veo failed: ${d.error.message||JSON.stringify(d.error)}`);const url=d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri||recursivelyFindUrl(d.response,'video');if(!url)throw new Error('Veo result contains no video URI');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'veo',model:job.modelId,prompt:req.prompt},{'x-goog-api-key':GEMINI_API_KEY});}job.progress=Math.min(90,(job.progress||8)+4);await saveDb();}throw new Error('Veo generation timed out');
+async function klingGenerate(job, signal) {
+  if(!KLING_ACCESS_KEY||!KLING_SECRET_KEY) throw new Error('KLING_ACCESS_KEY / KLING_SECRET_KEY not configured'); const req=job.request; const first=firstRef(job,['first-frame','reference-image'],'image'); const last=firstRef(job,['last-frame'],'image');
+  const mode=first?'image2video':'text2video';
+  let taskId=job.providerTaskId;
+  if(!taskId){
+    const duration=String(req.params?.duration||5),aspect=req.params?.aspectRatio||'16:9';
+    const body={model_name:job.modelId,prompt:req.prompt,mode:req.params?.mode||'std',duration,aspect_ratio:aspect}; if(first)body.image=await providerImageBase64(first.asset); if(last)body.image_tail=await providerImageBase64(last.asset); if(req.params?.negativePrompt)body.negative_prompt=req.params.negativePrompt;
+    const headers={Authorization:`Bearer ${klingToken()}`,'Content-Type':'application/json'};const data=await providerJson(`${KLING_BASE_URL}/v1/videos/${mode}`,{method:'POST',headers,body:JSON.stringify(body)},'Kling submit',signal);if(data.code!==0)throw new Error(`Kling submit failed: ${data.message||data.code}`);taskId=data.data?.task_id;if(!taskId)throw new Error('Kling did not return task id');job.providerTaskId=taskId;job.progress=10;await saveDb();
+  }
+  const deadline=Date.now()+Number(process.env.KLING_TIMEOUT_MS||15*60*1000);while(Date.now()<deadline){await sleep(1800,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${KLING_BASE_URL}/v1/videos/${mode}/${taskId}`,{headers:{Authorization:`Bearer ${klingToken()}`}},'Kling status',signal);if(d.code!==0)throw new Error(`Kling status failed: ${d.message||d.code}`);const td=d.data||{},st=String(td.task_status||'').toLowerCase();if(st==='succeed'){const url=td.task_result?.videos?.[0]?.url||recursivelyFindUrl(td,'video');if(!url)throw new Error('Kling result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'kling',model:job.modelId,prompt:req.prompt},{},signal);}if(st==='failed')throw new Error(td.task_status_msg||'Kling generation failed');job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Kling generation timed out');
+}
+async function veoGenerate(job, signal) {
+  if(!GEMINI_API_KEY)throw new Error('GEMINI_API_KEY is not configured');const req=job.request;
+  let op=job.providerTaskId;
+  if(!op){
+    const instance={prompt:req.prompt};const first=firstRef(job,['first-frame'],'image'),last=firstRef(job,['last-frame'],'image'),video=firstRef(job,['reference-video'],'video');
+    if(first){const img=await normalizedProviderImage(first.asset);instance.image={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(last){const img=await normalizedProviderImage(last.asset);instance.lastFrame={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(video)instance.video={inlineData:{mimeType:video.asset.mime||'video/mp4',data:await assetBase64(video.asset,true)}};
+    const referenceImages=[];for(const ref of (req.references||[]).filter(r=>r.role==='reference-image').slice(0,3)){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId||asset.kind!=='image')continue;const img=await normalizedProviderImage(asset);referenceImages.push({image:{inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}},referenceType:'asset'});}if(referenceImages.length)instance.referenceImages=referenceImages;
+    const parameters={numberOfVideos:1,durationSeconds:Number(req.params?.duration||8),aspectRatio:req.params?.aspectRatio||'16:9',resolution:req.params?.resolution||'720p'};if(req.params?.seed!==undefined&&req.params?.seed!=='')parameters.seed=Number(req.params.seed);const data=await providerJson(`${VEO_BASE_URL}/models/${encodeURIComponent(job.modelId)}:predictLongRunning`,{method:'POST',headers:{'x-goog-api-key':GEMINI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({instances:[instance],parameters})},'Veo submit',signal);op=data.name;if(!op)throw new Error('Veo did not return operation name');job.providerTaskId=op;job.progress=8;await saveDb();
+  }
+  const deadline=Date.now()+Number(process.env.VEO_TIMEOUT_MS||20*60*1000);while(Date.now()<deadline){await sleep(2500,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${VEO_BASE_URL}/${op}`,{headers:{'x-goog-api-key':GEMINI_API_KEY}},'Veo status',signal);if(d.done){if(d.error)throw new Error(`Veo failed: ${d.error.message||JSON.stringify(d.error)}`);const url=d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri||recursivelyFindUrl(d.response,'video');if(!url)throw new Error('Veo result contains no video URI');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'veo',model:job.modelId,prompt:req.prompt},{'x-goog-api-key':GEMINI_API_KEY},signal);}job.progress=Math.min(90,(job.progress||8)+4);await saveDb();}throw new Error('Veo generation timed out');
 }
 
-async function runJob(id) {
+async function timelineItemOrThrow(project, itemId) {
+  const item = (project.timeline?.items || []).find(i => i.id === itemId);
+  if (!item) throw Object.assign(new Error('timeline item not found'), { status: 404 });
+  return item;
+}
+function pickDuration(model, wanted) {
+  if (model.providerId === 'veo') return 8;
+  const nums = (model.constraints?.durations || []).map(Number);
+  if (!nums.length) return undefined;
+  let best = nums[0];
+  for (const d of nums) if (Math.abs(d - wanted) < Math.abs(best - wanted)) best = d;
+  return best;
+}
+async function extractFrameAsset(project, jobId, asset, frameIndex, fps, label) {
+  if (asset.kind === 'image') return asset;
+  if (!HAS_FFMPEG) throw Object.assign(new Error(`锚点帧提取需要 ffmpeg（${label}）`), { status: 503 });
+  const known = asset.durationMs ? Math.floor(asset.durationMs / 1000 * fps) - 1 : Number.POSITIVE_INFINITY;
+  const frame = Math.max(0, Math.min(known, Math.floor(Number(frameIndex) || 0)));
+  const filename = `${jobId}-${label}.png`, target = join(ASSETS_DIR, filename);
+  await execFile('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-ss', String(frame / fps), '-i', join(ASSETS_DIR, asset.localPath), '-frames:v', '1', target], { timeout: 30000 });
+  return addAsset({ projectId: project.id, kind: 'image', filename, mime: 'image/png', localPath: target, metadata: { sourceAssetId: asset.id, frameIndex: frame, source: 'keyframe', label }, source: 'keyframe' });
+}
+function applyReshootToTimeline(job, asset) {
+  const pr = state.projects[job.projectId]; if (!pr) return;
+  const item = (pr.timeline?.items || []).find(i => i.id === job.request?.params?.reshootItemId);
+  if (!item) return;
+  Object.assign(item, { sourceAssetId: asset.id, kind: 'video', name: `${String(item.name || '片段')} · 重拍`, sourceInFrame: 0, sourceOutFrame: Number(item.durationInFrames || 1), playbackRate: 1 });
+  pr.updatedAt = now();
+}
+function applyExtendToTimeline(job, asset) {
+  const pr = state.projects[job.projectId]; if (!pr) return;
+  const item = (pr.timeline?.items || []).find(i => i.id === job.request?.params?.extendAfterItemId);
+  if (!item) return;
+  const fps = Math.max(1, Number(pr.timeline?.fps || 30));
+  const dur = Math.max(1, Math.round((asset.durationMs || 3000) / 1000 * fps));
+  pr.timeline.items.push({
+    id: randomUUID(), track: item.track, startFrame: Number(item.startFrame || 0) + Number(item.durationInFrames || 1),
+    durationInFrames: dur, name: `${String(item.name || '片段')} · 续写`, kind: 'video', sourceAssetId: asset.id,
+    sourceInFrame: 0, sourceOutFrame: dur, playbackRate: 1, volume: 1, opacity: 1, fadeInFrames: 0, fadeOutFrames: 0, transform: { x: 0, y: 0, scale: 1 },
+  });
+  pr.updatedAt = now();
+}
+
+async function runJob(id, signal) {
   const job = state.jobs[id]; if (!job || job.status === 'canceled') return;
   try {
-    job.status = 'processing'; job.progress = 3; job.updatedAt = now(); await saveDb();
-    let asset=null, outputText=null;
-    if (job.providerId === 'mock' && job.capability === 'text.generate') outputText = await mockText(job);
-    else if (job.providerId === 'mock') asset = job.capability.startsWith('image.') ? await mockImage(job) : await mockVideo(job);
-    else if (job.providerId === 'openai-compatible') outputText = await openAICompatibleText(job);
-    else if (job.providerId === 'agnes' && job.capability === 'text.generate') outputText = await agnesTextGenerate(job);
-    else if (job.providerId === 'agnes' && job.capability.startsWith('image.')) asset = await agnesImageGenerate(job);
-    else if (job.providerId === 'agnes') asset = await agnesVideoGenerate(job);
-    else if (job.providerId === 'seedream') asset = await seedreamGenerate(job);
-    else if (job.providerId === 'fal') asset = await falGenerate(job);
-    else if (job.providerId === 'seedance') asset = await seedanceGenerate(job);
-    else if (job.providerId === 'kling') asset = await klingGenerate(job);
-    else if (job.providerId === 'veo') asset = await veoGenerate(job);
+    signal?.throwIfAborted(); job.progress = Math.max(3,Number(job.progress||0)); job.updatedAt = now(); await saveDb();
+    const variants = job.capability.startsWith('image.') ? Math.max(1, Math.min(4, Math.round(Number(job.request.params?.variants || 1) || 1))) : 1;
+    const assets = []; let outputText = null;
+    job.phase = 'generating'; await saveDb();
+    if (job.providerId === 'openai-compatible') outputText = await openAICompatibleText(job,signal);
+    else if (job.providerId === 'agnes' && job.capability === 'text.generate') outputText = await agnesTextGenerate(job,signal);
+    else if (job.providerId === 'agnes' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await agnesImageGenerate(job,signal)); }
+    else if (job.providerId === 'agnes') assets.push(await agnesVideoGenerate(job,signal));
+    else if (job.providerId === 'seedream') { for (let i = 0; i < variants; i++) assets.push(await seedreamGenerate(job,signal)); }
+    else if (job.providerId === 'fal' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await falGenerate(job,signal)); }
+    else if (job.providerId === 'fal') assets.push(await falGenerate(job,signal));
+    else if (job.providerId === 'seedance') assets.push(await seedanceGenerate(job,signal));
+    else if (job.providerId === 'kling') assets.push(await klingGenerate(job,signal));
+    else if (job.providerId === 'veo') assets.push(await veoGenerate(job,signal));
     else throw new Error(`unknown provider: ${job.providerId}`);
     if (job.status === 'canceled') return;
-    job.outputAssetIds = asset ? [asset.id] : []; job.outputText = outputText; job.status = 'succeeded'; job.progress = 100; job.updatedAt = now(); await saveDb();
+    job.phase = 'finalizing'; await saveDb();
+    job.outputAssetIds = assets.map(a => a.id); job.outputText = outputText; job.status = 'succeeded'; job.phase = 'succeeded'; job.progress = 100; job.updatedAt = now();
+    if (assets[0] && job.request?.params?.reshootItemId) applyReshootToTimeline(job, assets[0]);
+    if (assets[0] && job.request?.params?.extendAfterItemId) applyExtendToTimeline(job, assets[0]);
+    await saveDb();
   } catch (error) {
-    if (job.status === 'canceled') { job.updatedAt = now(); await saveDb(); return; }
-    job.status = 'failed'; job.error = error instanceof Error ? error.message : String(error); job.updatedAt = now(); await saveDb();
+    if (job.status === 'canceled' || error?.name === 'AbortError') { job.status='canceled'; job.phase='canceled'; job.updatedAt = now(); await saveDb(); return; }
+    const retryPhase = providerRetryPhase(error), maxAttempts = retryPhase === 'provider_busy' ? MAX_PROVIDER_BUSY_ATTEMPTS : MAX_PROVIDER_ATTEMPTS;
+    // Resuming an already-submitted task is safe: adapters skip submit when providerTaskId is set and continue polling the same provider task, so requeue no longer risks a duplicate charge.
+    if (retryPhase && Number(job.attempt||0) < maxAttempts) {
+      const delay = retryDelay(error, job.attempt, retryPhase === 'provider_busy' ? PROVIDER_BUSY_RETRY_BASE_MS : PROVIDER_RETRY_BASE_MS); job.status='queued'; job.phase=retryPhase; job.nextAttemptAt=new Date(Date.now()+delay).toISOString(); job.progress=0; job.error=''; job.updatedAt=now(); await saveDb(); return;
+    }
+    job.status = 'failed'; job.phase = 'failed'; job.error = error instanceof Error ? error.message : String(error); job.updatedAt = now(); await saveDb();
   }
 }
 
@@ -594,6 +787,13 @@ async function handleApi(req, res, url) {
   }
   let m = p.match(/^\/api\/projects\/([^/]+)$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr) : notFound(res); }
+  if (m && method === 'DELETE') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    delete state.projects[m[1]];
+    for (const key of Object.keys(state.jobs)) if (state.jobs[key].projectId === m[1]) delete state.jobs[key];
+    for (const key of Object.keys(state.assets)) if (state.assets[key].projectId === m[1]) delete state.assets[key];
+    await saveDb(); return json(res, 200, { ok: true });
+  }
   m = p.match(/^\/api\/projects\/([^/]+)\/agent$/);
   if (m && method === 'GET') { const pr=projectOr404(m[1]); if(!pr)return notFound(res); return json(res,200,ensureAgentSession(pr)); }
   if (m && method === 'DELETE') { const pr=projectOr404(m[1]); if(!pr)return notFound(res); pr.agentSession={version:1,selectedProviderId:'',selectedModelId:'',messages:[],proposals:[]}; pr.updatedAt=now(); await saveDb(); return json(res,200,pr.agentSession); }
@@ -629,8 +829,68 @@ async function handleApi(req, res, url) {
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.timeline) : notFound(res); }
   if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.timeline = { fps: Number(body.fps || 30), width: Number(body.width || 1280), height: Number(body.height || 720), items: Array.isArray(body.items) ? body.items : [], tracks: body.tracks && typeof body.tracks === 'object' ? body.tracks : (pr.timeline.tracks || {}) }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.timeline); }
+  m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/reshoot$/);
+  if (m && method === 'POST') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    const body = await readJson(req);
+    const item = await timelineItemOrThrow(pr, String(body.itemId || ''));
+    const sourceKey=`timeline:reshoot:${item.id}`,existing=findExistingJob(pr.id,String(body.requestId||''),sourceKey);if(existing)return json(res,202,existing);
+    if (!['video','image'].includes(item.kind)) return json(res,400,{error:'reshoot_requires_visual_clip',message:'重拍仅支持视频 / 图片片段'});
+    const asset = state.assets[item.sourceAssetId]; if (!asset || asset.projectId !== pr.id) return json(res,400,{error:'invalid_asset'});
+    const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.first_last_frame'));
+    if (!model) return json(res,400,{error:'model_not_available',message:'该模型不支持首尾帧锚定重拍'});
+    if(model.providerId==='agnes'&&!PUBLIC_BASE_URL)throw Object.assign(new Error('Agnes 锚定重拍需要先配置素材公网地址。'),{status:422,code:'reference_not_public'});
+    const fps = Math.max(1, Number(pr.timeline?.fps || 30));
+    const sourceIn = Number(item.sourceInFrame || 0);
+    const sourceOut = Math.max(sourceIn + 1, Number(item.sourceOutFrame || (sourceIn + Number(item.durationInFrames || 1) * Number(item.playbackRate || 1))) - 1);
+    const anchorIn = await extractFrameAsset(pr, randomUUID(), asset, sourceIn, fps, 'anchor-in');
+    const anchorOut = await extractFrameAsset(pr, randomUUID(), asset, sourceOut, fps, 'anchor-out');
+    const prompt = String(body.prompt || '').trim() || '保持画面主体、光线与风格一致，重新生成此片段';
+    const params = { ...(body.params || {}) };
+    if (params.duration == null) { const picked = pickDuration(model, Math.max(1, Math.round(Number(item.durationInFrames || 1) / fps))); if (picked) params.duration = picked; }
+    const jobRequest = { projectId: pr.id, capability: 'video.first_last_frame', providerId: model.providerId, modelId: model.modelId, prompt, params: { ...params, reshootItemId: item.id, timelineItemId: item.id, sourceInFrame: sourceIn, sourceOutFrame: sourceOut }, references: [
+      { assetId: anchorIn.id, role: 'first-frame', timelineItemId: item.id, sourceInFrame: sourceIn, sourceOutFrame: sourceOut },
+      { assetId: anchorOut.id, role: 'last-frame', timelineItemId: item.id, sourceInFrame: sourceIn, sourceOutFrame: sourceOut },
+    ] };
+    validateGenerationRequest(model, jobRequest, jobRequest.references);preflightProviderRequest(model,jobRequest);
+    const job=await enqueueGeneration(jobRequest,{requestId:body.requestId,sourceKey});return json(res,202,job);
+  }
+  m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/extend$/);
+  if (m && method === 'POST') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    const body = await readJson(req);
+    const item = await timelineItemOrThrow(pr, String(body.itemId || ''));
+    const sourceKey=`timeline:extend:${item.id}`,existing=findExistingJob(pr.id,String(body.requestId||''),sourceKey);if(existing)return json(res,202,existing);
+    if (item.kind === 'text') return json(res,400,{error:'extend_requires_visual_clip',message:'续写仅支持视频 / 图片片段'});
+    const asset = state.assets[item.sourceAssetId]; if (!asset || asset.projectId !== pr.id) return json(res,400,{error:'invalid_asset'});
+    const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.image_to_video'));
+    if (!model) return json(res,400,{error:'model_not_available',message:'该模型不支持首帧续写'});
+    if(model.providerId==='agnes'&&!PUBLIC_BASE_URL)throw Object.assign(new Error('Agnes 续写接片需要先配置素材公网地址。'),{status:422,code:'reference_not_public'});
+    const fps = Math.max(1, Number(pr.timeline?.fps || 30));
+    const tailIdx = item.kind === 'image' ? 0 : Math.max(0, Number(item.sourceOutFrame || (Number(item.sourceInFrame || 0) + Number(item.durationInFrames || 1))) - 1);
+    const tail = await extractFrameAsset(pr, randomUUID(), asset, tailIdx, fps, 'tail-frame');
+    const prompt = String(body.prompt || '').trim() || '延续上一镜头的画面、主体与光线，继续生成';
+    const params = { ...(body.params || {}) };
+    if (params.duration == null) { const picked = pickDuration(model, Math.max(1, Math.round(Number(item.durationInFrames || 1) / fps))); if (picked) params.duration = picked; }
+    const jobRequest = { projectId: pr.id, capability: 'video.image_to_video', providerId: model.providerId, modelId: model.modelId, prompt, params: { ...params, extendAfterItemId: item.id, timelineItemId: item.id }, references: [{ assetId: tail.id, role: 'first-frame', timelineItemId: item.id, sourceInFrame: tailIdx, sourceOutFrame: tailIdx + 1 }] };
+    validateGenerationRequest(model, jobRequest, jobRequest.references);preflightProviderRequest(model,jobRequest);
+    const job=await enqueueGeneration(jobRequest,{requestId:body.requestId,sourceKey});return json(res,202,job);
+  }
   m = p.match(/^\/api\/projects\/([^/]+)\/assets$/);
-  if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); return json(res,200,{ assets: projectAssets(m[1]) }); }
+  if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); const tag=url.searchParams.get('tag'),kind=url.searchParams.get('kind'); return json(res,200,{ assets: projectAssets(m[1],{tag,kind}) }); }
+  m = p.match(/^\/api\/projects\/([^/]+)\/assets\/([^/]+)$/);
+  if (m && method === 'PATCH') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    const asset = state.assets[m[2]]; if (!asset || asset.projectId !== pr.id) return notFound(res);
+    const body = await readJson(req);
+    const add = Array.isArray(body.add) ? body.add.map(String) : [];
+    const remove = Array.isArray(body.remove) ? body.remove.map(String) : [];
+    const current = Array.isArray(asset.tags) ? asset.tags : [];
+    asset.tags = [...new Set([...current.filter(t => !remove.includes(t)), ...add])];
+    asset.updatedAt = now();
+    await saveDb();
+    return json(res,200,asset);
+  }
   m = p.match(/^\/api\/projects\/([^/]+)\/generations$/);
   if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); return json(res,200,{ generations: projectJobs(m[1]) }); }
   m = p.match(/^\/api\/projects\/([^/]+)\/assets\/upload$/);
@@ -647,16 +907,16 @@ async function handleApi(req, res, url) {
   if (p === '/api/generations' && method === 'POST') {
     const body = await readJson(req); const pr = projectOr404(body.projectId); if (!pr) return json(res,404,{error:'project_not_found'});
     const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes(body.capability)); if (!model) return json(res,400,{error:'model_not_available'});
-    const references = Array.isArray(body.references) ? body.references : [];
+    const references = Array.isArray(body.references) ? body.references.map(normalizeGenerationReference) : [];
     for (const ref of references) { const a = state.assets[ref.assetId]; if (!a || a.projectId !== pr.id) return json(res,400,{error:'invalid_reference',assetId:ref.assetId}); }
-    validateGenerationRequest(model, body, references);
-    const id = randomUUID(); const ts = now(); const job = { id, projectId: pr.id, capability: String(body.capability), providerId: String(body.providerId), modelId: String(body.modelId), status: 'queued', progress: 0, request: { projectId: pr.id, capability: String(body.capability), providerId: String(body.providerId), modelId: String(body.modelId), prompt: String(body.prompt || ''), params: body.params || {}, references }, outputAssetIds: [], createdAt: ts, updatedAt: ts };
-    state.jobs[id] = job; await saveDb(); setImmediate(() => runJob(id)); return json(res,202,job);
+    const jobRequest = { projectId:pr.id, capability:String(body.capability), providerId:String(body.providerId), modelId:String(body.modelId), prompt:String(body.prompt||''), params:body.params||{}, references };
+    validateGenerationRequest(model, jobRequest, references); preflightProviderRequest(model, jobRequest);
+    const job = await enqueueGeneration(jobRequest,{requestId:body.requestId,sourceNodeId:body.sourceNodeId}); return json(res,202,job);
   }
   m = p.match(/^\/api\/generations\/([^/]+)$/);
   if (m && method === 'GET') { const job = state.jobs[m[1]]; if (!job) return notFound(res); return json(res,200,{...job, outputs:(job.outputAssetIds||[]).map(id=>state.assets[id]).filter(Boolean)}); }
   m = p.match(/^\/api\/generations\/([^/]+)\/cancel$/);
-  if (m && method === 'POST') { const job = state.jobs[m[1]]; if (!job) return notFound(res); if (!['succeeded','failed'].includes(job.status)) { job.status='canceled'; job.updatedAt=now(); await saveDb(); } return json(res,200,job); }
+  if (m && method === 'POST') { const job = state.jobs[m[1]]; if (!job) return notFound(res); if (!['succeeded','failed','canceled'].includes(job.status)) { job.status='canceled'; job.phase='canceled'; job.nextAttemptAt=null; job.error=job.providerTaskId?'已停止本地等待；厂商任务可能继续运行。':''; job.updatedAt=now(); jobControllers.get(job.id)?.abort(); await saveDb(); scheduleJobs(); } return json(res,200,job); }
   m = p.match(/^\/api\/generations\/([^/]+)\/events$/);
   if (m && method === 'GET') {
     if (!state.jobs[m[1]]) return notFound(res);
@@ -686,7 +946,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/' || url.pathname === '/index.html') return serveFile(req, res, join(PUBLIC,'index.html'));
     const rel = normalize(url.pathname).replace(/^[/\\]+/, ''); if (rel.includes('..')) return notFound(res); const file = join(PUBLIC, rel); if (file.startsWith(PUBLIC)) return serveFile(req,res,file); return notFound(res);
   } catch (error) {
-    const status = error?.status || 500; console.error(error); return json(res,status,{ error: status >= 500 ? 'internal_error' : error.message, message: error.message });
+    const status = error?.status || 500; console.error(error); return json(res,status,{ error: error?.code || (status >= 500 ? 'internal_error' : error.message), message: error.message });
   }
 });
 

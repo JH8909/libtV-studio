@@ -33,12 +33,9 @@ You can also copy `standalone/.env.example` to `standalone/.env`.
 ## Regression commands
 
 ```bash
-node standalone/e2e.mjs
-node standalone/e2e-pro.mjs
 node standalone/provider-contract-e2e.mjs
+node standalone/agnes-provider-e2e.mjs
 ```
-
-Mock text/image/video models are always available for offline testing.
 
 ## Creative planning Agent
 

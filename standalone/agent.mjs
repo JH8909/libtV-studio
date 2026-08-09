@@ -199,7 +199,7 @@ async function callProvider(providerId, modelId, prompt, config, signal, onRawDe
 export async function createAgentReply({ project, messages, models, providerId, modelId, config, signal, onMessageEvent }) {
   const context = {
     project:{ name:project.name, nodeCount:project.workflow?.nodes?.length || 0, edgeCount:project.workflow?.edges?.length || 0 },
-    mediaModels:models.filter(model=>model.providerId!=='mock').map(model=>({providerId:model.providerId,modelId:model.modelId,capabilities:model.capabilities,constraints:model.constraints})),
+    mediaModels:models.map(model=>({providerId:model.providerId,modelId:model.modelId,capabilities:model.capabilities,constraints:model.constraints})),
     conversation:messages.slice(-12).map(({role,content})=>({role,content})),
   };
   let prompt=`Create the next Agent reply from this local project context:\n${JSON.stringify(context)}`;
@@ -226,25 +226,23 @@ export function applyAgentProposal(project, proposal, models) {
   if (proposal.status === 'applied') return { workflow:project.workflow, appliedNodeIds:proposal.appliedNodeIds || [] };
   if (proposal.status !== 'pending') fail('proposal is no longer applicable',409);
   const nodes=Array.isArray(project.workflow?.nodes)?project.workflow.nodes:[], edges=Array.isArray(project.workflow?.edges)?project.workflow.edges:[];
-  const image=models.find(model=>model.providerId!=='mock'&&model.capabilities?.includes('image.generate'))||models.find(model=>model.capabilities?.includes('image.generate'));
-  const video=models.find(model=>model.providerId!=='mock'&&model.capabilities?.includes('video.image_to_video'))||models.find(model=>model.capabilities?.includes('video.image_to_video'));
-  const maxRight=nodes.reduce((max,node)=>Math.max(max,Number(node.position?.x||0)+(node.type==='prompt'?300:420)),0);
-  const baseX=nodes.length?maxRight+120:80, baseY=60, shotTop=baseY+260, rowGap=680, created=[], newEdges=[];
-  const briefId=randomUUID();
+  const image=models.find(model=>model.capabilities?.includes('image.generate'));
+  const video=models.find(model=>model.capabilities?.includes('video.image_to_video'));
+  const maxRight=nodes.reduce((max,node)=>Math.max(max,Number(node.position?.x||0)+420),0);
+  const baseX=nodes.length?maxRight+120:80, shotTop=60, rowGap=680, created=[], newEdges=[];
   const brief=proposal.plan.brief, style=proposal.plan.styleBible;
-  created.push({id:briefId,type:'prompt',position:{x:baseX,y:baseY},data:{preset:'Agent 创作简报',text:`${brief.title}\n\n${brief.logline}\n\n受众：${brief.audience}\n平台：${brief.platform}\n画幅：${brief.aspectRatio}\n时长：${brief.targetDurationSec}s\n基调：${brief.tone}\n结尾：${brief.ending}\n\n视觉：${style.visualStyle}\n色彩：${style.palette}\n镜头：${style.cameraLanguage}\n光线：${style.lighting}\n连续性：${style.continuityRules.join('；')}`, ...nodeMeta(proposal,'brief','brief')}});
   proposal.plan.shots.forEach((shot,index)=>{
-    const y=shotTop+index*rowGap, promptId=randomUUID(), imageId=randomUUID(), videoId=randomUUID();
+    const y=shotTop+index*rowGap, imageId=randomUUID(), videoId=randomUUID();
     const imageAspect=preferred(image?.constraints?.aspectRatios,brief.aspectRatio,'16:9'), videoAspect=preferred(video?.constraints?.aspectRatios,brief.aspectRatio,'16:9');
     const imageQuality=preferred(image?.constraints?.resolutions,'2K','2K'), duration=nearest(video?.constraints?.durations,shot.durationSec,shot.durationSec), resolution=preferred(video?.constraints?.resolutions,'720p','720p');
+    const imagePrompt=`${shot.imagePrompt}\n\n${shot.title}\n目的：${shot.purpose}\n构图：${shot.composition}\n动作：${shot.action}\n镜头：${shot.camera}\n光线：${shot.lighting}\n视觉风格：${style.visualStyle}\n色彩：${style.palette}\n连续性：${shot.continuityNote}`;
     created.push(
-      {id:promptId,type:'prompt',position:{x:baseX,y},data:{preset:`Agent 镜头 ${index+1}`,text:`${shot.title}\n目的：${shot.purpose}\n构图：${shot.composition}\n动作：${shot.action}\n镜头：${shot.camera}\n光线：${shot.lighting}\n画面提示：${shot.imagePrompt}\n声音：${shot.audioNote}\n连续性：${shot.continuityNote}`,...nodeMeta(proposal,shot.id,'shot-prompt')}},
-      {id:imageId,type:'imageGen',position:{x:baseX+420,y},data:{modelKey:image?`${image.providerId}::${image.modelId}`:'',prompt:'',status:'idle',progress:0,params:{aspectRatio:imageAspect,quality:imageQuality},layoutWidth:420,...nodeMeta(proposal,shot.id,'image')}},
-      {id:videoId,type:'videoGen',position:{x:baseX+900,y},data:{modelKey:video?`${video.providerId}::${video.modelId}`:'',prompt:shot.videoPrompt,status:'idle',progress:0,forcedCapability:'video.image_to_video',params:{duration,aspectRatio:videoAspect,resolution},layoutWidth:420,...nodeMeta(proposal,shot.id,'video')}},
+      {id:imageId,type:'imageGen',position:{x:baseX,y},data:{modelKey:image?`${image.providerId}::${image.modelId}`:'',prompt:imagePrompt,status:'idle',progress:0,params:{aspectRatio:imageAspect,quality:imageQuality},layoutWidth:420,...nodeMeta(proposal,shot.id,'image')}},
+      {id:videoId,type:'videoGen',position:{x:baseX+540,y},data:{modelKey:video?`${video.providerId}::${video.modelId}`:'',prompt:shot.videoPrompt,status:'idle',progress:0,forcedCapability:'video.image_to_video',params:{duration,aspectRatio:videoAspect,resolution},layoutWidth:420,...nodeMeta(proposal,shot.id,'video')}},
     );
-    newEdges.push({id:randomUUID(),source:promptId,target:imageId},{id:randomUUID(),source:imageId,target:videoId,role:'first-frame'});
+    newEdges.push({id:randomUUID(),source:imageId,target:videoId,role:'first-frame'});
   });
   project.workflow={version:2,nodes:[...nodes,...created],edges:[...edges,...newEdges]};
   proposal.status='applied'; proposal.appliedNodeIds=created.map(node=>node.id); proposal.appliedAt=new Date().toISOString();
-  return {workflow:project.workflow,appliedNodeIds:proposal.appliedNodeIds,briefNodeId:briefId};
+  return {workflow:project.workflow,appliedNodeIds:proposal.appliedNodeIds,briefNodeId:created[0]?.id||null};
 }

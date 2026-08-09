@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=20260809h" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -20,7 +20,7 @@
         <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
         <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
         <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
-        <button id="exportBtn" class="top-chip primary-soft" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
+        <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
         <button id="agentBtn" class="top-chip" aria-label="Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span></button>
       </div>
     </header>
@@ -42,6 +42,7 @@
           <button id="canvasUndoBtn" class="tool-btn" title="撤销" aria-label="撤销"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-back-up.svg')"></i></button>
           <button id="canvasRedoBtn" class="tool-btn" title="重做" aria-label="重做"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-forward-up.svg')"></i></button>
           <span class="toolbar-sep"></span>
+          <button id="runAllBtn" class="tool-btn strong" title="按依赖顺序运行整个工作流" aria-label="运行全部"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i></button>
           <button id="fitBtn" class="tool-btn" title="适配" aria-label="适配画布"><i class="ui-icon" style="--icon:url('/vendor/icons/arrows-maximize.svg')"></i></button>
           <button id="zoomOutBtn" class="tool-btn" title="缩小" aria-label="缩小"><i class="ui-icon" style="--icon:url('/vendor/icons/minus.svg')"></i></button>
           <span id="zoomLabel" class="zoom-label">100%</span>
@@ -50,19 +51,28 @@
         </div>
 
         <div id="connectionToast" class="connection-toast hidden">拖到目标输入端口</div>
-        <div id="canvasHint" class="canvas-hint">拖拽空白处框选 · 双击或右键添加节点</div>
       </section>
 
-      <aside id="assetDrawer" class="floating-drawer left-drawer hidden-drawer">
+      <aside id="assetDrawer" class="floating-drawer right-drawer asset-drawer hidden-drawer">
         <div class="drawer-header"><strong>素材管理</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
+        <div id="assetFilterChips" class="asset-filter-chips">
+          <button data-filter-tag="all" class="chip active">全部</button>
+          <button data-filter-tag="generated" class="chip">生成</button>
+          <button data-filter-tag="uploaded" class="chip">上传</button>
+          <span class="chip-sep"></span>
+          <button data-filter-kind="all" class="chip active">全部类型</button>
+          <button data-filter-kind="image" class="chip">图片</button>
+          <button data-filter-kind="video" class="chip">视频</button>
+          <button data-filter-kind="audio" class="chip">音频</button>
+        </div>
         <div id="assetList" class="asset-list"></div>
       </aside>
 
       <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
         <div class="drawer-header"><strong>属性</strong><button data-close-drawer="inspectorDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
         <div id="previewStage" class="preview-stage"></div>
-        <div class="preview-controls"><button id="previewPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>播放</span></button><span id="previewTime" class="muted"></span></div>
+        <div class="preview-controls"><button id="previewPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>播放</span></button><span id="previewTime" class="muted"></span><span class="spacer"></span><button id="previewFullscreenBtn" class="icon-btn" title="全屏预览" aria-label="全屏预览"><i class="ui-icon" style="--icon:url('/vendor/icons/arrows-maximize.svg')"></i></button></div>
         <div id="inspector" class="inspector empty-state">选择节点、连线或 Timeline Clip</div>
         <div class="section-divider"></div>
         <div class="drawer-subtitle">生成任务</div>
@@ -97,7 +107,6 @@
   </div>
 
   <div id="nodeMenu" class="node-menu hidden" role="menu">
-    <div class="node-menu-search"><input id="nodeMenuSearch" placeholder="搜索节点 / 模型功能…" autocomplete="off" /></div>
     <div id="nodeMenuContent" class="node-menu-content"></div>
   </div>
 
@@ -113,16 +122,51 @@
 
   <div id="helpModal" class="modal-backdrop hidden">
     <section class="help-modal"><div class="modal-header"><strong>画布快捷键</strong><button id="helpModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div><div class="help-grid">
-      <div><kbd>双击</kbd><span>添加节点</span></div><div><kbd>右键</kbd><span>节点 / 画布菜单</span></div>
+      <div><kbd>双击</kbd><span>添加节点</span></div><div><kbd>节点右键</kbd><span>节点菜单</span></div>
       <div><kbd>V</kbd><span>选择工具</span></div><div><kbd>H / Space</kbd><span>抓手工具</span></div>
       <div><kbd>C</kbd><span>连线工具</span></div><div><kbd>Delete</kbd><span>删除选中</span></div>
       <div><kbd>⌘/Ctrl Z</kbd><span>撤销</span></div><div><kbd>F</kbd><span>适配画布</span></div>
     </div></section>
   </div>
 
+  <div id="previewFullscreenModal" class="preview-fullscreen-overlay hidden" aria-label="全屏预览">
+    <div class="preview-fullscreen-content">
+      <div id="previewFullscreenStage" class="preview-fullscreen-stage"></div>
+      <div class="preview-fullscreen-controls">
+        <button id="previewFullscreenPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>播放</span></button>
+        <span id="previewFullscreenTime" class="muted"></span>
+        <span class="spacer"></span>
+        <button id="previewFullscreenCloseBtn" class="icon-btn" title="关闭 (Esc)" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mediaLightbox" class="media-lightbox hidden" role="dialog" aria-modal="true" aria-label="媒体预览">
+    <div class="media-lightbox-content">
+      <button id="mediaLightboxClose" class="media-lightbox-close icon-btn" title="关闭 (Esc)" aria-label="关闭预览"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+      <div id="mediaLightboxStage" class="media-lightbox-stage"></div>
+    </div>
+  </div>
+
+  <div id="textOutputModal" class="text-output-modal hidden" role="dialog" aria-modal="true" aria-label="脚本全文">
+    <section class="text-output-page">
+      <div class="modal-header text-output-header">
+        <div><strong id="textOutputTitle">脚本全文</strong><small id="textOutputMeta">完整查看和修改文本生成结果</small></div>
+        <div class="text-output-header-actions">
+          <button id="textOutputEditBtn" aria-label="编辑脚本"><i class="ui-icon" style="--icon:url('/vendor/icons/edit.svg')"></i><span>编辑</span></button>
+          <button id="textOutputSaveBtn" class="primary hidden" aria-label="保存脚本"><i class="ui-icon" style="--icon:url('/vendor/icons/device-floppy.svg')"></i><span>保存</span></button>
+          <button id="textOutputCopyBtn" aria-label="复制脚本全文"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制全文</span></button>
+          <button id="textOutputModalClose" class="icon-btn" title="关闭 (Esc)" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+        </div>
+      </div>
+      <div id="textOutputTable" class="text-output-table-wrap"></div>
+      <textarea id="textOutputEditor" class="text-output-editor" aria-label="脚本全文"></textarea>
+    </section>
+  </div>
+
   <!-- compatibility controls kept for existing command handlers -->
-  <div class="hidden" aria-hidden="true"><button id="addPromptBtn"></button><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
+  <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root"></div>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/app.js?v=20260809h"></script>
 </body>
 </html>
