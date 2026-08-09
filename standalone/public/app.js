@@ -330,7 +330,7 @@ function nodeTemplate(n){
   if(n.type==='upload'){
     const a=findAsset(n.data.assetId),uploading=n.data.status==='uploading';
     const preview=a?(a.kind==='image'?`<img class="node-media" src="${esc(a.publicUrl)}" alt="上传图片" title="点击替换文件">`:a.kind==='video'?`<video class="node-media node-media-video" src="${esc(a.publicUrl)}" muted preload="metadata"></video>`:`<div class="node-media-empty">${icon('volume')}</div>`):generationPlaceholder('upload',[['upload','点击选择文件'],['file-upload','拖放文件到节点']]);
-    return `${output}${generationHeader(n,'upload','上传')}<div class="node-body"><section class="generator-preview upload-preview" data-action="chooseUpload" title="点击选择文件">${preview}</section>${a?'':generationResultActions(n)}${uploading?`<div class="generation-progress" aria-live="polite"><div class="progressbar"><span style="width:50%"></span></div><span class="status running">上传中</span></div>`:''}${a?'':(n.data.error?`<div class="asset-meta error-text">${esc(n.data.error)}</div>`:'')}</div>`;
+    return `${output}${generationHeader(n,'upload','上传')}<div class="node-body"><section class="generator-preview upload-preview ${a?'':'upload-empty'}" data-action="chooseUpload" title="点击选择文件">${preview}</section>${a?'':generationResultActions(n)}${uploading?`<div class="generation-progress" aria-live="polite"><div class="progressbar"><span style="width:50%"></span></div><span class="status running">上传中</span></div>`:''}${a?'':(n.data.error?`<div class="asset-meta error-text">${esc(n.data.error)}</div>`:'')}</div>`;
   }
   if(n.type==='asset'){
     const a=findAsset(n.data.assetId);if(!a)return `${output}<div class="node-header"><div class="node-title">素材已丢失</div>${close}</div>`;
