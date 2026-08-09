@@ -397,9 +397,9 @@ function updateView(){els.canvasWorld.style.transform=`translate(${S.view.x}px,$
 function fitNodes(nodes){if(!nodes.length)return;const xs=nodes.map(n=>n.position.x),ys=nodes.map(n=>n.position.y),minX=Math.min(...xs),maxX=Math.max(...nodes.map(n=>n.position.x+nodeWidth(n))),minY=Math.min(...ys),maxY=Math.max(...nodes.map(n=>n.position.y+nodeFitHeight(n)));const r=els.canvas.getBoundingClientRect();const z=Math.min(1,Math.max(.25,Math.min((r.width-100)/Math.max(1,maxX-minX),(r.height-180)/Math.max(1,maxY-minY))));S.view.zoom=z;S.view.x=(r.width-(maxX-minX)*z)/2-minX*z;S.view.y=(r.height-(maxY-minY)*z)/2-minY*z;updateView();}
 function fitCanvas(){fitNodes(S.workflow.nodes);}
 
-  // 按连线关系分组排布：有连线关联的节点组成一行链路（文本→图片→视频），无连线的按类型单独成组，间距按实际尺寸计算不重叠
+  // 按连线关系分组排布：有连线关联的节点组成一行链路（上传→文本→图片→视频），无连线的按类型单独成组，间距按实际尺寸计算不重叠
   function autoLayoutNodes(){
-    const nodes = S.workflow.nodes.filter(n => isGenerationNode(n));
+    const nodes = S.workflow.nodes.filter(n => isGenerationNode(n) || n.type === 'upload');
     if (!nodes.length) return toast('画布上没有节点', 'info');
 
     const GAP_X = 60, GAP_Y = 50, START_X = 50, START_Y = 50;
@@ -420,8 +420,8 @@ function fitCanvas(){fitNodes(S.workflow.nodes);}
       groups.get(root).push(n);
     }
 
-    // 组内排序：按类型链路顺序 文本→图片→视频，再按链路先后
-    const typeOrder = { textGen: 0, imageGen: 1, videoGen: 2 };
+    // 组内排序：按类型链路顺序 上传→文本→图片→视频，再按链路先后
+    const typeOrder = { upload: 0, textGen: 1, imageGen: 2, videoGen: 3 };
     const rank = new Map(nodes.map(n => [n.id, 0]));
     for (const e of S.workflow.edges) {
       if (rank.has(e.source) && rank.has(e.target) && rank.get(e.source) >= rank.get(e.target)) rank.set(e.target, rank.get(e.source) + 1);
