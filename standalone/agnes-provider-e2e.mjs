@@ -25,6 +25,12 @@ const fake = http.createServer(async (request, response) => {
   if (request.method === 'POST' && request.url === '/agnes/v1/chat/completions') {
     return response.end(JSON.stringify({ choices: [{ message: { content: 'Agnes contract text' } }] }));
   }
+  if (request.method === 'GET' && request.url === '/agnes/v1/models') {
+    return response.end(JSON.stringify({ object: 'list', data: [
+      { id: 'agnes-2.0-flash' }, { id: 'agnes-2.5-flash' }, { id: 'agnes-2.5-pro' }, { id: 'agnes-2.5-pro-alpha' },
+      { id: 'agnes-image-2.0-flash' }, { id: 'agnes-image-2.1-flash' }, { id: 'agnes-video-v2.0' },
+    ] }));
+  }
   if (request.method === 'POST' && request.url === '/agnes/v1/images/generations') {
     return response.end(JSON.stringify({ data: [{ b64_json: pngBase64 }] }));
   }
@@ -107,7 +113,10 @@ try {
     body: Buffer.from(pngBase64, 'base64'),
   }, 201);
   const models = (await request('/api/models')).models.filter(model => model.providerId === 'agnes');
-  if (models.length !== 3) throw new Error(`expected 3 Agnes models, got ${models.length}`);
+  if (models.length !== 7) throw new Error(`expected 7 Agnes models, got ${models.length}`);
+  if (models.filter(model => model.capabilities.includes('text.generate')).length !== 4) throw new Error('Agnes text model discovery failed');
+  if (models.filter(model => model.capabilities.includes('image.generate')).length !== 2) throw new Error('Agnes image model discovery failed');
+  if (models.filter(model => model.capabilities.includes('video.generate')).length !== 1) throw new Error('Agnes video model discovery failed');
 
   async function submit(capability, params, references = [], expected = 'failed') {
     const model = models.find(candidate => candidate.capabilities.includes(capability));

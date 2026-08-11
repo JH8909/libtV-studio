@@ -107,7 +107,10 @@ function sleep(ms, signal) {
 function isSerializedMediaJob(job) { return /^(image|video|audio)\./.test(job.capability); }
 function retryDelay(error, attempt, baseMs = PROVIDER_RETRY_BASE_MS) {
   const hinted = Number(error?.retryAfterMs);
-  return Math.min(MAX_PROVIDER_RETRY_DELAY_MS, hinted > 0 ? hinted : baseMs * 2 ** Math.max(0, attempt - 1));
+  const message = String(error?.message || '');
+  const windowMatch = message.match(/allows\s+\d+\s+requests?\s+per\s+(\d+)\s+minute/i);
+  const providerWindow = windowMatch ? Math.max(1, Number(windowMatch[1])) * 60_000 : 0;
+  return Math.min(MAX_PROVIDER_RETRY_DELAY_MS, hinted > 0 ? hinted : providerWindow || baseMs * 2 ** Math.max(0, attempt - 1));
 }
 function providerRetryPhase(error) {
   if (error?.status === 429) return 'rate_limited';
@@ -215,14 +218,63 @@ function projectAssets(projectId, { tag, kind } = {}) {
 }
 function projectJobs(projectId) { return Object.values(state.jobs).filter(j => j.projectId === projectId).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); }
 
-function listModels() {
+let agnesModelCache={expiresAt:0,models:[]};
+
+function agnesModelCapabilities(item, modelId) {
+  const raw=JSON.stringify(item||{}).toLowerCase();
+  const id=String(modelId||'').toLowerCase();
+  const image=/image|img|seedream|flux|qwen-image|gpt-image|nano-banana/.test(`${id} ${raw}`);
+  const video=/video|seedance|veo|kling|sora|wan|hailuo/.test(`${id} ${raw}`);
+  const unsupported=/embedding|moderation|rerank|speech|audio|tts|asr/.test(`${id} ${raw}`);
+  const capabilities=[];
+  if (video) capabilities.push('video.generate','video.image_to_video','video.first_last_frame');
+  else if (image) capabilities.push('image.generate','image.edit');
+  else if (!unsupported) capabilities.push('text.generate');
+  return capabilities;
+}
+
+function agnesModelConstraints(capabilities) {
+  if (capabilities.includes('image.generate')) return {aspectRatios:['1:1','3:4','4:3','16:9','9:16','2:3','3:2','21:9'],resolutions:['1K','2K','3K','4K']};
+  if (capabilities.includes('video.generate')) return {durations:[3,5,10,18],aspectRatios:['16:9','9:16','1:1','4:3','3:4'],resolutions:['480p','720p','1080p'],maxImageRefs:2};
+  return {};
+}
+
+function agnesModelFromItem(item) {
+  const modelId=String(typeof item==='string'?item:item?.id||item?.name||'').trim();
+  if (!modelId) return null;
+  const capabilities=agnesModelCapabilities(item,modelId);
+  return {providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,capabilities,constraints:agnesModelConstraints(capabilities),configured:true};
+}
+
+function agnesConfiguredModels() {
+  return [
+    agnesModelFromItem({id:AGNES_TEXT_MODEL}),
+    agnesModelFromItem({id:AGNES_IMAGE_MODEL}),
+    agnesModelFromItem({id:AGNES_VIDEO_MODEL}),
+  ].filter(Boolean);
+}
+
+async function availableAgnesModels() {
+  const fallback=agnesConfiguredModels();
+  if (!AGNES_API_KEY) return fallback;
+  if (agnesModelCache.expiresAt>Date.now()) return agnesModelCache.models;
+  try {
+    const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});
+    if (!response.ok) throw new Error(`Agnes models failed ${response.status}`);
+    const body=await response.json();
+    const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];
+    const discovered=items.map(agnesModelFromItem).filter(Boolean);
+    const merged=new Map(fallback.map(model=>[model.modelId,model]));
+    for (const model of discovered) merged.set(model.modelId,{...merged.get(model.modelId),...model});
+    agnesModelCache={expiresAt:Date.now()+300_000,models:[...merged.values()]};
+    return agnesModelCache.models;
+  } catch { return fallback; }
+}
+
+async function listModels() {
   const models = [];
   if (OPENAI_COMPAT_API_KEY) models.push({providerId:'openai-compatible',modelId:OPENAI_COMPAT_TEXT_MODEL,displayName:`Text · ${OPENAI_COMPAT_TEXT_MODEL}`,capabilities:['text.generate'],constraints:{},configured:true});
-  if (AGNES_API_KEY) models.push(
-    {providerId:'agnes',modelId:AGNES_TEXT_MODEL,displayName:`Agnes Text · ${AGNES_TEXT_MODEL}`,capabilities:['text.generate'],constraints:{},configured:true},
-    {providerId:'agnes',modelId:AGNES_IMAGE_MODEL,displayName:`Agnes Image · ${AGNES_IMAGE_MODEL}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','3:4','4:3','16:9','9:16','2:3','3:2','21:9'],resolutions:['1K','2K','3K','4K']},configured:true},
-    {providerId:'agnes',modelId:AGNES_VIDEO_MODEL,displayName:`Agnes Video · ${AGNES_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.first_last_frame'],constraints:{durations:[3,5,10,18],aspectRatios:['16:9','9:16','1:1','4:3','3:4'],resolutions:['480p','720p','1080p'],maxImageRefs:2},configured:true},
-  );
+  if (AGNES_API_KEY) models.push(...await availableAgnesModels());
   if (ARK_API_KEY) {
     models.push({providerId:'seedream',modelId:ARK_IMAGE_MODEL,displayName:`Seedream · ${ARK_IMAGE_MODEL}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4'],resolutions:['1K','2K','4K'],maxImageRefs:10},configured:true});
     models.push({providerId:'seedance',modelId:ARK_VIDEO_MODEL,displayName:`Seedance · ${ARK_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.reference'],constraints:{durations:[4,5,6,8,10,12,15],aspectRatios:['16:9','9:16'],resolutions:['480p','720p','1080p'],audioModes:['ambient','silent','music','voiceover','full'],maxImageRefs:10,maxAudioRefs:1},configured:true});
@@ -399,6 +451,7 @@ async function agnesRequest(url, options, label, signal) {
   if (!response.ok) throw providerHttpError(label, response, data);
   return data;
 }
+function isTransientFetchError(error) { return !error?.status && /fetch failed|failed to fetch|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(String(error?.message || error)); }
 async function providerJson(url, options, label, signal) {
   const response=await fetch(url,{...options,signal});const data=await response.json().catch(()=>({}));
   if(!response.ok)throw providerHttpError(label,response,data);return data;
@@ -411,7 +464,11 @@ async function providerPollJson(url, options, label, signal) {
 async function agnesTextGenerate(job, signal) {
   const req=job.request; job.progress=12; await saveDb();
   const body={model:job.modelId,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
-  const data=await agnesRequest(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes text',signal);
+  let data,networkAttempt=0;
+  while(true){
+    try{data=await agnesRequest(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes text',signal);break;}
+    catch(error){if(!isTransientFetchError(error)||networkAttempt>=2)throw error;networkAttempt+=1;await sleep(Math.min(4000,500*2**(networkAttempt-1)),signal);}
+  }
   const content=data.choices?.[0]?.message?.content;
   if(typeof content==='string'&&content.trim())return content.trim();
   if(Array.isArray(content))return content.map(x=>x?.text||x?.content||'').join('\n').trim();
@@ -775,10 +832,10 @@ async function handleApi(req, res, url) {
   if (p === '/api/provider-settings' && method === 'PUT') {
     const body=await readJson(req); const allowed=new Set(['OPENAI_COMPAT_API_KEY','OPENAI_COMPAT_BASE_URL','OPENAI_COMPAT_TEXT_MODEL','OPENAI_API_KEY','OPENAI_BASE_URL','OPENAI_AGENT_MODEL','AGNES_API_KEY','AGNES_BASE_URL','AGNES_TEXT_MODEL','AGNES_AGENT_MODEL','AGNES_IMAGE_MODEL','AGNES_VIDEO_MODEL','PUBLIC_BASE_URL','ARK_API_KEY','ARK_IMAGE_MODEL','ARK_VIDEO_MODEL','KLING_ACCESS_KEY','KLING_SECRET_KEY','KLING_VIDEO_MODEL','GEMINI_API_KEY','GEMINI_AGENT_BASE_URL','GEMINI_AGENT_MODEL','VEO_MODEL','FAL_KEY','FAL_IMAGE_MODEL','FAL_VIDEO_MODEL']);
     for(const [key,value] of Object.entries(body||{})){if(!allowed.has(key))continue;const v=String(value||'').trim();if(v)providerSettings[key]=v;}
-    await fsp.writeFile(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2)); try{await fsp.chmod(PROVIDER_SETTINGS_FILE,0o600);}catch{} refreshProviderRuntime();agentModelCache={expiresAt:0,models:[]};
-    return json(res,200,{ok:true,models:listModels()});
+    await fsp.writeFile(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2)); try{await fsp.chmod(PROVIDER_SETTINGS_FILE,0o600);}catch{} refreshProviderRuntime();agentModelCache={expiresAt:0,models:[]};agnesModelCache={expiresAt:0,models:[]};
+    return json(res,200,{ok:true,models:await listModels()});
   }
-  if (p === '/api/models' && method === 'GET') return json(res, 200, { models: listModels() });
+  if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
   if (p === '/api/projects' && method === 'GET') return json(res, 200, { projects: Object.values(state.projects).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)) });
   if (p === '/api/projects' && method === 'POST') {
     const body = await readJson(req); const id = randomUUID(); const ts = now();
@@ -807,7 +864,7 @@ async function handleApi(req, res, url) {
     session.selectedProviderId=chosen.providerId;session.selectedModelId=chosen.modelId;session.messages.push(userMessage);session.messages=session.messages.slice(-100);pr.updatedAt=now();await saveDb();
     const streaming=String(req.headers.accept||'').includes('application/x-ndjson'),writeEvent=event=>{if(!res.writableEnded)res.write(`${JSON.stringify(event)}\n`);};if(streaming)res.writeHead(200,{'content-type':'application/x-ndjson; charset=utf-8','cache-control':'no-store','x-accel-buffering':'no'});
     const controller=new AbortController(),abort=()=>controller.abort();req.once('aborted',abort);res.once('close',abort);
-    let reply;try{reply=await createAgentReply({project:pr,messages:session.messages,models:listModels(),providerId:chosen.providerId,modelId:chosen.modelId,config:agentConfig(),signal:controller.signal,onMessageEvent:streaming?writeEvent:null});}catch(error){if(streaming){writeEvent({type:'error',message:error.message});res.end();return;}throw error;}finally{req.off('aborted',abort);res.off('close',abort);}
+    let reply;try{reply=await createAgentReply({project:pr,messages:session.messages,models:await listModels(),providerId:chosen.providerId,modelId:chosen.modelId,config:agentConfig(),signal:controller.signal,onMessageEvent:streaming?writeEvent:null});}catch(error){if(streaming){writeEvent({type:'error',message:error.message});res.end();return;}throw error;}finally{req.off('aborted',abort);res.off('close',abort);}
     let proposal=null;
     if(reply.kind==='proposal'){
       for(const item of session.proposals)if(item.status==='pending')item.status='superseded';
@@ -821,7 +878,7 @@ async function handleApi(req, res, url) {
   m = p.match(/^\/api\/projects\/([^/]+)\/agent\/proposals\/([^/]+)\/apply$/);
   if (m && method === 'POST') {
     const pr=projectOr404(m[1]);if(!pr)return notFound(res);const session=ensureAgentSession(pr),proposal=session.proposals.find(item=>item.id===m[2]);if(!proposal)return notFound(res);
-    const result=applyAgentProposal(pr,proposal,listModels());pr.updatedAt=now();await saveDb();return json(res,200,{...result,proposal});
+    const result=applyAgentProposal(pr,proposal,await listModels());pr.updatedAt=now();await saveDb();return json(res,200,{...result,proposal});
   }
   m = p.match(/^\/api\/projects\/([^/]+)\/workflow$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.workflow) : notFound(res); }
@@ -837,7 +894,7 @@ async function handleApi(req, res, url) {
     const sourceKey=`timeline:reshoot:${item.id}`,existing=findExistingJob(pr.id,String(body.requestId||''),sourceKey);if(existing)return json(res,202,existing);
     if (!['video','image'].includes(item.kind)) return json(res,400,{error:'reshoot_requires_visual_clip',message:'重拍仅支持视频 / 图片片段'});
     const asset = state.assets[item.sourceAssetId]; if (!asset || asset.projectId !== pr.id) return json(res,400,{error:'invalid_asset'});
-    const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.first_last_frame'));
+    const model = (await listModels()).find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.first_last_frame'));
     if (!model) return json(res,400,{error:'model_not_available',message:'该模型不支持首尾帧锚定重拍'});
     if(model.providerId==='agnes'&&!PUBLIC_BASE_URL)throw Object.assign(new Error('Agnes 锚定重拍需要先配置素材公网地址。'),{status:422,code:'reference_not_public'});
     const fps = Math.max(1, Number(pr.timeline?.fps || 30));
@@ -863,7 +920,7 @@ async function handleApi(req, res, url) {
     const sourceKey=`timeline:extend:${item.id}`,existing=findExistingJob(pr.id,String(body.requestId||''),sourceKey);if(existing)return json(res,202,existing);
     if (item.kind === 'text') return json(res,400,{error:'extend_requires_visual_clip',message:'续写仅支持视频 / 图片片段'});
     const asset = state.assets[item.sourceAssetId]; if (!asset || asset.projectId !== pr.id) return json(res,400,{error:'invalid_asset'});
-    const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.image_to_video'));
+    const model = (await listModels()).find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes('video.image_to_video'));
     if (!model) return json(res,400,{error:'model_not_available',message:'该模型不支持首帧续写'});
     if(model.providerId==='agnes'&&!PUBLIC_BASE_URL)throw Object.assign(new Error('Agnes 续写接片需要先配置素材公网地址。'),{status:422,code:'reference_not_public'});
     const fps = Math.max(1, Number(pr.timeline?.fps || 30));
@@ -879,6 +936,18 @@ async function handleApi(req, res, url) {
   m = p.match(/^\/api\/projects\/([^/]+)\/assets$/);
   if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); const tag=url.searchParams.get('tag'),kind=url.searchParams.get('kind'); return json(res,200,{ assets: projectAssets(m[1],{tag,kind}) }); }
   m = p.match(/^\/api\/projects\/([^/]+)\/assets\/([^/]+)$/);
+  if (m && method === 'DELETE') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    const asset = state.assets[m[2]]; if (!asset || asset.projectId !== pr.id) return notFound(res);
+    const removedNodeIds = new Set((pr.workflow?.nodes || []).filter(node => ['asset','upload'].includes(node.type) && node.data?.assetId === asset.id).map(node => node.id));
+    pr.workflow.nodes = (pr.workflow?.nodes || []).filter(node => !removedNodeIds.has(node.id));
+    pr.workflow.edges = (pr.workflow?.edges || []).filter(edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target));
+    for (const node of pr.workflow.nodes) { const data=node.data??={};data.outputAssetIds=(data.outputAssetIds||[]).filter(id=>id!==asset.id);data.variantAssetIds=(data.variantAssetIds||[]).filter(id=>id!==asset.id);data.presetReferences=(data.presetReferences||[]).filter(ref=>ref.assetId!==asset.id);if(['imageGen','videoGen'].includes(node.type)&&data.status==='succeeded'&&!data.outputAssetIds.length){data.status='idle';data.progress=0;} }
+    pr.timeline.items = (pr.timeline?.items || []).filter(item => item.sourceAssetId !== asset.id);
+    for (const job of Object.values(state.jobs)) if (job.projectId === pr.id) job.outputAssetIds=(job.outputAssetIds||[]).filter(id=>id!==asset.id);
+    delete state.assets[asset.id]; await fsp.rm(join(ASSETS_DIR,basename(asset.localPath)),{force:true}); pr.updatedAt=now(); await saveDb();
+    return json(res,200,{ok:true,workflow:pr.workflow,timeline:pr.timeline});
+  }
   if (m && method === 'PATCH') {
     const pr = projectOr404(m[1]); if (!pr) return notFound(res);
     const asset = state.assets[m[2]]; if (!asset || asset.projectId !== pr.id) return notFound(res);
@@ -906,7 +975,7 @@ async function handleApi(req, res, url) {
   if (m && method === 'POST') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const asset = await createExport(pr); return json(res,201,asset); }
   if (p === '/api/generations' && method === 'POST') {
     const body = await readJson(req); const pr = projectOr404(body.projectId); if (!pr) return json(res,404,{error:'project_not_found'});
-    const model = listModels().find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes(body.capability)); if (!model) return json(res,400,{error:'model_not_available'});
+  const model = (await listModels()).find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes(body.capability)); if (!model) return json(res,400,{error:'model_not_available'});
     const references = Array.isArray(body.references) ? body.references.map(normalizeGenerationReference) : [];
     for (const ref of references) { const a = state.assets[ref.assetId]; if (!a || a.projectId !== pr.id) return json(res,400,{error:'invalid_reference',assetId:ref.assetId}); }
     const jobRequest = { projectId:pr.id, capability:String(body.capability), providerId:String(body.providerId), modelId:String(body.modelId), prompt:String(body.prompt||''), params:body.params||{}, references };
@@ -941,7 +1010,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) return await handleApi(req,res,url);
-    if (url.pathname.startsWith('/media/assets/')) { const name = cleanFilename(safeDecode(url.pathname.slice('/media/assets/'.length))); return serveFile(req, res, join(ASSETS_DIR, name)); }
+    if (url.pathname.startsWith('/media/assets/')) { const name = basename(safeDecode(url.pathname.slice('/media/assets/'.length))); return name&&name!=='.'?serveFile(req,res,join(ASSETS_DIR,name)):notFound(res); }
     if (url.pathname.startsWith('/vendor/icons/')) { const name=cleanFilename(safeDecode(url.pathname.slice('/vendor/icons/'.length))); if (/^[a-z0-9-]+\.svg$/.test(name)) return serveFile(req,res,join(TABLER_ICONS,name)); return notFound(res); }
     if (url.pathname === '/' || url.pathname === '/index.html') return serveFile(req, res, join(PUBLIC,'index.html'));
     const rel = normalize(url.pathname).replace(/^[/\\]+/, ''); if (rel.includes('..')) return notFound(res); const file = join(PUBLIC, rel); if (file.startsWith(PUBLIC)) return serveFile(req,res,file); return notFound(res);

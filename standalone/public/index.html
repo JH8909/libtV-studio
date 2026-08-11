@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260810c" />
+  <link rel="stylesheet" href="/styles.css?v=20260811a" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -30,10 +30,18 @@
         <div id="canvas" class="canvas">
           <svg id="edgesSvg" class="edges-svg"><g id="edgesLayer"></g></svg>
           <div id="canvasWorld" class="canvas-world"></div>
+          <div id="welcomeCards" class="canvas-welcome hidden" aria-label="快速开始">
+            <p><i class="ui-icon" style="--icon:url('/vendor/icons/click.svg')"></i> 双击画布 自由生成节点</p>
+            <div class="welcome-card-list">
+              <button data-welcome-action="text"><img src="/welcome-assets/text-generation.png?v=2" alt="" /><span><strong>文本生成</strong><small>从想法开始创作</small></span></button>
+              <button data-welcome-action="image"><img src="/welcome-assets/image-generation.png?v=2" alt="" /><span><strong>图片生成</strong><small>生成电影级视觉画面</small></span></button>
+              <button data-welcome-action="video"><img src="/welcome-assets/video-generation.png?v=2" alt="" /><span><strong>视频生成</strong><small>让画面动起来</small></span></button>
+            </div>
+          </div>
         </div>
 
         <div class="canvas-bottom-toolbar">
-          <button id="addNodeBtn" class="tool-btn strong" title="添加节点" aria-label="添加节点"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="addNodeBtn" class="tool-btn" title="添加节点" aria-label="添加节点"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
           <span class="toolbar-sep"></span>
           <div class="toolbar-tool-group" id="mouseTools" aria-label="鼠标操作">
             <button data-tool="pan" class="tool-btn" title="抓手 (H)" aria-label="抓手"><i class="ui-icon" style="--icon:url('/vendor/icons/hand-stop.svg')"></i></button>
@@ -57,14 +65,12 @@
         <div class="drawer-header"><strong>素材管理</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
         <div id="assetFilterChips" class="asset-filter-chips">
-          <button data-filter-tag="all" class="chip active">全部</button>
-          <button data-filter-tag="generated" class="chip">生成</button>
-          <button data-filter-tag="uploaded" class="chip">上传</button>
-          <span class="chip-sep"></span>
-          <button data-filter-kind="all" class="chip active">全部类型</button>
-          <button data-filter-kind="image" class="chip">图片</button>
-          <button data-filter-kind="video" class="chip">视频</button>
-          <button data-filter-kind="audio" class="chip">音频</button>
+          <div class="asset-filter-group"><span class="asset-filter-label">类型</span><div class="asset-filter-options">
+            <button data-filter-kind="all" class="chip active">全部</button>
+            <button data-filter-kind="image" class="chip">图片</button>
+            <button data-filter-kind="video" class="chip">视频</button>
+            <button data-filter-kind="audio" class="chip">音频</button>
+          </div></div>
         </div>
         <div id="assetList" class="asset-list"></div>
       </aside>
@@ -148,11 +154,20 @@
     </div>
   </div>
 
+  <div id="assetPromptModal" class="asset-prompt-modal hidden" role="dialog" aria-modal="true" aria-label="素材提示词">
+    <section class="asset-prompt-panel">
+      <div class="asset-prompt-header"><strong>图片提示词</strong><div><button id="assetPromptCopy"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制</span></button><button id="assetPromptClose" class="icon-btn" title="关闭 (Esc)" aria-label="关闭提示词"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+      <textarea id="assetPromptText" class="asset-prompt-text" readonly aria-label="完整提示词"></textarea>
+    </section>
+  </div>
+
   <div id="textOutputModal" class="text-output-modal hidden" role="dialog" aria-modal="true" aria-label="脚本全文">
     <section class="text-output-page">
       <div class="modal-header text-output-header">
         <div><strong id="textOutputTitle">脚本全文</strong><small id="textOutputMeta">完整查看和修改文本生成结果</small></div>
         <div class="text-output-header-actions">
+          <button id="textOutputContinuityBtn" aria-label="连续性分析" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/timeline-event-plus.svg')"></i><span>连续性</span></button>
+          <button id="textOutputStoryboardBtn" class="primary" aria-label="生成分镜脚本"><i class="ui-icon" style="--icon:url('/vendor/icons/layout-grid.svg')"></i><span>生成分镜脚本</span></button>
           <button id="textOutputEditBtn" aria-label="编辑脚本"><i class="ui-icon" style="--icon:url('/vendor/icons/edit.svg')"></i><span>编辑</span></button>
           <button id="textOutputSaveBtn" class="primary hidden" aria-label="保存脚本"><i class="ui-icon" style="--icon:url('/vendor/icons/device-floppy.svg')"></i><span>保存</span></button>
           <button id="textOutputCopyBtn" aria-label="复制脚本全文"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制全文</span></button>
@@ -167,6 +182,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root"></div>
-  <script type="module" src="/app.js?v=20260810b"></script>
+  <script type="module" src="/app.js?v=20260811f"></script>
 </body>
 </html>

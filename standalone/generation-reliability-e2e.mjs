@@ -12,6 +12,7 @@ const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/
 const captures = [];
 const polls = new Map();
 const submitAttempts = new Map();
+const textAttempts = new Map();
 const taskPrompts = new Map();
 let activeVideoTask = '';
 let providerOverlap = false;
@@ -51,6 +52,13 @@ const fake = http.createServer(async (request, response) => {
     taskPrompts.set(videoId,prompt);
     activeVideoTask = videoId;
     return response.end(JSON.stringify({ video_id: videoId, status: 'queued' }));
+  }
+  if (request.method === 'POST' && request.url === '/agnes/v1/chat/completions') {
+    const prompt = String(body.messages?.at(-1)?.content || '');
+    const attempt = (textAttempts.get(prompt) || 0) + 1;
+    textAttempts.set(prompt, attempt);
+    if (prompt === 'network-retry' && attempt === 1) return request.socket.destroy();
+    return response.end(JSON.stringify({ choices: [{ message: { content: '| ok |' } }] }));
   }
   if (request.method === 'GET' && request.url?.startsWith('/agnes/agnesapi?')) {
     const videoId = new URL(request.url, 'http://agnes.test').searchParams.get('video_id');
@@ -123,6 +131,12 @@ async function submit(projectId, modelId, prompt, references = [], extra = {}, e
 try {
   await waitHealth();
   const project = await request('/api/projects', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Reliability' }) }, 201);
+  const longName = `${'dragged-asset-'.repeat(9)}source.png`;
+  const longAsset = await request(`/api/projects/${project.id}/assets/upload`, { method: 'POST', headers: { 'content-type': 'image/png', 'x-filename': longName }, body: Buffer.from(pngBase64, 'base64') }, 201);
+  const longMedia = await fetch(base + longAsset.publicUrl);
+  if (!longMedia.ok || !(await longMedia.arrayBuffer()).byteLength) throw new Error('long asset URL was truncated while serving media');
+  await request(`/api/projects/${project.id}/assets/${longAsset.id}`, { method: 'DELETE' });
+  if ((await fetch(base + longAsset.publicUrl)).status !== 404) throw new Error('deleted asset media is still available');
   const local = await request(`/api/projects/${project.id}/assets/upload`, { method: 'POST', headers: { 'content-type': 'image/png', 'x-filename': 'local.png' }, body: Buffer.from(pngBase64, 'base64') }, 201);
   const models = (await request('/api/models')).models.filter(model => model.providerId === 'agnes');
   const imageModel = models.find(model => model.capabilities.includes('image.generate'));
@@ -170,6 +184,11 @@ try {
   const queueTerminal = await waitTerminal(queueFull.id);
   if (!queueWaitObserved || queueTerminal.attempt !== 3 || submitAttempts.get('queue-full-submit') !== 3) throw new Error(`503 queue retry failed: ${JSON.stringify(queueTerminal)}`);
 
+  const textModel = models.find(model => model.capabilities.includes('text.generate'));
+  const textJob = await request('/api/generations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ projectId: project.id, providerId: 'agnes', modelId: textModel.modelId, capability: 'text.generate', prompt: 'network-retry', params: {}, requestId: 'network-retry', sourceNodeId: 'network-retry' }) }, 202);
+  const textTerminal = await waitTerminal(textJob.id);
+  if (textTerminal.status !== 'succeeded' || textAttempts.get('network-retry') !== 2) throw new Error(`text network retry failed: ${JSON.stringify(textTerminal)}`);
+
   const nested = await submit(project.id, videoModel.modelId, 'nested-url', [], { requestId: 'nested-url', sourceNodeId: 'nested-url' });
   const nestedTerminal = await waitTerminal(nested.id);
   if (!String(nestedTerminal.error).includes('blocked private remote IP') || String(nestedTerminal.error).includes('without a result URL')) throw new Error(`nested Agnes result URL was not extracted: ${nestedTerminal.error}`);
@@ -190,7 +209,7 @@ try {
   const publicRequest = captures.find(capture => capture.url === '/agnes/v1/videos' && capture.body?.prompt === 'public-local');
   if (!String(publicRequest?.body?.image || '').startsWith(`${base}/media/assets/`)) throw new Error('PUBLIC_BASE_URL was not used for local image');
 
-  console.log(JSON.stringify({ ok: true, preflight: true, localOnly: true, providerUrl: true, idempotent: true, providerSerial: true, retryAttempts: rateTerminal.attempt, queueBusyRetries: queueTerminal.attempt, runningCanceled: true, queuedCanceled: true }, null, 2));
+  console.log(JSON.stringify({ ok: true, longAssetServed: true, assetDelete: true, preflight: true, localOnly: true, providerUrl: true, idempotent: true, providerSerial: true, retryAttempts: rateTerminal.attempt, queueBusyRetries: queueTerminal.attempt, textNetworkRetries: textAttempts.get('network-retry'), runningCanceled: true, queuedCanceled: true }, null, 2));
 } finally {
   child.kill('SIGTERM');
   fake.close();
