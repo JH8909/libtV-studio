@@ -32,7 +32,7 @@ The top-right **Agent** button opens a project-persistent planning workspace:
 - Continue the conversation to revise the pending proposal.
 - Review the exact node impact, then apply the whole plan once.
 - Applying appends one brief node plus a Text → Image → Video group for every shot. Nodes remain idle: Agent never starts paid generation, changes the Timeline or exports media.
-- OpenAI Responses, Gemini and Agnes planning models are supported through server-side settings. Conversation content is sent to the selected provider; credentials and project history remain local.
+- Agnes and enabled APIMart planning models are supported through server-side settings. Conversation content is sent to the selected provider; credentials and project history remain local.
 
 Agent model output is strictly validated and converted to graph data by the local server. Models never return executable patches or arbitrary node objects.
 
@@ -69,7 +69,7 @@ Two different concepts are intentionally separated:
 - Video Script / 视频脚本
 - Image Prompt expansion / 图片提示词
 - Rewrite / 改写润色
-- Uses a configurable OpenAI-compatible `/chat/completions` provider
+- Uses an enabled Agnes or APIMart text model
 - Native textual `outputText` can flow into downstream text/image/video nodes; text is not faked as a media Asset
 
 ## Image nodes
@@ -79,8 +79,8 @@ One image node automatically selects the correct capability from its inputs:
 - Connected image reference → `image.edit`
 
 Current providers:
-- Seedream through Volcengine Ark
-- fal image models
+- Agnes
+- APIMart models discovered from the account
 
 Image nodes expose prompt, model, aspect ratio/quality controls and show generated output inline. Provider results are downloaded into the project Asset Library before reuse.
 
@@ -109,23 +109,16 @@ Video creation is represented by explicit presets instead of one overloaded gene
 Each video node can switch explicitly between these four modes. Reference roles are normalized for the selected mode, missing required frames are rejected before submission, model duration/aspect/resolution controls follow registry constraints, and completed videos can be played or sent directly to the Timeline. Active jobs reconnect after a page reload; interrupted jobs become retryable instead of remaining stuck.
 
 Current providers:
-- Seedance / Volcengine Ark
-- Kling
-- Google Veo
-- fal
+- Agnes
+- APIMart models discovered from the account
 
 Duration/aspect/resolution choices are driven from Provider Registry metadata. References preserve roles such as `first-frame`, `last-frame`, `reference-image`, `reference-video` and `reference-audio`.
 
 ## In-app third-party API configuration
 
 Click **模型/API** in the top bar. The modal currently supports:
-- OpenAI-compatible text
 - Agnes AI text, image and video
-- Seedream
-- Seedance
-- Kling
-- Google Veo
-- fal
+- APIMart: enter one API Key, then enable models grouped by text/Agent, image and video
 
 Credentials are sent only to the local Standalone server and saved in:
 
@@ -134,14 +127,6 @@ standalone/data/provider-settings.json
 ```
 
 Secret fields are masked when read back and are never persisted in Workflow JSON. Environment variables remain supported as an alternative; start from `standalone/.env.example`.
-
-### OpenAI-compatible text
-
-```bash
-OPENAI_COMPAT_API_KEY=...
-OPENAI_COMPAT_BASE_URL=https://api.openai.com/v1
-OPENAI_COMPAT_TEXT_MODEL=gpt-5-mini
-```
 
 ### Agnes AI
 
@@ -155,45 +140,23 @@ AGNES_VIDEO_MODEL=agnes-video-v2.0
 
 The adapter supports `text.generate`, `image.generate`, `image.edit`, `video.generate`, `video.image_to_video` and `video.first_last_frame`. Agnes image references may use local Data URIs. Agnes-generated images retain their provider URL for video references; uploaded/local-only images require `PUBLIC_BASE_URL` because the video API requires publicly accessible image URLs.
 
-### Seedream + Seedance / Ark
+### APIMart
 
 ```bash
-ARK_API_KEY=...
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_IMAGE_MODEL=doubao-seedream-4-0-250828
-ARK_VIDEO_MODEL=doubao-seedance-2-0-fast-260128
+APIMART_API_KEY=...
 ```
 
-Seedream supports both image generation and image edit/reference flows in this adapter. Seedance uses the Ark asynchronous content-generation task path.
+The server calls `GET /v1/models`, classifies the returned models for the Canvas and Agent selectors, uploads reference images, and uses APIMart's asynchronous image/video task API.
 
-### Kling
+### DeepSeek / Alibaba Cloud Bailian
 
 ```bash
-KLING_ACCESS_KEY=...
-KLING_SECRET_KEY=...
-KLING_VIDEO_MODEL=kling-v3
+DEEPSEEK_API_KEY=...
+BAILIAN_API_KEY=...
+BAILIAN_MEDIA_BASE_URL=https://dashscope.aliyuncs.com/api/v1
 ```
 
-The server signs the HS256 bearer JWT and supports text-to-video, image-to-video and first/last-frame requests.
-
-### Google Veo
-
-```bash
-GEMINI_API_KEY=...
-VEO_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-VEO_MODEL=veo-3.1-generate-preview
-```
-
-The adapter uses long-running video generation operations and supports inline first/last-frame media.
-
-### fal
-
-```bash
-FAL_KEY=...
-FAL_IMAGE_MODEL=fal-ai/qwen-image
-FAL_VIDEO_MODEL=fal-ai/wan/v2.7/text-to-video
-FAL_VIDEO_IMAGE_MODEL=fal-ai/wan/v2.7/image-to-video
-```
+DeepSeek uses OpenAI-compatible Chat Completions for `text.generate` and Agent planning. 百炼 uses compatible Chat Completions for text/Agent, plus native DashScope media endpoints for `image.generate` and `video.generate`; configure Base URL and category models from **模型/API** when defaults do not match your workspace.
 
 ## Asset pipeline
 
@@ -260,11 +223,8 @@ node standalone/provider-contract-e2e.mjs
 ```
 
 v1.3 Provider Contract coverage:
-- OpenAI-compatible text request/output
-- Seedream image edit + PNG reference normalization
-- Seedance asynchronous task + first frame
-- Kling JWT + image2video + last frame
-- Veo long-running operation + inline first/last frames
+- APIMart model discovery and categorized selection
+- APIMart text/Agent, image upload, asynchronous image/video tasks and first/last frames
 
 See `TEST_REPORT_v2.0.md` for the final regression results.
 

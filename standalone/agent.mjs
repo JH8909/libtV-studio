@@ -48,11 +48,11 @@ export const AGENT_REPLY_SCHEMA = {
   required: ['kind','message','questions','plan'],
 };
 
-const SYSTEM_PROMPT = `You are LibTV Studio's creative planning Agent. Turn the user's idea into an actionable short-film plan, never execute media generation or editing.
+const SYSTEM_PROMPT = `You are LibTV Studio's creative planning Agent. Turn the user's idea into an actionable short-film sequence plan, never execute media generation or editing.
 Return only JSON matching the supplied schema. Use the user's language.
 Ask questions only when the conversation contains no usable creative subject. When a user gives a subject or answers a prior question, make a proposal using reasonable defaults for missing platform, duration, audience, ending, and visual details; state those assumptions in message. Never repeat a question that the conversation already answers.
 For question replies, keep message to one short introduction and put the actual questions only in questions; never repeat question text in message.
-A proposal must contain 3-12 coherent shots. Every shot needs specific composition, visible action, camera movement, lighting, image prompt, video-motion prompt, audio note, and continuity note. Story clarity and continuity beat novelty.
+A proposal must contain 3-12 coherent shots. Every shot needs specific composition, visible action, camera movement, lighting, image prompt, video-motion prompt, audio note, and continuity note. Each shot must end in a state the next shot can inherit; later prompts remain provisional until the prior video is accepted. Story clarity and continuity beat novelty.
 Never return nodes, edges, patches, tool calls, executable code, secrets, or instructions to run paid generation.`;
 
 function fail(message, status = 400) { throw Object.assign(new Error(message), { status }); }
@@ -132,9 +132,9 @@ export function ensureAgentSession(project) {
 
 export function configuredAgentModels(config) {
   return [
-    config.openaiKey && { providerId:'openai', modelId:config.openaiModel, displayName:`OpenAI · ${config.openaiModel}` },
-    config.geminiKey && { providerId:'gemini', modelId:config.geminiModel, displayName:`Gemini · ${config.geminiModel}` },
     config.agnesKey && { providerId:'agnes', modelId:config.agnesModel, displayName:`Agnes · ${config.agnesModel}` },
+    config.deepseekKey && { providerId:'deepseek', modelId:config.deepseekModel, displayName:`DeepSeek · ${config.deepseekModel}` },
+    config.bailianKey && { providerId:'bailian', modelId:config.bailianModel, displayName:`百炼 · ${config.bailianModel}` },
   ].filter(Boolean).map(model => ({ ...model, configured:true }));
 }
 
@@ -142,17 +142,10 @@ function providerError(label, response, body) {
   const message = body?.error?.message || body?.message || body?.error || `${response.status} ${response.statusText}`;
   return Object.assign(new Error(`${label}: ${String(message).slice(0,800)}`), { status:502 });
 }
-function openAIText(body) {
-  if (typeof body.output_text === 'string') return body.output_text;
-  for (const item of body.output || []) for (const content of item.content || []) if (content.type === 'output_text' && typeof content.text === 'string') return content.text;
-  return '';
-}
-function geminiText(body) { return (body.candidates?.[0]?.content?.parts || []).map(part => part.text || '').join(''); }
-
 async function readProviderStream(response, providerId, onDelta) {
   const reader=response.body?.getReader();if(!reader)return'';
   const decoder=new TextDecoder();let buffer='',result='',mode='unknown';
-  const consume=line=>{if(!line.startsWith('data:'))return;const value=line.slice(5).trim();if(!value||value==='[DONE]')return;let data;try{data=JSON.parse(value)}catch{return;}let delta='';if(providerId==='openai'&&data.type==='response.output_text.delta')delta=data.delta||'';else if(providerId==='gemini')delta=geminiText(data);else if(providerId==='agnes')delta=data.choices?.[0]?.delta?.content||'';if(typeof delta==='string'&&delta){if(result&&mode==='unknown')mode=delta.startsWith(result)?'cumulative':'incremental';const next=mode==='cumulative'&&delta.startsWith(result)?delta:result+delta,added=next.slice(result.length);result=next;if(added)onDelta(added);}};
+  const consume=line=>{if(!line.startsWith('data:'))return;const value=line.slice(5).trim();if(!value||value==='[DONE]')return;let data;try{data=JSON.parse(value)}catch{return;}const delta=providerId==='agnes'?data.choices?.[0]?.delta?.content||'':'';if(typeof delta==='string'&&delta){if(result&&mode==='unknown')mode=delta.startsWith(result)?'cumulative':'incremental';const next=mode==='cumulative'&&delta.startsWith(result)?delta:result+delta,added=next.slice(result.length);result=next;if(added)onDelta(added);}};
   while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split(/\r?\n/);buffer=lines.pop()||'';for(const line of lines)consume(line);}
   buffer+=decoder.decode();if(buffer)consume(buffer);return result;
 }
@@ -179,15 +172,16 @@ function userAnsweredQuestion(messages) {
 async function callProvider(providerId, modelId, prompt, config, signal, onRawDelta) {
   const combined = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(Math.max(1,Number(config.timeoutMs)||90_000))]);
   let url, options, label, read;
-  if (providerId === 'openai') {
-    label='OpenAI Agent'; url=`${config.openaiBase}/responses`; read=openAIText;
-    options={method:'POST',headers:{Authorization:`Bearer ${config.openaiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:modelId,instructions:SYSTEM_PROMPT,input:prompt,store:false,stream:Boolean(onRawDelta),text:{format:{type:'json_schema',name:'libtv_creative_plan',strict:true,schema:AGENT_REPLY_SCHEMA}}}),signal:combined};
-  } else if (providerId === 'gemini') {
-    label='Gemini Agent'; url=`${config.geminiBase}/models/${encodeURIComponent(modelId)}:${onRawDelta?'streamGenerateContent?alt=sse':'generateContent'}`; read=geminiText;
-    options={method:'POST',headers:{'x-goog-api-key':config.geminiKey,'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM_PROMPT}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:AGENT_REPLY_SCHEMA}}),signal:combined};
-  } else if (providerId === 'agnes') {
+  if (providerId === 'agnes') {
     label='Agnes Agent'; url=`${config.agnesBase}/chat/completions`; read=body=>body.choices?.[0]?.message?.content || '';
     options={method:'POST',headers:{Authorization:`Bearer ${config.agnesKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:modelId,messages:[{role:'system',content:`${SYSTEM_PROMPT}\n\nReturn JSON matching this schema exactly:\n${JSON.stringify(AGENT_REPLY_SCHEMA)}`},{role:'user',content:prompt}],response_format:{type:'json_object'},temperature:0,stream:Boolean(onRawDelta)}),signal:combined};
+  } else if (providerId === 'apimart') {
+    label='APIMart Agent'; url=`${config.apimartBase}/chat/completions`; read=body=>(body.data||body).choices?.[0]?.message?.content || '';
+    options={method:'POST',headers:{Authorization:`Bearer ${config.apimartKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:modelId,messages:[{role:'system',content:`${SYSTEM_PROMPT}\n\nReturn JSON matching this schema exactly:\n${JSON.stringify(AGENT_REPLY_SCHEMA)}`},{role:'user',content:prompt}],response_format:{type:'json_object'},temperature:0,stream:false}),signal:combined};
+  } else if (providerId === 'deepseek' || providerId === 'bailian') {
+    const cfg=providerId==='deepseek'?{name:'DeepSeek Agent',base:config.deepseekBase,key:config.deepseekKey}:{name:'百炼 Agent',base:config.bailianBase,key:config.bailianKey};
+    label=cfg.name; url=`${cfg.base}/chat/completions`; read=body=>(body.data||body).choices?.[0]?.message?.content || '';
+    options={method:'POST',headers:{Authorization:`Bearer ${cfg.key}`,'Content-Type':'application/json'},body:JSON.stringify({model:modelId,messages:[{role:'system',content:`${SYSTEM_PROMPT}\n\nReturn JSON matching this schema exactly:\n${JSON.stringify(AGENT_REPLY_SCHEMA)}`},{role:'user',content:prompt}],response_format:{type:'json_object'},temperature:0,stream:false}),signal:combined};
   } else fail('unsupported Agent provider');
   const response = await fetch(url, options);
   if (!response.ok){const body=await response.json().catch(()=>({}));throw providerError(label,response,body);}
@@ -220,29 +214,54 @@ function nearest(values, wanted, fallback) {
   return numbers.reduce((best,value)=>Math.abs(value-wanted)<Math.abs(best-wanted)?value:best,numbers[0]);
 }
 function preferred(values, wanted, fallback) { return (values||[]).includes(wanted)?wanted:((values||[]).includes(fallback)?fallback:(values||[])[0]||wanted||fallback); }
-function nodeMeta(proposal, shotId, role) { return { origin:'agent', agentProposalId:proposal.id, shotId, agentRole:role }; }
+function nodeMeta(proposalId, shotId, role, extra={}) { return { origin:'agent', agentProposalId:proposalId, shotId, agentRole:role, ...extra }; }
+
+function createSequenceClipNodes(project, sequence, models, clip, previous) {
+  const nodes=project.workflow.nodes,edges=project.workflow.edges,shot=sequence.plan.shots[clip.index];
+  if (!shot) fail('sequence clip has no matching shot',409);
+  const image=models.find(model=>model.capabilities?.includes('image.generate'));
+  const video=models.find(model=>model.capabilities?.includes('video.image_to_video'));
+  const y=sequence.layoutBaseY+clip.index*680,imageId=randomUUID(),videoId=randomUUID();
+  const imageAspect=preferred(image?.constraints?.aspectRatios,sequence.plan.brief.aspectRatio,'16:9'),videoAspect=preferred(video?.constraints?.aspectRatios,sequence.plan.brief.aspectRatio,'16:9');
+  const imageQuality=preferred(image?.constraints?.resolutions,'2K','2K'),duration=nearest(video?.constraints?.durations,shot.durationSec,shot.durationSec),resolution=preferred(video?.constraints?.resolutions,'720p','720p');
+  const inherited=previous?.observedEndState?`\n\n承接上一段已验收结尾：${previous.observedEndState}`:'';
+  const imagePrompt=`${shot.imagePrompt}\n\n${shot.title}\n目的：${shot.purpose}\n构图：${shot.composition}\n动作：${shot.action}\n镜头：${shot.camera}\n光线：${shot.lighting}\n视觉风格：${sequence.plan.styleBible.visualStyle}\n色彩：${sequence.plan.styleBible.palette}\n连续性：${shot.continuityNote}${inherited}`;
+  const sequenceMeta={sequenceId:sequence.id,sequenceClipId:clip.id,sequenceStatus:'ready',sequenceReviewStatus:''};
+  const created=[
+    {id:imageId,type:'imageGen',position:{x:sequence.layoutBaseX,y},data:{modelKey:image?`${image.providerId}::${image.modelId}`:'',prompt:imagePrompt,status:'idle',progress:0,params:{aspectRatio:imageAspect,quality:imageQuality},layoutWidth:420,...nodeMeta(sequence.proposalId,shot.id,'image',sequenceMeta)}},
+    {id:videoId,type:'videoGen',position:{x:sequence.layoutBaseX+540,y},data:{modelKey:video?`${video.providerId}::${video.modelId}`:'',prompt:`${shot.videoPrompt}${inherited}`,status:'idle',progress:0,forcedCapability:'video.image_to_video',params:{duration,aspectRatio:videoAspect,resolution},layoutWidth:420,...nodeMeta(sequence.proposalId,shot.id,'video',sequenceMeta)}},
+  ];
+  nodes.push(...created);edges.push({id:randomUUID(),source:imageId,target:videoId,role:'first-frame'});
+  clip.status='ready';clip.imageNodeId=imageId;clip.videoNodeId=videoId;return created;
+}
 
 export function applyAgentProposal(project, proposal, models) {
   if (proposal.status === 'applied') return { workflow:project.workflow, appliedNodeIds:proposal.appliedNodeIds || [] };
   if (proposal.status !== 'pending') fail('proposal is no longer applicable',409);
   const nodes=Array.isArray(project.workflow?.nodes)?project.workflow.nodes:[], edges=Array.isArray(project.workflow?.edges)?project.workflow.edges:[];
-  const image=models.find(model=>model.capabilities?.includes('image.generate'));
-  const video=models.find(model=>model.capabilities?.includes('video.image_to_video'));
-  const maxRight=nodes.reduce((max,node)=>Math.max(max,Number(node.position?.x||0)+420),0);
-  const baseX=nodes.length?maxRight+120:80, shotTop=60, rowGap=680, created=[], newEdges=[];
-  const brief=proposal.plan.brief, style=proposal.plan.styleBible;
-  proposal.plan.shots.forEach((shot,index)=>{
-    const y=shotTop+index*rowGap, imageId=randomUUID(), videoId=randomUUID();
-    const imageAspect=preferred(image?.constraints?.aspectRatios,brief.aspectRatio,'16:9'), videoAspect=preferred(video?.constraints?.aspectRatios,brief.aspectRatio,'16:9');
-    const imageQuality=preferred(image?.constraints?.resolutions,'2K','2K'), duration=nearest(video?.constraints?.durations,shot.durationSec,shot.durationSec), resolution=preferred(video?.constraints?.resolutions,'720p','720p');
-    const imagePrompt=`${shot.imagePrompt}\n\n${shot.title}\n目的：${shot.purpose}\n构图：${shot.composition}\n动作：${shot.action}\n镜头：${shot.camera}\n光线：${shot.lighting}\n视觉风格：${style.visualStyle}\n色彩：${style.palette}\n连续性：${shot.continuityNote}`;
-    created.push(
-      {id:imageId,type:'imageGen',position:{x:baseX,y},data:{modelKey:image?`${image.providerId}::${image.modelId}`:'',prompt:imagePrompt,status:'idle',progress:0,params:{aspectRatio:imageAspect,quality:imageQuality},layoutWidth:420,...nodeMeta(proposal,shot.id,'image')}},
-      {id:videoId,type:'videoGen',position:{x:baseX+540,y},data:{modelKey:video?`${video.providerId}::${video.modelId}`:'',prompt:shot.videoPrompt,status:'idle',progress:0,forcedCapability:'video.image_to_video',params:{duration,aspectRatio:videoAspect,resolution},layoutWidth:420,...nodeMeta(proposal,shot.id,'video')}},
-    );
-    newEdges.push({id:randomUUID(),source:imageId,target:videoId,role:'first-frame'});
-  });
-  project.workflow={version:2,nodes:[...nodes,...created],edges:[...edges,...newEdges]};
+  const maxRight=nodes.reduce((max,node)=>Math.max(max,Number(node.position?.x||0)+420),0),layoutBaseX=nodes.length?maxRight+120:80;
+  const sequence={version:1,id:randomUUID(),proposalId:proposal.id,plan:proposal.plan,activeClipId:'',layoutBaseX,layoutBaseY:60,clips:proposal.plan.shots.map((shot,index)=>({id:randomUUID(),index,shotId:shot.id,status:'planned',imageNodeId:'',videoNodeId:'',observedEndState:'',lastVerdict:''}))};
+  project.workflow={version:2,nodes,edges,sequence};
+  const created=createSequenceClipNodes(project,sequence,models,sequence.clips[0]);sequence.activeClipId=sequence.clips[0].id;
   proposal.status='applied'; proposal.appliedNodeIds=created.map(node=>node.id); proposal.appliedAt=new Date().toISOString();
   return {workflow:project.workflow,appliedNodeIds:proposal.appliedNodeIds,briefNodeId:created[0]?.id||null};
+}
+
+export function reviewSequenceClip(project, clipId, decision, observedEndState, models) {
+  const sequence=project.workflow?.sequence,clip=sequence?.clips?.find(item=>item.id===clipId),video=project.workflow?.nodes?.find(node=>node.id===clip?.videoNodeId);
+  if (!sequence||!clip||!video) fail('sequence clip not found',404);
+  if (decision==='reject') { clip.lastVerdict='rejected';video.data.sequenceReviewStatus='rejected';return {workflow:project.workflow,appliedNodeIds:[],nextClipId:null}; }
+  if (decision!=='accept') fail('invalid sequence review decision');
+  const next=sequence.clips[clip.index+1];
+  if (clip.status==='accepted') {
+    if (!next) return {workflow:project.workflow,appliedNodeIds:[],nextClipId:null};
+    if (next.status==='planned') { const created=createSequenceClipNodes(project,sequence,models,next,clip);sequence.activeClipId=next.id;return {workflow:project.workflow,appliedNodeIds:created.map(node=>node.id),nextClipId:next.id}; }
+    return {workflow:project.workflow,appliedNodeIds:[],nextClipId:next.id};
+  }
+  if (clip.status!=='ready'||video.data.status!=='succeeded'||!(video.data.outputAssetIds||[]).length) fail('only a completed current clip can be accepted',409);
+  clip.status='accepted';clip.lastVerdict='accepted';clip.observedEndState=observedEndState.trim()?text(observedEndState,'observedEndState',1,600):'';video.data.sequenceReviewStatus='accepted';
+  if(!next){sequence.activeClipId='';return {workflow:project.workflow,appliedNodeIds:[],nextClipId:null};}
+  if(next.status!=='planned')fail('next sequence clip is not available',409);
+  const created=createSequenceClipNodes(project,sequence,models,next,clip);sequence.activeClipId=next.id;
+  return {workflow:project.workflow,appliedNodeIds:created.map(node=>node.id),nextClipId:next.id};
 }

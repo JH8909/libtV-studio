@@ -20,7 +20,7 @@ The runtime uses Node.js built-ins only; no npm install, database, Redis or Dock
 - Text-to-Video / First-frame Video / First+Last-frame Video / Reference Video
 - Asset nodes for uploaded/generated image/video/audio
 
-Open **模型/API** in the top bar to configure OpenAI-compatible text, Seedream, Seedance, Kling, Veo and fal. Secrets remain server-side in `standalone/data/provider-settings.json` and do not enter workflow JSON.
+Open **模型/API** in the top bar to configure Agnes, APIMart, DeepSeek and 阿里云百炼. APIMart fetches the account's model list; DeepSeek uses OpenAI-compatible Chat Completions, and 百炼 uses compatible Chat Completions for text/Agent plus native DashScope media endpoints for image/video. Secrets remain server-side in `standalone/data/provider-settings.json` and do not enter workflow JSON.
 
 You can also copy `standalone/.env.example` to `standalone/.env`.
 
@@ -41,7 +41,7 @@ node standalone/agnes-provider-e2e.mjs
 
 Open **Agent** in the top bar to create and revise a project-level short-film plan. A confirmed proposal appends a brief node and one Text → Image → Video group per shot. It does not run generation, modify the Timeline or export.
 
-Configure an OpenAI, Gemini or Agnes Agent model under **模型/API**. Conversations and proposals persist in the local project; prompts are sent only to the provider selected in the Agent panel.
+Configure an Agnes, APIMart, DeepSeek or 百炼 Agent model under **模型/API**. Conversations and proposals persist in the local project; prompts are sent only to the provider selected in the Agent panel.
 
 ```bash
 node standalone/agent-e2e.mjs

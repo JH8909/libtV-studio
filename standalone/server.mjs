@@ -3,11 +3,11 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSyn
 import { promises as fsp } from 'node:fs';
 import { basename, dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID, createHmac } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import dns from 'node:dns/promises';
 import net from 'node:net';
-import { applyAgentProposal, configuredAgentModels, createAgentReply, ensureAgentSession } from './agent.mjs';
+import { applyAgentProposal, configuredAgentModels, createAgentReply, ensureAgentSession, reviewSequenceClip } from './agent.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 for (const envFile of [join(ROOT,'.env'), join(dirname(ROOT),'.env')]) { try { if (existsSync(envFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envFile); } catch (error) { console.warn(`Could not load ${envFile}:`, error.message); } }
@@ -29,38 +29,36 @@ const MAX_PROVIDER_RETRY_DELAY_MS = 60_000;
 const PROVIDER_SETTINGS_FILE = join(DATA, 'provider-settings.json');
 let providerSettings = {};
 try { if (existsSync(PROVIDER_SETTINGS_FILE)) providerSettings = JSON.parse(readFileSync(PROVIDER_SETTINGS_FILE,'utf8')); } catch { providerSettings = {}; }
+const apimartProxyBase=String(providerSettings.APIMART_BASE_URL||process.env.APIMART_BASE_URL||'https://api.apimart.ai/v1');
+if(process.env.ALL_PROXY&&!process.env.HTTPS_PROXY&&!process.env.HTTP_PROXY&&process.env.LIBTV_PROXY_BOOTSTRAPPED!=='1'&&!process.execArgv.includes('--use-env-proxy')&&(providerSettings.APIMART_API_KEY||process.env.APIMART_API_KEY)&&/^https:\/\//i.test(apimartProxyBase)){
+  const child=spawn(process.execPath,['--use-env-proxy',...process.execArgv,fileURLToPath(import.meta.url),...process.argv.slice(2)],{stdio:'inherit',windowsHide:true,env:{...process.env,HTTPS_PROXY:process.env.ALL_PROXY,HTTP_PROXY:process.env.ALL_PROXY,LIBTV_PROXY_BOOTSTRAPPED:'1'}});
+  const code=await new Promise(resolve=>child.on('exit',resolve));process.exit(typeof code==='number'?code:0);
+}
+const retiredProviderKeys=Object.keys(providerSettings).filter(key=>/^(?:OPENAI|OPENAI_COMPAT|ARK|VOLCENGINE|KLING|GEMINI|VEO|FAL)_/.test(key)||/^APIMART_(?:TEXT|AGENT|IMAGE|VIDEO)_MODEL$/.test(key)||/^APIMART_(?:BASE|CHAT_BASE)_URL$/.test(key));
+if(retiredProviderKeys.length){for(const key of retiredProviderKeys)delete providerSettings[key];writeFileSync(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2));}
 const cfg = (key, fallback='') => String(providerSettings[key] || process.env[key] || fallback);
-let FAL_KEY, ARK_API_KEY, ARK_BASE_URL, ARK_VIDEO_MODEL, ARK_IMAGE_MODEL, KLING_ACCESS_KEY, KLING_SECRET_KEY, KLING_BASE_URL, KLING_VIDEO_MODEL, GEMINI_API_KEY, GEMINI_AGENT_BASE_URL, GEMINI_AGENT_MODEL, VEO_BASE_URL, VEO_MODEL, FAL_IMAGE_MODEL, FAL_VIDEO_MODEL, FAL_VIDEO_IMAGE_MODEL, OPENAI_COMPAT_API_KEY, OPENAI_COMPAT_BASE_URL, OPENAI_COMPAT_TEXT_MODEL, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_AGENT_MODEL, AGNES_API_KEY, AGNES_BASE_URL, AGNES_TEXT_MODEL, AGNES_AGENT_MODEL, AGNES_IMAGE_MODEL, AGNES_VIDEO_MODEL, PUBLIC_BASE_URL;
+let AGNES_API_KEY, AGNES_BASE_URL, AGNES_TEXT_MODEL, AGNES_AGENT_MODEL, AGNES_IMAGE_MODEL, AGNES_VIDEO_MODEL, APIMART_API_KEY, APIMART_BASE_URL, APIMART_CHAT_BASE_URL, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_TEXT_MODEL, DEEPSEEK_AGENT_MODEL, BAILIAN_API_KEY, BAILIAN_BASE_URL, BAILIAN_MEDIA_BASE_URL, BAILIAN_TEXT_MODEL, BAILIAN_AGENT_MODEL, BAILIAN_IMAGE_MODEL, BAILIAN_VIDEO_MODEL, PUBLIC_BASE_URL;
 function refreshProviderRuntime(){
-  FAL_KEY = cfg('FAL_KEY');
-  ARK_API_KEY = cfg('ARK_API_KEY', cfg('VOLCENGINE_API_KEY'));
-  ARK_BASE_URL = cfg('ARK_BASE_URL','https://ark.cn-beijing.volces.com/api/v3').replace(/\/$/,'');
-  ARK_VIDEO_MODEL = cfg('ARK_VIDEO_MODEL',cfg('VOLCENGINE_VIDEO_MODEL','doubao-seedance-2-0-fast-260128'));
-  ARK_IMAGE_MODEL = cfg('ARK_IMAGE_MODEL','doubao-seedream-4-0-250828');
-  KLING_ACCESS_KEY = cfg('KLING_ACCESS_KEY');
-  KLING_SECRET_KEY = cfg('KLING_SECRET_KEY');
-  KLING_BASE_URL = cfg('KLING_BASE_URL','https://api.klingai.com').replace(/\/$/,'');
-  KLING_VIDEO_MODEL = cfg('KLING_VIDEO_MODEL','kling-v3');
-  GEMINI_API_KEY = cfg('GEMINI_API_KEY');
-  GEMINI_AGENT_BASE_URL = cfg('GEMINI_AGENT_BASE_URL','https://generativelanguage.googleapis.com/v1beta').replace(/\/$/,'');
-  GEMINI_AGENT_MODEL = cfg('GEMINI_AGENT_MODEL','gemini-2.5-flash');
-  VEO_BASE_URL = cfg('VEO_BASE_URL','https://generativelanguage.googleapis.com/v1beta').replace(/\/$/,'');
-  VEO_MODEL = cfg('VEO_MODEL','veo-3.1-generate-preview');
-  FAL_IMAGE_MODEL = cfg('FAL_IMAGE_MODEL','fal-ai/qwen-image');
-  FAL_VIDEO_MODEL = cfg('FAL_VIDEO_MODEL','fal-ai/wan/v2.7/text-to-video');
-  FAL_VIDEO_IMAGE_MODEL = cfg('FAL_VIDEO_IMAGE_MODEL',FAL_VIDEO_MODEL);
-  OPENAI_COMPAT_API_KEY = cfg('OPENAI_COMPAT_API_KEY');
-  OPENAI_COMPAT_BASE_URL = cfg('OPENAI_COMPAT_BASE_URL','https://api.openai.com/v1').replace(/\/$/,'');
-  OPENAI_COMPAT_TEXT_MODEL = cfg('OPENAI_COMPAT_TEXT_MODEL','gpt-5-mini');
-  OPENAI_API_KEY = cfg('OPENAI_API_KEY',OPENAI_COMPAT_API_KEY);
-  OPENAI_BASE_URL = cfg('OPENAI_BASE_URL',OPENAI_COMPAT_BASE_URL).replace(/\/$/,'');
-  OPENAI_AGENT_MODEL = cfg('OPENAI_AGENT_MODEL',OPENAI_COMPAT_TEXT_MODEL);
   AGNES_API_KEY = cfg('AGNES_API_KEY');
   AGNES_BASE_URL = cfg('AGNES_BASE_URL','https://apihub.agnes-ai.com/v1').replace(/\/$/,'');
   AGNES_TEXT_MODEL = cfg('AGNES_TEXT_MODEL','agnes-2.5-flash');
   AGNES_AGENT_MODEL = cfg('AGNES_AGENT_MODEL',AGNES_TEXT_MODEL);
   AGNES_IMAGE_MODEL = cfg('AGNES_IMAGE_MODEL','agnes-image-2.1-flash');
   AGNES_VIDEO_MODEL = cfg('AGNES_VIDEO_MODEL','agnes-video-v2.0');
+  APIMART_API_KEY = cfg('APIMART_API_KEY');
+  APIMART_BASE_URL = cfg('APIMART_BASE_URL','https://api.apimart.ai/v1').replace(/\/$/,'');
+  APIMART_CHAT_BASE_URL = cfg('APIMART_CHAT_BASE_URL','https://api.apimart.ai/api/v1').replace(/\/$/,'');
+  DEEPSEEK_API_KEY = cfg('DEEPSEEK_API_KEY');
+  DEEPSEEK_BASE_URL = cfg('DEEPSEEK_BASE_URL','https://api.deepseek.com').replace(/\/$/,'');
+  DEEPSEEK_TEXT_MODEL = cfg('DEEPSEEK_TEXT_MODEL','deepseek-v4-pro');
+  DEEPSEEK_AGENT_MODEL = cfg('DEEPSEEK_AGENT_MODEL',DEEPSEEK_TEXT_MODEL);
+  BAILIAN_API_KEY = cfg('BAILIAN_API_KEY');
+  BAILIAN_BASE_URL = cfg('BAILIAN_BASE_URL','https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/,'');
+  BAILIAN_MEDIA_BASE_URL = cfg('BAILIAN_MEDIA_BASE_URL','https://dashscope.aliyuncs.com/api/v1').replace(/\/$/,'');
+  BAILIAN_TEXT_MODEL = cfg('BAILIAN_TEXT_MODEL','qwen-plus');
+  BAILIAN_AGENT_MODEL = cfg('BAILIAN_AGENT_MODEL',BAILIAN_TEXT_MODEL);
+  BAILIAN_IMAGE_MODEL = cfg('BAILIAN_IMAGE_MODEL','qwen-image-2.0');
+  BAILIAN_VIDEO_MODEL = cfg('BAILIAN_VIDEO_MODEL','wan2.7-t2v-2026-06-12');
   PUBLIC_BASE_URL = cfg('PUBLIC_BASE_URL').replace(/\/$/,'');
 }
 refreshProviderRuntime();
@@ -271,39 +269,69 @@ async function availableAgnesModels() {
   } catch { return fallback; }
 }
 
+let apimartModelCache={expiresAt:0,models:[]};
+function cachedApimartModels() {
+  const raw=providerSettings.APIMART_MODELS;
+  try{const items=Array.isArray(raw)?raw:(typeof raw==='string'?JSON.parse(raw||'[]'):[]);return items.map(apimartModelDescriptor).filter(Boolean);}catch{return[];}
+}
+async function persistProviderSettings() {
+  await fsp.writeFile(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2));try{await fsp.chmod(PROVIDER_SETTINGS_FILE,0o600);}catch{}
+}
+function apimartModelDescriptor(item) {
+  const modelId=String(typeof item==='string'?item:item?.id||item?.name||'').trim();if(!modelId)return null;
+  const declared=[item?.type,item?.category,item?.modality,item?.model_type,...(Array.isArray(item?.capabilities)?item.capabilities:[])].filter(Boolean).join(' ').toLowerCase(),id=modelId.toLowerCase();
+  if(/(?:audio|speech|tts|whisper|embedding|moderation)/.test(declared)||/(?:^|[-_.])(?:tts|whisper|embedding|moderation)(?:$|[-_.])/.test(id))return null;
+  const video=declared.includes('video')||/(?:video|seedance|sora|veo|hailuo|minimax-h3|flux-3-video|skyreels|happyhorse|kling|vidu|pixverse|omni-flash)/.test(id)||(/wan2[.-][567]/.test(id)&&!id.includes('image'));
+  const image=!video&&(declared.includes('image')||/(?:image|imagen|seedream|flux|qwen-image|midjourney|nano-banana|z-image)/.test(id));
+  if(video)return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['video.generate','video.image_to_video','video.first_last_frame','video.reference'],constraints:{durations:[4,5,6,8,10,12,15],aspectRatios:['16:9','9:16','1:1','4:3','3:4','21:9','adaptive'],resolutions:['480p','720p','1080p','4k'],audioModes:['ambient','silent','music','voiceover','full'],maxImageRefs:9,maxVideoRefs:3,maxAudioRefs:3},configured:true};
+  if(image)return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4','3:2','2:3','5:4','4:5','2:1','1:2','3:1','1:3','21:9','9:21'],resolutions:['1K','2K','4K'],maxImageRefs:16},configured:true};
+  return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['text.generate'],constraints:{},configured:true};
+}
+async function availableApimartModels(strict=false) {
+  if(!APIMART_API_KEY)return[];if(!strict)return cachedApimartModels();if(apimartModelCache.expiresAt>Date.now())return apimartModelCache.models;
+  try{const response=await fetch(`${APIMART_BASE_URL}/models`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`},signal:AbortSignal.timeout(8_000)}),body=await response.json().catch(()=>({}));if(!response.ok)throw providerHttpError('APIMart models',response,body);const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];const models=items.map(apimartModelDescriptor).filter(Boolean);if(!models.length)throw new Error('APIMart models returned an empty list');providerSettings.APIMART_MODELS=items;await persistProviderSettings();apimartModelCache={expiresAt:Date.now()+300_000,models};return models;}catch(error){apimartModelCache={expiresAt:0,models:[]};const detail=error.message==='fetch failed'?'无法连接 APIMart，请检查网络或代理设置':sanitizeProviderMessage(error.message);throw Object.assign(new Error(`APIMart 模型拉取失败：${error.status===402?'余额不足，请先在 APIMart 充值或确认额度。':''}${detail}`),{status:error.status||502});}
+}
+function enabledApimartModels(models) {
+  if(!Object.hasOwn(providerSettings,'APIMART_ENABLED_MODELS'))return models;const enabled=new Set(String(providerSettings.APIMART_ENABLED_MODELS||'').split(',').map(id=>id.trim()).filter(Boolean));return models.filter(model=>enabled.has(model.modelId));
+}
+function apimartSettingsPayload(models) {
+  const enabled=enabledApimartModels(models);return {apimartModels:models,enabledApimartModelIds:enabled.map(model=>model.modelId)};
+}
+function textProviderModel(providerId, label, modelId) {
+  return modelId&&{providerId,modelId,displayName:`${label} · ${modelId}`,capabilities:['text.generate'],constraints:{},configured:true};
+}
+function bailianImageProviderModel() {
+  return BAILIAN_IMAGE_MODEL&&{providerId:'bailian',modelId:BAILIAN_IMAGE_MODEL,displayName:`百炼 · ${BAILIAN_IMAGE_MODEL}`,capabilities:['image.generate'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4'],resolutions:['1K','2K'],maxImageRefs:0},configured:true};
+}
+function bailianVideoProviderModel() {
+  return BAILIAN_VIDEO_MODEL&&{providerId:'bailian',modelId:BAILIAN_VIDEO_MODEL,displayName:`百炼 · ${BAILIAN_VIDEO_MODEL}`,capabilities:['video.generate'],constraints:{durations:[2,3,4,5,6,7,8,9,10,11,12,13,14,15],aspectRatios:['16:9','9:16','1:1','4:3','3:4'],resolutions:['720P','1080P'],maxImageRefs:0},configured:true};
+}
+
 async function listModels() {
   const models = [];
-  if (OPENAI_COMPAT_API_KEY) models.push({providerId:'openai-compatible',modelId:OPENAI_COMPAT_TEXT_MODEL,displayName:`Text · ${OPENAI_COMPAT_TEXT_MODEL}`,capabilities:['text.generate'],constraints:{},configured:true});
-  if (AGNES_API_KEY) models.push(...await availableAgnesModels());
-  if (ARK_API_KEY) {
-    models.push({providerId:'seedream',modelId:ARK_IMAGE_MODEL,displayName:`Seedream · ${ARK_IMAGE_MODEL}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4'],resolutions:['1K','2K','4K'],maxImageRefs:10},configured:true});
-    models.push({providerId:'seedance',modelId:ARK_VIDEO_MODEL,displayName:`Seedance · ${ARK_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.reference'],constraints:{durations:[4,5,6,8,10,12,15],aspectRatios:['16:9','9:16'],resolutions:['480p','720p','1080p'],audioModes:['ambient','silent','music','voiceover','full'],maxImageRefs:10,maxAudioRefs:1},configured:true});
-  }
-  if (FAL_KEY) models.push(
-    {providerId:'fal',modelId:FAL_IMAGE_MODEL,displayName:`fal · ${FAL_IMAGE_MODEL}`,capabilities:['image.generate'],constraints:{},configured:true},
-    {providerId:'fal',modelId:FAL_VIDEO_MODEL,displayName:`fal · ${FAL_VIDEO_MODEL}`,capabilities:['video.generate'],constraints:{},configured:true},
-    {providerId:'fal',modelId:FAL_VIDEO_IMAGE_MODEL,displayName:`fal · ${FAL_VIDEO_IMAGE_MODEL} · I2V`,capabilities:['video.image_to_video'],constraints:{},configured:true},
-  );
-  if (KLING_ACCESS_KEY && KLING_SECRET_KEY) models.push({providerId:'kling',modelId:KLING_VIDEO_MODEL,displayName:`Kling · ${KLING_VIDEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.first_last_frame'],constraints:{durations:[5,10],aspectRatios:['16:9','9:16']},configured:true});
-  if (GEMINI_API_KEY) models.push({providerId:'veo',modelId:VEO_MODEL,displayName:`Google Veo · ${VEO_MODEL}`,capabilities:['video.generate','video.image_to_video','video.first_last_frame','video.reference'],constraints:{durations:[4,6,8],aspectRatios:['16:9','9:16'],resolutions:['720p','1080p','4k'],maxImageRefs:3,maxVideoRefs:1},configured:true});
+  if (AGNES_API_KEY) models.push(...agnesConfiguredModels());
+  if (APIMART_API_KEY) models.push(...enabledApimartModels(await availableApimartModels()));
+  if (DEEPSEEK_API_KEY) models.push(textProviderModel('deepseek','DeepSeek',DEEPSEEK_TEXT_MODEL));
+  if (BAILIAN_API_KEY) models.push(textProviderModel('bailian','百炼',BAILIAN_TEXT_MODEL),bailianImageProviderModel(),bailianVideoProviderModel());
   return models;
 }
 
 function agentConfig() {
   return {
-    openaiKey:OPENAI_API_KEY, openaiBase:OPENAI_BASE_URL, openaiModel:OPENAI_AGENT_MODEL,
-    geminiKey:GEMINI_API_KEY, geminiBase:GEMINI_AGENT_BASE_URL, geminiModel:GEMINI_AGENT_MODEL,
     agnesKey:AGNES_API_KEY, agnesBase:AGNES_BASE_URL, agnesModel:AGNES_AGENT_MODEL,
+    apimartKey:APIMART_API_KEY, apimartBase:APIMART_CHAT_BASE_URL,
+    deepseekKey:DEEPSEEK_API_KEY, deepseekBase:DEEPSEEK_BASE_URL, deepseekModel:DEEPSEEK_AGENT_MODEL,
+    bailianKey:BAILIAN_API_KEY, bailianBase:BAILIAN_BASE_URL, bailianModel:BAILIAN_AGENT_MODEL,
   };
 }
 
 let agentModelCache={expiresAt:0,models:[]};
 async function availableAgentModels() {
-  const configured=configuredAgentModels(agentConfig());if(!AGNES_API_KEY)return configured;
+  const configured=configuredAgentModels(agentConfig()),apimart=enabledApimartModels(await availableApimartModels()).filter(model=>model.capabilities.includes('text.generate')).map(({providerId,modelId,displayName,configured})=>({providerId,modelId,displayName,configured}));if(!AGNES_API_KEY)return[...configured,...apimart];
   if(agentModelCache.expiresAt>Date.now())return agentModelCache.models;
   try{
-    const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error(`Agnes models failed ${response.status}`);const body=await response.json();const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];const ids=[...new Set(items.map(item=>typeof item==='string'?item:item?.id||item?.name).filter(id=>typeof id==='string'&&id.trim()&&!/(?:image|video)/i.test(id)).map(id=>id.trim()))];const models=[AGNES_AGENT_MODEL,...ids.filter(id=>id!==AGNES_AGENT_MODEL)].map(modelId=>({providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,configured:true}));agentModelCache={expiresAt:Date.now()+300_000,models:[...configured.filter(model=>model.providerId!=='agnes'),...models]};return agentModelCache.models;
-  }catch{return configured;}
+    const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error(`Agnes models failed ${response.status}`);const body=await response.json();const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];const ids=[...new Set(items.map(item=>typeof item==='string'?item:item?.id||item?.name).filter(id=>typeof id==='string'&&id.trim()&&!/(?:image|video)/i.test(id)).map(id=>id.trim()))];const models=[AGNES_AGENT_MODEL,...ids.filter(id=>id!==AGNES_AGENT_MODEL)].map(modelId=>({providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,configured:true}));agentModelCache={expiresAt:Date.now()+300_000,models:[...configured.filter(model=>model.providerId!=='agnes'),...apimart,...models]};return agentModelCache.models;
+  }catch{return [...configured,...apimart];}
 }
 
 const GENERATION_REFERENCE_ROLES = new Set(['first-frame','last-frame','reference-image','reference-video','reference-audio']);
@@ -349,14 +377,13 @@ function validateGenerationRequest(model, body, references) {
     if (variants < 1 || variants > 4) throw Object.assign(new Error('variants must be between 1 and 4'), { status: 400 });
   }
   const counts = { image: 0, video: 0, audio: 0 };
-  let first = 0, last = 0, refVideo = 0;
+  let first = 0, last = 0;
   for (const ref of references) {
     const asset = state.assets[ref.assetId];
     if (!asset || asset.projectId !== body.projectId) throw Object.assign(new Error(`invalid reference: ${ref.assetId}`), { status: 400 });
     counts[asset.kind] = (counts[asset.kind] || 0) + 1;
     if (ref.role === 'first-frame') first++;
     if (ref.role === 'last-frame') last++;
-    if (ref.role === 'reference-video') refVideo++;
     if (['first-frame','last-frame','reference-image'].includes(ref.role) && asset.kind !== 'image') throw Object.assign(new Error(`${ref.role} requires an image asset`), { status: 400 });
     if (ref.role === 'reference-video' && asset.kind !== 'video') throw Object.assign(new Error('reference-video requires a video asset'), { status: 400 });
     if (ref.role === 'reference-audio' && asset.kind !== 'audio') throw Object.assign(new Error('reference-audio requires an audio asset'), { status: 400 });
@@ -370,11 +397,6 @@ function validateGenerationRequest(model, body, references) {
   if (body.capability === 'video.image_to_video' && first !== 1) throw Object.assign(new Error('image-to-video requires exactly one first-frame image'), { status: 400 });
   if (body.capability === 'video.first_last_frame' && (first !== 1 || last !== 1)) throw Object.assign(new Error('first/last-frame generation requires exactly one first-frame and one last-frame'), { status: 400 });
   if (body.capability === 'video.reference' && !(counts.image || counts.video || counts.audio)) throw Object.assign(new Error('reference generation requires at least one reference asset'), { status: 400 });
-  if (model.providerId === 'veo') {
-    const duration=Number(params.duration||8), resolution=String(params.resolution||'720p').toLowerCase();
-    const guidedImageCount=counts.image;
-    if ((resolution==='1080p'||resolution==='4k'||guidedImageCount>0||refVideo>0) && duration!==8) throw Object.assign(new Error('Veo requires 8s when using image/video references or 1080p/4k output'), { status: 400 });
-  }
   if (c.maxImageRefs != null && counts.image > c.maxImageRefs) throw Object.assign(new Error(`too many image references; maximum is ${c.maxImageRefs}`), { status: 400 });
   if (c.maxVideoRefs != null && counts.video > c.maxVideoRefs) throw Object.assign(new Error(`too many video references; maximum is ${c.maxVideoRefs}`), { status: 400 });
   if (c.maxAudioRefs != null && counts.audio > c.maxAudioRefs) throw Object.assign(new Error(`too many audio references; maximum is ${c.maxAudioRefs}`), { status: 400 });
@@ -422,20 +444,9 @@ async function mediaMetadata(file) {
   } catch { return {}; }
 }
 
-async function openAICompatibleText(job, signal) {
-  if(!OPENAI_COMPAT_API_KEY) throw new Error('OPENAI_COMPAT_API_KEY is not configured');
-  const req=job.request; job.progress=12; await saveDb();
-  const body={model:job.modelId,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
-  const r=await fetch(`${OPENAI_COMPAT_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${OPENAI_COMPAT_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal});
-  const data=await r.json().catch(()=>({})); if(!r.ok) throw new Error(`Text API failed ${r.status}: ${data.error?.message||data.message||JSON.stringify(data).slice(0,500)}`);
-  const content=data.choices?.[0]?.message?.content ?? data.output_text ?? data.text;
-  if(typeof content==='string'&&content.trim()) return content.trim();
-  if(Array.isArray(content)) return content.map(x=>x?.text||x?.content||'').join('\n').trim();
-  throw new Error('Text API returned no text content');
-}
-
+function sanitizeProviderMessage(value){return String(value||'').replace(/sk-[A-Za-z0-9*_-]+/g,'sk-***');}
 function providerHttpError(label, response, data) {
-  const error = new Error(`${label} failed ${response.status}: ${data?.error?.message || data?.message || String(data || '').slice(0,500)}`);
+  const error = new Error(sanitizeProviderMessage(`${label} failed ${response.status}: ${data?.error?.message || data?.message || String(data || '').slice(0,500)}`));
   error.status = response.status;
   const retryAfter = response.headers.get('retry-after');
   if (retryAfter) {
@@ -459,6 +470,54 @@ async function providerJson(url, options, label, signal) {
 async function providerPollJson(url, options, label, signal) {
   let delay=PROVIDER_RETRY_BASE_MS;
   while(true){try{return await providerJson(url,options,label,signal);}catch(error){if(error?.status!==429)throw error;await sleep(Math.min(MAX_PROVIDER_RETRY_DELAY_MS,Math.max(delay,error.retryAfterMs||0)),signal);delay=Math.min(MAX_PROVIDER_RETRY_DELAY_MS,delay*2);}}
+}
+
+function apimartPayload(data, label) {
+  if (Number(data?.code || 200) >= 400) throw new Error(`${label} failed: ${data?.error?.message || data?.message || data.code}`);
+  return data?.data && typeof data.data === 'object' ? data.data : data;
+}
+
+async function apimartTextGenerate(job, signal) {
+  if(!APIMART_API_KEY)throw new Error('APIMART_API_KEY is not configured');const req=job.request;job.progress=12;await saveDb();
+  const body={model:job.modelId,stream:false,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
+  const data=apimartPayload(await providerJson(`${APIMART_CHAT_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${APIMART_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'APIMart text',signal),'APIMart text');
+  const content=data.choices?.[0]?.message?.content;
+  if(typeof content==='string'&&content.trim())return content.trim();
+  if(Array.isArray(content))return content.map(item=>item?.text||item?.content||'').join('\n').trim();
+  throw new Error('APIMart text returned no content');
+}
+async function openAICompatibleTextGenerate(job, apiKey, baseUrl, label, signal) {
+  if(!apiKey)throw new Error(`${label} API key is not configured`);const req=job.request;job.progress=12;await saveDb();
+  const body={model:job.modelId,stream:false,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
+  const data=await providerJson(`${baseUrl}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify(body)},label,signal);
+  const content=(data.data||data).choices?.[0]?.message?.content;
+  if(typeof content==='string'&&content.trim())return content.trim();
+  if(Array.isArray(content))return content.map(item=>item?.text||item?.content||'').join('\n').trim();
+  throw new Error(`${label} returned no content`);
+}
+function bailianImageSize(modelId, params={}) {
+  const ratio=String(params.aspectRatio||'1:1'),hi=/qwen-image-(?:2|3)\./.test(modelId),sizes=hi?{'16:9':'2688*1536','9:16':'1536*2688','1:1':'2048*2048','4:3':'2368*1728','3:4':'1728*2368'}:{'16:9':'1664*928','9:16':'928*1664','1:1':'1328*1328','4:3':'1472*1104','3:4':'1104*1472'};
+  return sizes[ratio]||sizes['1:1'];
+}
+async function bailianImageGenerate(job, signal) {
+  if(!BAILIAN_API_KEY)throw new Error('BAILIAN_API_KEY is not configured');const req=job.request,params=req.params||{};
+  const body={model:job.modelId,input:{messages:[{role:'user',content:[{text:req.prompt}]}]},parameters:{size:bailianImageSize(job.modelId,params),prompt_extend:true,watermark:false,n:1}};
+  if(params.negativePrompt)body.parameters.negative_prompt=params.negativePrompt;job.progress=20;await saveDb();
+  const data=await providerJson(`${BAILIAN_MEDIA_BASE_URL}/services/aigc/multimodal-generation/generation`,{method:'POST',headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'百炼 image',signal);
+  const url=recursivelyFindUrl(data.output||data,'image');if(!url)throw new Error(`百炼 image returned no result URL: ${sanitizeProviderMessage(data.message||data.code||'empty output')}`);
+  return ingestRemoteAsset(job.projectId,job.id,'image',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);
+}
+async function bailianVideoGenerate(job, signal) {
+  if(!BAILIAN_API_KEY)throw new Error('BAILIAN_API_KEY is not configured');const req=job.request,params=req.params||{};let taskId=job.providerTaskId;
+  if(!taskId){
+    const body={model:job.modelId,input:{prompt:seedancePrompt(req)},parameters:{resolution:params.resolution||'720P',ratio:params.aspectRatio||'16:9',duration:Math.max(2,Math.min(15,Number(params.duration||5))),prompt_extend:true,watermark:false}};
+    if(params.negativePrompt)body.input.negative_prompt=params.negativePrompt;
+    const created=await providerJson(`${BAILIAN_MEDIA_BASE_URL}/services/aigc/video-generation/video-synthesis`,{method:'POST',headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`,'Content-Type':'application/json','X-DashScope-Async':'enable'},body:JSON.stringify(body)},'百炼 video submit',signal);
+    taskId=created.output?.task_id||created.task_id||created.id;if(!taskId)throw new Error(`百炼 video did not return task_id: ${sanitizeProviderMessage(created.message||created.code||'empty output')}`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
+  }
+  const deadline=Date.now()+Number(process.env.BAILIAN_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.BAILIAN_POLL_INTERVAL_MS||2000));
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const data=await providerPollJson(`${BAILIAN_MEDIA_BASE_URL}/tasks/${encodeURIComponent(taskId)}`,{headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`}},'百炼 video status',signal),output=data.output||data,status=String(output.task_status||output.status||'').toLowerCase();if(['succeeded','success','completed'].includes(status)){const url=recursivelyFindUrl(output,'video');if(!url)throw new Error('百炼 video completed without a result URL');job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);}if(['failed','fail','canceled','cancelled'].includes(status))throw new Error(`百炼 video failed: ${sanitizeProviderMessage(output.message||output.error_message||output.code||status)}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(output.progress||job.progress||5)));await saveDb();}
+  throw new Error('百炼 video generation timed out');
 }
 
 async function agnesTextGenerate(job, signal) {
@@ -526,19 +585,6 @@ async function agnesVideoGenerate(job, signal) {
   throw new Error('Agnes video generation timed out');
 }
 
-async function seedreamGenerate(job, signal) {
-  if(!ARK_API_KEY) throw new Error('ARK_API_KEY is not configured');
-  const req=job.request; const ratio=req.params?.aspectRatio; const body={model:job.modelId,prompt:ratio?`${req.prompt}\n画面比例：${ratio}`:req.prompt,size:req.params?.quality||req.params?.resolution||'2K',sequential_image_generation:'disabled',stream:false,response_format:'url',watermark:false}; if(req.params?.seed!==undefined&&req.params?.seed!=='')body.seed=Number(req.params.seed);
-  if(req.capability==='image.edit'){
-    const refs=(req.references||[]).map(r=>({ref:r,asset:state.assets[r.assetId]})).filter(x=>x.asset?.kind==='image'); if(!refs.length) throw new Error('Seedream image.edit requires an image reference');
-    const images=[]; for(const x of refs.slice(0,10)) images.push(await providerImageReferenceValue(x.asset)); body.image=images.length===1?images[0]:images;
-  }
-  job.progress=15; await saveDb();
-  const data=await providerJson(`${ARK_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Seedream submit',signal);
-  const url=data.data?.[0]?.url||recursivelyFindUrl(data,'image'); if(!url) throw new Error('Seedream result contains no image URL');
-  job.progress=90; await saveDb(); return ingestRemoteAsset(job.projectId,job.id,'image',url,{provider:'seedream',model:job.modelId,prompt:req.prompt,seedreamResult:data},{},signal);
-}
-
 async function safeRemoteUrl(raw) {
   const url = new URL(raw);
   if (!['http:','https:'].includes(url.protocol)) throw new Error('unsupported remote URL protocol');
@@ -566,19 +612,6 @@ async function providerImageReferenceValue(asset) {
   if (EXTERNAL_REFERENCE_MODE === 'data-uri') { const bytes=await fsp.readFile(normalized.path); if(bytes.length>20*1024*1024)throw new Error('reference image too large for data-uri; set PUBLIC_BASE_URL'); return `data:${normalized.mime};base64,${bytes.toString('base64')}`; }
   throw new Error('cloud image reference requires PUBLIC_BASE_URL or EXTERNAL_REFERENCE_MODE=data-uri');
 }
-async function providerImageBase64(asset) { const normalized=await normalizedProviderImage(asset); return (await fsp.readFile(normalized.path)).toString('base64'); }
-
-async function assetReferenceValue(asset) {
-  if (PUBLIC_BASE_URL) return `${PUBLIC_BASE_URL}${asset.publicUrl}`;
-  const path = join(ASSETS_DIR, asset.localPath);
-  if (EXTERNAL_REFERENCE_MODE === 'data-uri') {
-    const bytes = await fsp.readFile(path);
-    if (bytes.length > 20 * 1024 * 1024) throw new Error('reference too large for data-uri; set PUBLIC_BASE_URL to a tunnel/public origin');
-    return `data:${asset.mime || mimeFromExt(path)};base64,${bytes.toString('base64')}`;
-  }
-  throw new Error('cloud reference requires PUBLIC_BASE_URL or EXTERNAL_REFERENCE_MODE=data-uri');
-}
-
 function recursivelyFindUrl(value, kind) {
   const candidates = [];
   const walk = (v, key = '') => {
@@ -591,46 +624,39 @@ function recursivelyFindUrl(value, kind) {
   return candidates.find(c => preferred.test(c.key) || preferred.test(c.url.toLowerCase()))?.url || candidates[0]?.url;
 }
 
-async function falGenerate(job, signal) {
-  if (!FAL_KEY) throw new Error('FAL_KEY is not configured');
-  const req = job.request;
-  const queueUrl = `https://queue.fal.run/${job.modelId}`;
-  let requestId = job.providerTaskId;
-  if (!requestId) {
-    const input = { prompt: req.prompt || '' }; const fp=req.params||{}; if(fp.seed!==undefined&&fp.seed!=='')input.seed=Number(fp.seed); if(req.capability.startsWith('image.')){const map={'1:1':'square_hd','16:9':'landscape_16_9','9:16':'portrait_16_9','4:3':'landscape_4_3','3:4':'portrait_4_3'};if(fp.aspectRatio)input.image_size=map[fp.aspectRatio]||fp.aspectRatio;}else{if(fp.aspectRatio)input.aspect_ratio=fp.aspectRatio;if(fp.duration!=null)input.duration=fp.duration;if(fp.resolution)input.resolution=fp.resolution;if(fp.negativePrompt)input.negative_prompt=fp.negativePrompt;}
-    if (req.capability.includes('image_to_video') || req.capability === 'video.reference') {
-      const ref = (req.references || []).find(r => ['first-frame','reference-image'].includes(r.role)) || (req.references || [])[0];
-      if (!ref) throw new Error('image-to-video requires an image reference');
-      const asset = state.assets[ref.assetId];
-      if (!asset || asset.projectId !== job.projectId || asset.kind !== 'image') throw new Error('reference image not found in project');
-      input.image_url = await providerImageReferenceValue(asset);
+const apimartImageUploads=new Map();
+async function apimartImageUrl(asset, signal) {
+  const cached=apimartImageUploads.get(asset.id);if(cached?.expiresAt>Date.now())return cached.url;
+  const normalized=await normalizedProviderImage(asset),bytes=await fsp.readFile(normalized.path);if(bytes.length>20*1024*1024)throw new Error('APIMart reference image exceeds 20 MB');
+  const form=new FormData();form.append('file',new Blob([bytes],{type:normalized.mime}),basename(normalized.path));
+  const data=await providerJson(`${APIMART_BASE_URL}/uploads/images`,{method:'POST',headers:{Authorization:`Bearer ${APIMART_API_KEY}`},body:form},'APIMart image upload',signal);const url=data.url||data.data?.url;
+  if(!url)throw new Error('APIMart image upload returned no URL');apimartImageUploads.set(asset.id,{url,expiresAt:Date.now()+70*60*60*1000});return url;
+}
+function apimartPublicAssetUrl(asset) {
+  if(PUBLIC_BASE_URL)return `${PUBLIC_BASE_URL}${asset.publicUrl}`;
+  if(typeof asset.metadata?.providerUrl==='string'&&/^https:\/\//i.test(asset.metadata.providerUrl))return asset.metadata.providerUrl;
+  throw Object.assign(new Error('APIMart 视频/音频参考需要公网素材地址，请在“模型/API”中配置素材公网地址。'),{status:422,code:'reference_not_public'});
+}
+async function apimartGenerate(job, signal) {
+  if(!APIMART_API_KEY)throw new Error('APIMART_API_KEY is not configured');const req=job.request,params=req.params||{},kind=req.capability.startsWith('image.')?'image':'video';let taskId=job.providerTaskId;
+  if(!taskId){
+    const body={model:job.modelId,prompt:kind==='video'?seedancePrompt(req):req.prompt};
+    if(kind==='image'){
+      body.n=1;body.size=params.aspectRatio||'1:1';body.resolution=String(params.resolution||params.quality||'2K').toLowerCase();
+      const imageUrls=[];for(const ref of req.references||[]){const asset=state.assets[ref.assetId];if(asset?.projectId===job.projectId&&asset.kind==='image')imageUrls.push(await apimartImageUrl(asset,signal));}if(imageUrls.length)body.image_urls=imageUrls;
+    }else{
+      body.resolution=params.resolution||'720p';body.size=params.aspectRatio||'16:9';body.duration=Math.max(4,Math.min(15,Number(params.duration||5)));body.generate_audio=params.audioMode!=='silent'||params.generateAudio===true;
+      if(params.seed!==undefined&&params.seed!=='')body.seed=Number(params.seed);if(params.returnLastFrame===true)body.return_last_frame=true;
+      const images=[],roleImages=[],videos=[],audios=[];
+      for(const ref of req.references||[]){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId)continue;if(asset.kind==='image'){const url=await apimartImageUrl(asset,signal);if(req.capability==='video.first_last_frame')roleImages.push({url,role:ref.role==='last-frame'?'last_frame':'first_frame'});else images.push(url);}else if(asset.kind==='video')videos.push(apimartPublicAssetUrl(asset));else if(asset.kind==='audio')audios.push(apimartPublicAssetUrl(asset));}
+      if(roleImages.length)body.image_with_roles=roleImages;else if(images.length)body.image_urls=images;if(videos.length)body.video_urls=videos;if(audios.length)body.audio_urls=audios;
     }
-    job.progress = 8; await saveDb();
-    const ticket = await providerJson(queueUrl, { method: 'POST', headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, 'fal submit', signal);
-    requestId = ticket.request_id || ticket.requestId || job.id;
-    job.providerTaskId = requestId;
-    job.providerStatusUrl = ticket.status_url || ticket.statusUrl || `${queueUrl}/requests/${requestId}/status`;
-    job.providerResultUrl = ticket.response_url || ticket.responseUrl || `${queueUrl}/requests/${requestId}`;
-    await saveDb();
+    const endpoint=kind==='image'?'images/generations':'videos/generations';const created=apimartPayload(await providerJson(`${APIMART_BASE_URL}/${endpoint}`,{method:'POST',headers:{Authorization:`Bearer ${APIMART_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},`APIMart ${kind} submit`,signal),`APIMart ${kind} submit`);
+    const ticket=Array.isArray(created)?created[0]:created;taskId=ticket?.task_id||ticket?.id;if(!taskId)throw new Error(`APIMart ${kind} did not return task_id`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
   }
-  const statusUrl = job.providerStatusUrl || `${queueUrl}/requests/${requestId}/status`;
-  const resultUrl = job.providerResultUrl || `${queueUrl}/requests/${requestId}`;
-  const deadline = Date.now() + Number(process.env.FAL_TIMEOUT_MS || 10 * 60 * 1000);
-  while (Date.now() < deadline) {
-    await sleep(1200,signal);
-    const status = await providerPollJson(statusUrl, { headers: { Authorization: `Key ${FAL_KEY}` } }, 'fal status', signal);
-    const s = String(status.status || '').toUpperCase();
-    if (s.includes('COMPLETED') || s.includes('SUCCEEDED') || s === 'OK') break;
-    if (s.includes('FAILED') || s.includes('ERROR') || s.includes('CANCEL')) throw new Error(`fal job ${s}: ${JSON.stringify(status).slice(0,600)}`);
-    job.progress = Math.min(88, (job.progress || 8) + 4); await saveDb();
-  }
-  if (Date.now() >= deadline) throw new Error('fal generation timed out');
-  const result = await providerPollJson(resultUrl, { headers: { Authorization: `Key ${FAL_KEY}` } }, 'fal result', signal);
-  const kind = req.capability.startsWith('image.') ? 'image' : 'video';
-  const url = recursivelyFindUrl(result, kind);
-  if (!url) throw new Error(`fal result contains no ${kind} URL`);
-  job.progress = 92; await saveDb();
-  return await ingestRemoteAsset(job.projectId, job.id, kind, url, { provider: 'fal', model: job.modelId, prompt: req.prompt, falResult: result },{},signal);
+  const deadline=Date.now()+Number(process.env.APIMART_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.APIMART_POLL_INTERVAL_MS||2000));
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const payload=apimartPayload(await providerPollJson(`${APIMART_BASE_URL}/tasks/${encodeURIComponent(taskId)}?language=en`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`}},`APIMart ${kind} status`,signal),`APIMart ${kind} status`);const status=String(payload.status||'').toLowerCase();if(status==='completed'){const url=recursivelyFindUrl(payload.result||payload,kind);if(!url)throw new Error(`APIMart ${kind} completed without a result URL`);job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,kind,url,{provider:'apimart',providerUrl:url,model:job.modelId,prompt:req.prompt,apimartResult:payload},{},signal);}if(['failed','cancelled','canceled'].includes(status))throw new Error(`APIMart ${kind} failed: ${payload.error?.message||payload.message||status}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(payload.progress||0)));await saveDb();}
+  throw new Error(`APIMart ${kind} generation timed out`);
 }
 
 async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, downloadHeaders = {}, signal) {
@@ -651,14 +677,6 @@ async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, 
 }
 
 
-function base64url(value) { return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64url'); }
-function klingToken() {
-  const ts = Math.floor(Date.now()/1000); const header = base64url({alg:'HS256',typ:'JWT'}); const payload = base64url({iss:KLING_ACCESS_KEY,exp:ts+1800,nbf:ts-5});
-  const sig = createHmac('sha256', KLING_SECRET_KEY).update(`${header}.${payload}`).digest('base64url'); return `${header}.${payload}.${sig}`;
-}
-async function assetBase64(asset, stripDataPrefix=false) {
-  const bytes = await fsp.readFile(join(ASSETS_DIR, asset.localPath)); const b64=bytes.toString('base64'); return stripDataPrefix?b64:`data:${asset.mime||mimeFromExt(asset.localPath)};base64,${b64}`;
-}
 function firstRef(job, roles, kind) { for (const r of job.request.references||[]) { if (!roles.includes(r.role)) continue; const a=state.assets[r.assetId]; if(a&&a.projectId===job.projectId&&(!kind||a.kind===kind)) return {ref:r,asset:a}; } return null; }
 const SEEDANCE_AUDIO_PREFIXES={
   silent:'【声音配置】静音模式。不要生成环境音、动作音效、背景音乐、人声口播或旁白。',
@@ -678,51 +696,12 @@ function seedancePrompt(req){
   blocks.push(req.prompt);
   return blocks.filter(Boolean).join('\n\n');
 }
-async function seedanceGenerate(job, signal) {
-  if(!ARK_API_KEY) throw new Error('ARK_API_KEY is not configured'); const req=job.request,params=req.params||{};
-  let taskId=job.providerTaskId;
-  if(!taskId){
-    const duration=Math.max(4,Math.min(15,Number(params.duration||5))),resolution=params.resolution||'720p',ratio=params.aspectRatio||params.ratio||'9:16',audioMode=SEEDANCE_AUDIO_PREFIXES[params.audioMode]?params.audioMode:'ambient';
-    const content=[{type:'text',text:seedancePrompt(req)}];
-    for(const ref of req.references||[]){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId)continue;if(asset.kind==='image')content.push({type:'image_url',image_url:{url:await providerImageReferenceValue(asset)},role:ref.role==='first-frame'?'first_frame':'reference_image'});else if(asset.kind==='audio')content.push({type:'audio_url',audio_url:{url:await assetReferenceValue(asset)},role:'reference_audio'});else if(asset.kind==='video')content.push({type:'video_url',video_url:{url:await assetReferenceValue(asset)},role:'reference_video'});}
-    const body={model:job.modelId,content,ratio,duration,resolution,generate_audio:audioMode!=='silent'||params.generateAudio===true,watermark:params.watermark===true};
-    if(params.seed!==undefined&&params.seed!=='')body.seed=Number(params.seed);
-    if(params.returnLastFrame===true)body.return_last_frame=true;
-    const data=await providerJson(`${ARK_BASE_URL}/contents/generations/tasks`,{method:'POST',headers:{Authorization:`Bearer ${ARK_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Seedance submit',signal);
-    taskId=data.id||data.task_id||data.data?.id||data.data?.task_id; if(!taskId) throw new Error('Seedance did not return task id'); job.providerTaskId=String(taskId); job.progress=10; await saveDb();
-  }
-  const deadline=Date.now()+Number(process.env.ARK_TIMEOUT_MS||15*60*1000); while(Date.now()<deadline){await sleep(1800,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${ARK_BASE_URL}/contents/generations/tasks/${taskId}`,{headers:{Authorization:`Bearer ${ARK_API_KEY}`}},'Seedance status',signal);const payload=d.data&&typeof d.data==='object'?d.data:d;const st=String(payload.status||payload.task_status||'').toLowerCase();if(['succeeded','success','done','completed'].includes(st)){const url=recursivelyFindUrl(payload,'video');if(!url)throw new Error('Seedance result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'seedance',model:job.modelId,prompt:req.prompt},{},signal);}if(['failed','fail','error','cancelled','canceled'].includes(st))throw new Error(`Seedance failed: ${payload.message||payload.error||st}`);job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Seedance generation timed out');
-}
-async function klingGenerate(job, signal) {
-  if(!KLING_ACCESS_KEY||!KLING_SECRET_KEY) throw new Error('KLING_ACCESS_KEY / KLING_SECRET_KEY not configured'); const req=job.request; const first=firstRef(job,['first-frame','reference-image'],'image'); const last=firstRef(job,['last-frame'],'image');
-  const mode=first?'image2video':'text2video';
-  let taskId=job.providerTaskId;
-  if(!taskId){
-    const duration=String(req.params?.duration||5),aspect=req.params?.aspectRatio||'16:9';
-    const body={model_name:job.modelId,prompt:req.prompt,mode:req.params?.mode||'std',duration,aspect_ratio:aspect}; if(first)body.image=await providerImageBase64(first.asset); if(last)body.image_tail=await providerImageBase64(last.asset); if(req.params?.negativePrompt)body.negative_prompt=req.params.negativePrompt;
-    const headers={Authorization:`Bearer ${klingToken()}`,'Content-Type':'application/json'};const data=await providerJson(`${KLING_BASE_URL}/v1/videos/${mode}`,{method:'POST',headers,body:JSON.stringify(body)},'Kling submit',signal);if(data.code!==0)throw new Error(`Kling submit failed: ${data.message||data.code}`);taskId=data.data?.task_id;if(!taskId)throw new Error('Kling did not return task id');job.providerTaskId=taskId;job.progress=10;await saveDb();
-  }
-  const deadline=Date.now()+Number(process.env.KLING_TIMEOUT_MS||15*60*1000);while(Date.now()<deadline){await sleep(1800,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${KLING_BASE_URL}/v1/videos/${mode}/${taskId}`,{headers:{Authorization:`Bearer ${klingToken()}`}},'Kling status',signal);if(d.code!==0)throw new Error(`Kling status failed: ${d.message||d.code}`);const td=d.data||{},st=String(td.task_status||'').toLowerCase();if(st==='succeed'){const url=td.task_result?.videos?.[0]?.url||recursivelyFindUrl(td,'video');if(!url)throw new Error('Kling result contains no video URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'kling',model:job.modelId,prompt:req.prompt},{},signal);}if(st==='failed')throw new Error(td.task_status_msg||'Kling generation failed');job.progress=Math.min(90,(job.progress||10)+5);await saveDb();}throw new Error('Kling generation timed out');
-}
-async function veoGenerate(job, signal) {
-  if(!GEMINI_API_KEY)throw new Error('GEMINI_API_KEY is not configured');const req=job.request;
-  let op=job.providerTaskId;
-  if(!op){
-    const instance={prompt:req.prompt};const first=firstRef(job,['first-frame'],'image'),last=firstRef(job,['last-frame'],'image'),video=firstRef(job,['reference-video'],'video');
-    if(first){const img=await normalizedProviderImage(first.asset);instance.image={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(last){const img=await normalizedProviderImage(last.asset);instance.lastFrame={inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}};}if(video)instance.video={inlineData:{mimeType:video.asset.mime||'video/mp4',data:await assetBase64(video.asset,true)}};
-    const referenceImages=[];for(const ref of (req.references||[]).filter(r=>r.role==='reference-image').slice(0,3)){const asset=state.assets[ref.assetId];if(!asset||asset.projectId!==job.projectId||asset.kind!=='image')continue;const img=await normalizedProviderImage(asset);referenceImages.push({image:{inlineData:{mimeType:img.mime,data:(await fsp.readFile(img.path)).toString('base64')}},referenceType:'asset'});}if(referenceImages.length)instance.referenceImages=referenceImages;
-    const parameters={numberOfVideos:1,durationSeconds:Number(req.params?.duration||8),aspectRatio:req.params?.aspectRatio||'16:9',resolution:req.params?.resolution||'720p'};if(req.params?.seed!==undefined&&req.params?.seed!=='')parameters.seed=Number(req.params.seed);const data=await providerJson(`${VEO_BASE_URL}/models/${encodeURIComponent(job.modelId)}:predictLongRunning`,{method:'POST',headers:{'x-goog-api-key':GEMINI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({instances:[instance],parameters})},'Veo submit',signal);op=data.name;if(!op)throw new Error('Veo did not return operation name');job.providerTaskId=op;job.progress=8;await saveDb();
-  }
-  const deadline=Date.now()+Number(process.env.VEO_TIMEOUT_MS||20*60*1000);while(Date.now()<deadline){await sleep(2500,signal);if(job.status==='canceled')throw abortError();const d=await providerPollJson(`${VEO_BASE_URL}/${op}`,{headers:{'x-goog-api-key':GEMINI_API_KEY}},'Veo status',signal);if(d.done){if(d.error)throw new Error(`Veo failed: ${d.error.message||JSON.stringify(d.error)}`);const url=d.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri||recursivelyFindUrl(d.response,'video');if(!url)throw new Error('Veo result contains no video URI');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'veo',model:job.modelId,prompt:req.prompt},{'x-goog-api-key':GEMINI_API_KEY},signal);}job.progress=Math.min(90,(job.progress||8)+4);await saveDb();}throw new Error('Veo generation timed out');
-}
-
 async function timelineItemOrThrow(project, itemId) {
   const item = (project.timeline?.items || []).find(i => i.id === itemId);
   if (!item) throw Object.assign(new Error('timeline item not found'), { status: 404 });
   return item;
 }
 function pickDuration(model, wanted) {
-  if (model.providerId === 'veo') return 8;
   const nums = (model.constraints?.durations || []).map(Number);
   if (!nums.length) return undefined;
   let best = nums[0];
@@ -766,16 +745,16 @@ async function runJob(id, signal) {
     const variants = job.capability.startsWith('image.') ? Math.max(1, Math.min(4, Math.round(Number(job.request.params?.variants || 1) || 1))) : 1;
     const assets = []; let outputText = null;
     job.phase = 'generating'; await saveDb();
-    if (job.providerId === 'openai-compatible') outputText = await openAICompatibleText(job,signal);
+    if (job.providerId === 'deepseek' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,DEEPSEEK_API_KEY,DEEPSEEK_BASE_URL,'DeepSeek text',signal);
+    else if (job.providerId === 'bailian' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,BAILIAN_API_KEY,BAILIAN_BASE_URL,'百炼 text',signal);
+    else if (job.providerId === 'bailian' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await bailianImageGenerate(job,signal)); }
+    else if (job.providerId === 'bailian' && job.capability.startsWith('video.')) assets.push(await bailianVideoGenerate(job,signal));
+    else if (job.providerId === 'apimart' && job.capability === 'text.generate') outputText = await apimartTextGenerate(job,signal);
+    else if (job.providerId === 'apimart' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await apimartGenerate(job,signal)); }
+    else if (job.providerId === 'apimart') assets.push(await apimartGenerate(job,signal));
     else if (job.providerId === 'agnes' && job.capability === 'text.generate') outputText = await agnesTextGenerate(job,signal);
     else if (job.providerId === 'agnes' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await agnesImageGenerate(job,signal)); }
     else if (job.providerId === 'agnes') assets.push(await agnesVideoGenerate(job,signal));
-    else if (job.providerId === 'seedream') { for (let i = 0; i < variants; i++) assets.push(await seedreamGenerate(job,signal)); }
-    else if (job.providerId === 'fal' && job.capability.startsWith('image.')) { for (let i = 0; i < variants; i++) assets.push(await falGenerate(job,signal)); }
-    else if (job.providerId === 'fal') assets.push(await falGenerate(job,signal));
-    else if (job.providerId === 'seedance') assets.push(await seedanceGenerate(job,signal));
-    else if (job.providerId === 'kling') assets.push(await klingGenerate(job,signal));
-    else if (job.providerId === 'veo') assets.push(await veoGenerate(job,signal));
     else throw new Error(`unknown provider: ${job.providerId}`);
     if (job.status === 'canceled') return;
     job.phase = 'finalizing'; await saveDb();
@@ -823,23 +802,24 @@ async function createExport(project) {
 
 async function handleApi(req, res, url) {
   const method = req.method || 'GET'; const p = url.pathname;
-  if (p === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '2.0.0-standalone', node: process.version, providers: { text:Boolean(OPENAI_COMPAT_API_KEY), openaiAgent:Boolean(OPENAI_API_KEY), geminiAgent:Boolean(GEMINI_API_KEY), agnes:Boolean(AGNES_API_KEY), seedream:Boolean(ARK_API_KEY), fal:Boolean(FAL_KEY), seedance:Boolean(ARK_API_KEY), kling:Boolean(KLING_ACCESS_KEY&&KLING_SECRET_KEY), veo:Boolean(GEMINI_API_KEY) }, ffmpeg: HAS_FFMPEG, captionFont: Boolean(FFMPEG_FONT_FILE) });
+  if (p === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '2.0.0-standalone', node: process.version, providers: { agnes:Boolean(AGNES_API_KEY), apimart:Boolean(APIMART_API_KEY), deepseek:Boolean(DEEPSEEK_API_KEY), bailian:Boolean(BAILIAN_API_KEY) }, ffmpeg: HAS_FFMPEG, captionFont: Boolean(FFMPEG_FONT_FILE) });
   if (p === '/api/agent/models' && method === 'GET') return json(res,200,{models:await availableAgentModels()});
   if (p === '/api/provider-settings' && method === 'GET') {
-    const settings={OPENAI_COMPAT_API_KEY:'',OPENAI_COMPAT_BASE_URL,OPENAI_COMPAT_TEXT_MODEL,OPENAI_API_KEY:'',OPENAI_BASE_URL,OPENAI_AGENT_MODEL,AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,PUBLIC_BASE_URL,ARK_API_KEY:'',ARK_IMAGE_MODEL,ARK_VIDEO_MODEL,KLING_ACCESS_KEY:'',KLING_SECRET_KEY:'',KLING_VIDEO_MODEL,GEMINI_API_KEY:'',GEMINI_AGENT_BASE_URL,GEMINI_AGENT_MODEL,VEO_MODEL,FAL_KEY:'',FAL_IMAGE_MODEL,FAL_VIDEO_MODEL};
-    return json(res,200,{settings,configured:{text:Boolean(OPENAI_COMPAT_API_KEY),openaiAgent:Boolean(OPENAI_API_KEY),geminiAgent:Boolean(GEMINI_API_KEY),agnes:Boolean(AGNES_API_KEY),arkImage:Boolean(ARK_API_KEY),seedance:Boolean(ARK_API_KEY),kling:Boolean(KLING_ACCESS_KEY&&KLING_SECRET_KEY),veo:Boolean(GEMINI_API_KEY),fal:Boolean(FAL_KEY)}});
+    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,DEEPSEEK_AGENT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_AGENT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},apimartModels=await availableApimartModels(),agnesModels=await availableAgnesModels();
+    return json(res,200,{settings,configured:{agnes:Boolean(AGNES_API_KEY),apimart:Boolean(APIMART_API_KEY),deepseek:Boolean(DEEPSEEK_API_KEY),bailian:Boolean(BAILIAN_API_KEY)},agnesModels,...apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/provider-settings' && method === 'PUT') {
-    const body=await readJson(req); const allowed=new Set(['OPENAI_COMPAT_API_KEY','OPENAI_COMPAT_BASE_URL','OPENAI_COMPAT_TEXT_MODEL','OPENAI_API_KEY','OPENAI_BASE_URL','OPENAI_AGENT_MODEL','AGNES_API_KEY','AGNES_BASE_URL','AGNES_TEXT_MODEL','AGNES_AGENT_MODEL','AGNES_IMAGE_MODEL','AGNES_VIDEO_MODEL','PUBLIC_BASE_URL','ARK_API_KEY','ARK_IMAGE_MODEL','ARK_VIDEO_MODEL','KLING_ACCESS_KEY','KLING_SECRET_KEY','KLING_VIDEO_MODEL','GEMINI_API_KEY','GEMINI_AGENT_BASE_URL','GEMINI_AGENT_MODEL','VEO_MODEL','FAL_KEY','FAL_IMAGE_MODEL','FAL_VIDEO_MODEL']);
-    for(const [key,value] of Object.entries(body||{})){if(!allowed.has(key))continue;const v=String(value||'').trim();if(v)providerSettings[key]=v;}
-    await fsp.writeFile(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2)); try{await fsp.chmod(PROVIDER_SETTINGS_FILE,0o600);}catch{} refreshProviderRuntime();agentModelCache={expiresAt:0,models:[]};agnesModelCache={expiresAt:0,models:[]};
-    return json(res,200,{ok:true,models:await listModels()});
+    const body=await readJson(req); const allowed=new Set(['AGNES_API_KEY','AGNES_BASE_URL','AGNES_TEXT_MODEL','AGNES_AGENT_MODEL','AGNES_IMAGE_MODEL','AGNES_VIDEO_MODEL','APIMART_API_KEY','APIMART_ENABLED_MODELS','DEEPSEEK_API_KEY','DEEPSEEK_BASE_URL','DEEPSEEK_TEXT_MODEL','DEEPSEEK_AGENT_MODEL','BAILIAN_API_KEY','BAILIAN_BASE_URL','BAILIAN_MEDIA_BASE_URL','BAILIAN_TEXT_MODEL','BAILIAN_AGENT_MODEL','BAILIAN_IMAGE_MODEL','BAILIAN_VIDEO_MODEL','PUBLIC_BASE_URL']);
+    for(const [key,value] of Object.entries(body||{})){if(!allowed.has(key))continue;const v=String(value||'').trim();if(key==='APIMART_ENABLED_MODELS')providerSettings[key]=v;else if(v)providerSettings[key]=v;}if(body?.APIMART_API_KEY&&!Object.hasOwn(body,'APIMART_ENABLED_MODELS'))delete providerSettings.APIMART_ENABLED_MODELS;
+    await persistProviderSettings(); refreshProviderRuntime();agentModelCache={expiresAt:0,models:[]};agnesModelCache={expiresAt:0,models:[]};apimartModelCache={expiresAt:0,models:[]};const pullApimart=APIMART_API_KEY&&(Object.hasOwn(body||{},'APIMART_API_KEY')||body?.APIMART_REFRESH_MODELS==='1');const apimartModels=pullApimart?await availableApimartModels(true):await availableApimartModels();
+    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,DEEPSEEK_AGENT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_AGENT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},agnesModels=await availableAgnesModels();
+    return json(res,200,{ok:true,settings,models:await listModels(),configured:{agnes:Boolean(AGNES_API_KEY),apimart:Boolean(APIMART_API_KEY),deepseek:Boolean(DEEPSEEK_API_KEY),bailian:Boolean(BAILIAN_API_KEY)},agnesModels,...apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
   if (p === '/api/projects' && method === 'GET') return json(res, 200, { projects: Object.values(state.projects).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)) });
   if (p === '/api/projects' && method === 'POST') {
     const body = await readJson(req); const id = randomUUID(); const ts = now();
-    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 1, nodes: [], edges: [] }, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, createdAt: ts, updatedAt: ts };
+    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 2, nodes: [], edges: [], sequence:null }, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, createdAt: ts, updatedAt: ts };
     state.projects[id] = project; await saveDb(); return json(res, 201, project);
   }
   let m = p.match(/^\/api\/projects\/([^/]+)$/);
@@ -880,9 +860,14 @@ async function handleApi(req, res, url) {
     const pr=projectOr404(m[1]);if(!pr)return notFound(res);const session=ensureAgentSession(pr),proposal=session.proposals.find(item=>item.id===m[2]);if(!proposal)return notFound(res);
     const result=applyAgentProposal(pr,proposal,await listModels());pr.updatedAt=now();await saveDb();return json(res,200,{...result,proposal});
   }
+  m = p.match(/^\/api\/projects\/([^/]+)\/sequence\/clips\/([^/]+)\/review$/);
+  if (m && method === 'POST') {
+    const pr=projectOr404(m[1]);if(!pr)return notFound(res);const body=await readJson(req);
+    const result=reviewSequenceClip(pr,m[2],String(body.decision||''),String(body.observedEndState||''),await listModels());pr.updatedAt=now();await saveDb();return json(res,200,result);
+  }
   m = p.match(/^\/api\/projects\/([^/]+)\/workflow$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.workflow) : notFound(res); }
-  if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.workflow = { version: Number(body.version || 1), nodes: Array.isArray(body.nodes) ? body.nodes : [], edges: Array.isArray(body.edges) ? body.edges : [] }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.workflow); }
+  if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.workflow = { version: Number(body.version || 1), nodes: Array.isArray(body.nodes) ? body.nodes : [], edges: Array.isArray(body.edges) ? body.edges : [], sequence:body.sequence&&typeof body.sequence==='object'?body.sequence:null }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.workflow); }
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.timeline) : notFound(res); }
   if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.timeline = { fps: Number(body.fps || 30), width: Number(body.width || 1280), height: Number(body.height || 720), items: Array.isArray(body.items) ? body.items : [], tracks: body.tracks && typeof body.tracks === 'object' ? body.tracks : (pr.timeline.tracks || {}) }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.timeline); }
@@ -1022,6 +1007,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`LibTV Studio Standalone running at http://${HOST}:${PORT}`);
   console.log(`Data: ${DATA}`);
-  console.log(`Providers: fal=${Boolean(FAL_KEY)} seedance=${Boolean(ARK_API_KEY)} kling=${Boolean(KLING_ACCESS_KEY&&KLING_SECRET_KEY)} veo=${Boolean(GEMINI_API_KEY)}`);
+  console.log(`Providers: apimart=${Boolean(APIMART_API_KEY)} agnes=${Boolean(AGNES_API_KEY)} deepseek=${Boolean(DEEPSEEK_API_KEY)} bailian=${Boolean(BAILIAN_API_KEY)}`);
   console.log(`FFmpeg: ${HAS_FFMPEG} · Caption font: ${Boolean(FFMPEG_FONT_FILE)}`);
 });
