@@ -25,6 +25,8 @@ start-local.cmd
 
 Open `http://127.0.0.1:3000`.
 
+中文功能介绍、画布操作、生成流程与快捷键请见 [操作指南](操作指南.md)。
+
 ## v2.0 creative planning Agent
 
 The top-right **Agent** button opens a project-persistent planning workspace:
@@ -38,20 +40,12 @@ Agent model output is strictly validated and converted to graph data by the loca
 
 ## Canvas interaction
 
-The Standalone UI was rebuilt around the LibTV-style spatial interaction requested for this project:
-- Full-screen dark dotted infinite workspace instead of permanent sidebars.
-- **Double-click blank canvas** → Add Node catalog at the clicked world coordinate.
-- **Right-click blank canvas** → Add Node / Fit / mouse mode / Assets / Timeline actions.
-- **Right-click node** → Run/Re-run / Duplicate / Disconnect / Inspect / Delete.
-- Top-right compact mouse tools: **Select / Hand / Connect**.
-- `V` / `H` / `C` switch mouse mode; hold `Space` for temporary Hand mode.
-- Drag node headers using pointer capture; pointer-down does not rerender/replace the dragged DOM node.
-- Drag an output port directly to an input port with a live connection preview.
-- Self-links, duplicate edges and graph cycles are rejected.
-- Edges remain selectable/deletable and media-reference roles remain inspectable.
-- Bottom-center canvas bar contains Add / Undo / Redo / Fit / Zoom / Help.
-
-See `INTERACTION_v1.3.md` for the interaction contract.
+- Full-screen spatial canvas: double-click blank space or use the bottom **+** button to create nodes.
+- Drag node headers to move nodes; drag output port → input port to connect. Duplicate links and cycles are rejected.
+- Generated image/video nodes are preview-first: click the preview to show its composer and top toolbar; click it again, another node, or blank canvas to collapse only that active composer while preserving the media preview.
+- The expanded result toolbar provides Copy, Properties, image enlargement, Download and Delete. Empty nodes have no result toolbar.
+- The bottom bar provides pan, Undo/Redo, Run All, Fit, Zoom and Help. `V`, `H`, `F`, `Space`, `Delete` and `Esc` are supported; details are in [操作指南](操作指南.md).
+- Generation state lives in the node header. A failed task creates a canvas-top informational notice that disappears after five seconds; the node retains its retry action and all settings.
 
 ## Text nodes
 
@@ -84,17 +78,13 @@ Current providers:
 
 Image nodes expose prompt, model, aspect ratio/quality controls and show generated output inline. Provider results are downloaded into the project Asset Library before reuse.
 
-LibTV-style node interactions (v2.2):
-- **参考素材 panel** — Image and Video nodes can attach references directly from the Asset Library (no edges required). Roles are auto-assigned by asset kind and video mode (`first-frame` / `last-frame` / `reference-image` / `reference-video` / `reference-audio`) and can be switched or removed inside the node.
-- **Best-of-N variants** — set 变体 to 2 or 4 and one Image generation returns that many candidates; pick the keeper on the node's filmstrip. The selected image is what flows downstream and to the Timeline.
-- **添加到时间线** on Image nodes (parity with Video nodes); double-click an image/video preview to open it full-size.
-- **▶ 运行全部 (whole-workflow execution)** — the bottom toolbar play button runs every generation node in dependency order and waits for each step, so an Image node connected to a Video node automatically produces the first-frame before the Video node runs. Downstream nodes re-render the moment an upstream node completes.
-- **拖节点到节点自动连线** — drag an Image/Text/Video node onto another node and release to auto-connect with the right reference role (`first-frame` / `reference-image` / `reference-video`); hover a node to see its ports, or drag output → input for exact linking. Click a connection to select it, `Delete` to break it.
-- **连线光效与节点状态** — satisfied connections glow and flow in green, unsatisfied ones are dashed grey, failed are red; generation nodes show a live status badge (排队中 / 生成中 x% / 成功 / 失败).
-- **点生成自动补跑依赖** — pressing 生成 on a Video node whose first-frame image hasn't been produced yet automatically runs the Image node first, then the Video node; if the image fails, the video is not run.
-- **节点内进度可视化** — generation nodes show a live phase badge (排队中 / 准备中 / 生成中 / 下载中 / 收尾中 · N%) driven by the job's `phase` field.
-- **拖拽高亮目标** — while dragging a node over a connectable target, the target glows green; release to auto-connect.
-- **全屏预览** — the ⛶ button opens the timeline preview full-screen (Esc closes).
+Node workflow highlights:
+- **Reference panel** — Image and Video nodes can attach references directly from the Asset Library. Roles are assigned by asset kind and selected video mode (`first-frame` / `last-frame` / `reference-image` / `reference-video` / `reference-audio`) and can be switched or removed inside the node.
+- **Best-of-N variants** — set quantity to 2 or 4; select the keeper on the result filmstrip. The selected image flows downstream and to the Timeline.
+- **Run All** — the bottom toolbar play button runs generation nodes in dependency order. A Video node can first produce its required upstream image; if a dependency fails, the downstream job stops.
+- **Ports and status** — drag output → input for an explicit connection. Connections are selectable and removable; node headers show queued, processing percentage, success, failure or cancellation.
+- **Failure feedback** — generation settings stay on the node. A short canvas-top failure notice disappears after five seconds; retry from the failed node.
+- **Full-screen preview** — the ⛶ button opens the timeline preview full-screen (`Esc` closes it).
 
 
 
