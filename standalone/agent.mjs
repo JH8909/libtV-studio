@@ -48,11 +48,12 @@ export const AGENT_REPLY_SCHEMA = {
   required: ['kind','message','questions','plan'],
 };
 
-const SYSTEM_PROMPT = `You are LibTV Studio's creative planning Agent. Turn the user's idea into an actionable short-film sequence plan, never execute media generation or editing.
+const SYSTEM_PROMPT = `You are LibTV Studio's creative planning Agent with the Seedance 2.0 skill enabled. Turn the user's idea into an actionable short-film sequence plan, never execute media generation or editing.
 Return only JSON matching the supplied schema. Use the user's language.
 Ask questions only when the conversation contains no usable creative subject. When a user gives a subject or answers a prior question, make a proposal using reasonable defaults for missing platform, duration, audience, ending, and visual details; state those assumptions in message. Never repeat a question that the conversation already answers.
 For question replies, keep message to one short introduction and put the actual questions only in questions; never repeat question text in message.
 A proposal must contain 3-12 coherent shots. Every shot needs specific composition, visible action, camera movement, lighting, image prompt, video-motion prompt, audio note, and continuity note. Each shot must end in a state the next shot can inherit; later prompts remain provisional until the prior video is accepted. Story clarity and continuity beat novelty.
+Seedance rules: start with the subject and visible action, then camera, motivated light, and sound. Give each shot one clear visible beat and one primary camera move. Keep videoPrompt compact and concrete; avoid empty words such as "epic", "cinematic", "masterpiece", "4K", or "beautiful" unless they describe a real production choice. Preserve reference tags exactly as supplied (for example @Image1, @Video1, @Audio1); never translate, rename, or renumber them. For narrative shots include a turn, one restrained behavior, and a specific continuity anchor; for product or abstract shots describe utility without inventing psychology. Do not claim unverified platform limits, model IDs, or API features.
 Never return nodes, edges, patches, tool calls, executable code, secrets, or instructions to run paid generation.`;
 
 function fail(message, status = 400) { throw Object.assign(new Error(message), { status }); }
@@ -170,7 +171,7 @@ function userAnsweredQuestion(messages) {
 }
 
 async function callProvider(providerId, modelId, prompt, config, signal, onRawDelta) {
-  const combined = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(Math.max(1,Number(config.timeoutMs)||90_000))]);
+  const combined = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(Math.max(1,Number(config.timeoutMs)||(providerId==='agnes'?180_000:90_000)))]);
   let url, options, label, read;
   if (providerId === 'agnes') {
     label='Agnes Agent'; url=`${config.agnesBase}/chat/completions`; read=body=>body.choices?.[0]?.message?.content || '';
@@ -226,7 +227,7 @@ function createSequenceClipNodes(project, sequence, models, clip, previous) {
   const imageQuality=preferred(image?.constraints?.resolutions,'2K','2K'),duration=nearest(video?.constraints?.durations,shot.durationSec,shot.durationSec),resolution=preferred(video?.constraints?.resolutions,'720p','720p');
   const inherited=previous?.observedEndState?`\n\n承接上一段已验收结尾：${previous.observedEndState}`:'';
   const imagePrompt=`${shot.imagePrompt}\n\n${shot.title}\n目的：${shot.purpose}\n构图：${shot.composition}\n动作：${shot.action}\n镜头：${shot.camera}\n光线：${shot.lighting}\n视觉风格：${sequence.plan.styleBible.visualStyle}\n色彩：${sequence.plan.styleBible.palette}\n连续性：${shot.continuityNote}${inherited}`;
-  const sequenceMeta={sequenceId:sequence.id,sequenceClipId:clip.id,sequenceStatus:'ready',sequenceReviewStatus:''};
+  const sequenceMeta={sequenceId:sequence.id,sequenceClipId:clip.id,sequenceShot:clip.index+1,sequenceStatus:'ready',sequenceReviewStatus:''};
   const created=[
     {id:imageId,type:'imageGen',position:{x:sequence.layoutBaseX,y},data:{modelKey:image?`${image.providerId}::${image.modelId}`:'',prompt:imagePrompt,status:'idle',progress:0,params:{aspectRatio:imageAspect,quality:imageQuality},layoutWidth:420,...nodeMeta(sequence.proposalId,shot.id,'image',sequenceMeta)}},
     {id:videoId,type:'videoGen',position:{x:sequence.layoutBaseX+540,y},data:{modelKey:video?`${video.providerId}::${video.modelId}`:'',prompt:`${shot.videoPrompt}${inherited}`,status:'idle',progress:0,forcedCapability:'video.image_to_video',params:{duration,aspectRatio:videoAspect,resolution},layoutWidth:420,...nodeMeta(sequence.proposalId,shot.id,'video',sequenceMeta)}},
@@ -247,10 +248,15 @@ export function applyAgentProposal(project, proposal, models) {
   return {workflow:project.workflow,appliedNodeIds:proposal.appliedNodeIds,briefNodeId:created[0]?.id||null};
 }
 
-export function reviewSequenceClip(project, clipId, decision, observedEndState, models) {
+export function reviewSequenceClip(project, clipId, decision, observedEndState, revisionNote, models) {
   const sequence=project.workflow?.sequence,clip=sequence?.clips?.find(item=>item.id===clipId),video=project.workflow?.nodes?.find(node=>node.id===clip?.videoNodeId);
   if (!sequence||!clip||!video) fail('sequence clip not found',404);
-  if (decision==='reject') { clip.lastVerdict='rejected';video.data.sequenceReviewStatus='rejected';return {workflow:project.workflow,appliedNodeIds:[],nextClipId:null}; }
+  if (decision==='reject') {
+    const note=String(revisionNote||'').trim()?text(revisionNote,'revisionNote',1,600):'';
+    clip.lastVerdict='rejected';clip.revisionNote=note;video.data.sequenceReviewStatus='rejected';video.data.sequenceRevisionNote=note;video.data.expanded=true;
+    if(note&&!String(video.data.prompt||'').includes(note))video.data.prompt=`${String(video.data.prompt||'').trim()}\n\n本段拒绝后的修改要求：${note}`;
+    return {workflow:project.workflow,appliedNodeIds:[],nextClipId:null};
+  }
   if (decision!=='accept') fail('invalid sequence review decision');
   const next=sequence.clips[clip.index+1];
   if (clip.status==='accepted') {
