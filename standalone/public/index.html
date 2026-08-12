@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260811a" />
+  <link rel="stylesheet" href="/styles.css?v=20260812a" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -28,6 +28,7 @@
     <main class="stage-shell">
       <section class="canvas-wrap full-canvas-wrap">
         <div id="canvas" class="canvas">
+          <div id="canvasNotice" class="canvas-notice hidden" role="alert" aria-live="assertive"></div>
           <svg id="edgesSvg" class="edges-svg"><g id="edgesLayer"></g></svg>
           <div id="canvasWorld" class="canvas-world"></div>
           <div id="welcomeCards" class="canvas-welcome hidden" aria-label="快速开始">
@@ -85,13 +86,12 @@
         <div id="jobList" class="job-list"></div>
       </aside>
 
-      <aside id="agentDrawer" class="floating-drawer right-drawer agent-drawer hidden-drawer" aria-label="创意策划 Agent">
-        <div class="drawer-header"><div><strong>创意策划 Agent</strong><span class="agent-local-badge">本地记录</span></div><div><button id="agentNewBtn" class="icon-btn" title="新对话" aria-label="新对话"><i class="ui-icon" style="--icon:url('/vendor/icons/message-plus.svg')"></i></button><button data-close-drawer="agentDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+      <aside id="agentDrawer" class="floating-drawer right-drawer agent-drawer hidden-drawer" aria-label="Agent">
+        <div class="agent-topbar"><div class="agent-brand"><span class="agent-orb">✦</span><strong>Agent</strong><span class="agent-seedance-badge">Seedance 2.0</span></div><div class="agent-top-actions"><button id="agentNewBtn" class="agent-header-action" title="新建对话">新建对话⌄</button><button id="agentClearChatBtn" class="agent-header-action ghost" title="清空当前聊天">清空聊天</button><button data-close-drawer="agentDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <div id="agentMessages" class="agent-messages" aria-live="polite"></div>
-        <div id="agentProposal" class="agent-proposal"></div>
         <div class="agent-compose">
-          <textarea id="agentInput" rows="3" maxlength="12000" placeholder="描述短片创意，或继续修改当前提案…" aria-label="给 Agent 的消息"></textarea>
-          <div class="agent-compose-actions"><select id="agentModelSelect" aria-label="策划模型" title="策划模型"></select><button id="agentCancelBtn" class="hidden">取消</button><button id="agentSendBtn" class="primary"><i class="ui-icon" style="--icon:url('/vendor/icons/send-2.svg')"></i><span>发送</span></button></div>
+          <textarea id="agentInput" rows="3" maxlength="12000" placeholder="随心输入" aria-label="给 Agent 的消息"></textarea>
+          <div class="agent-compose-actions"><button id="agentAttachBtn" class="agent-compose-icon" type="button" title="添加素材">＋</button><button id="agentConfirmBtn" class="agent-confirm-toggle" type="button" aria-pressed="false">手动确认</button><select id="agentModelSelect" aria-label="策划模型" title="策划模型"></select><button id="agentCancelBtn" class="hidden">取消</button><button id="agentSendBtn" class="primary agent-send"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i><span>发送</span></button></div>
         </div>
       </aside>
     </main>
@@ -182,6 +182,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root"></div>
-  <script type="module" src="/app.js?v=20260811f"></script>
+  <script type="module" src="/app.js?v=20260812a"></script>
 </body>
 </html>
