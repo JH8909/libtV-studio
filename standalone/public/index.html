@@ -12,7 +12,7 @@
     <header class="topbar compact-topbar">
       <div class="workspace-crumbs">
         <button class="workspace-icon" title="工作区" aria-label="工作区"><i class="ui-icon" style="--icon:url('/vendor/icons/border-all.svg')"></i></button>
-        <select id="projectSelect" class="project-select"></select>
+        <div id="projectSelect" class="project-select" aria-label="当前项目"></div>
         <button id="newProjectBtn" class="top-chip" title="新建项目" aria-label="新建项目"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
         <span id="saveState" class="save-state">已保存</span>
       </div>
@@ -65,7 +65,8 @@
       <aside id="assetDrawer" class="floating-drawer right-drawer asset-drawer hidden-drawer">
         <div class="drawer-header"><strong>素材管理</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
-        <div id="assetFilterChips" class="asset-filter-chips">
+        <div id="assetLibraryTabs" class="asset-library-tabs" role="tablist" aria-label="素材库分类"><button class="active" data-library-tab="assets" role="tab" aria-selected="true">素材</button><button data-library-tab="prompts" role="tab" aria-selected="false">提示词库</button></div>
+        <div id="assetFilterChips" class="asset-filter-chips" data-library-panel="assets">
           <div class="asset-filter-group"><span class="asset-filter-label">类型</span><div class="asset-filter-options">
             <button data-filter-kind="all" class="chip active">全部</button>
             <button data-filter-kind="image" class="chip">图片</button>
@@ -73,7 +74,8 @@
             <button data-filter-kind="audio" class="chip">音频</button>
           </div></div>
         </div>
-        <div id="assetList" class="asset-list"></div>
+        <div id="assetList" class="asset-list" data-library-panel="assets"></div>
+        <div id="promptLibraryList" class="prompt-library-list hidden" data-library-panel="prompts"></div>
       </aside>
 
       <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
@@ -92,7 +94,7 @@
         <div class="agent-compose">
           <textarea id="agentInput" rows="3" maxlength="12000" placeholder="随心输入" aria-label="给 Agent 的消息"></textarea>
           <details class="agent-skill-menu"><summary><span><i class="ui-icon" style="--icon:url('/vendor/icons/wand.svg')"></i>Skills</span><i class="ui-icon" style="--icon:url('/vendor/icons/chevron-down.svg')"></i></summary><div id="agentSkillList" class="agent-skill-list"></div></details>
-          <div class="agent-compose-actions"><button id="agentAttachBtn" class="agent-compose-icon" type="button" title="添加素材">＋</button><button id="agentConfirmBtn" class="agent-confirm-toggle" type="button" aria-pressed="false">手动确认</button><select id="agentModelSelect" aria-label="策划模型" title="策划模型"></select><button id="agentCancelBtn" class="hidden">取消</button><button id="agentSendBtn" class="primary agent-send"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i><span>发送</span></button></div>
+          <div class="agent-compose-actions"><button id="agentAttachBtn" class="agent-compose-icon" type="button" title="添加素材">＋</button><button id="agentConfirmBtn" class="agent-confirm-toggle" type="button" aria-pressed="false">手动确认</button><div id="agentModelSelect" class="app-select agent-model-select" aria-label="策划模型" title="策划模型"></div><button id="agentCancelBtn" class="hidden">取消</button><button id="agentSendBtn" class="primary agent-send"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i><span>发送</span></button></div>
         </div>
       </aside>
     </main>
@@ -182,7 +184,7 @@
 
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
-  <div id="toastRoot" class="toast-root"></div>
+  <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
   <script type="module" src="/app.js?v=20260813g"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-export const IMAGE_PRESET_CATEGORIES = [
+export let IMAGE_PRESET_CATEGORIES = [
   { id: 'storyboard', label: '分镜', icon: 'layout-grid' },
   { id: 'character', label: '角色', icon: 'user' },
   { id: 'product', label: '产品', icon: 'package' },
@@ -6,7 +6,7 @@ export const IMAGE_PRESET_CATEGORIES = [
   { id: 'lighting', label: '光影', icon: 'bulb' },
 ];
 
-export const IMAGE_PRESETS = [
+export let IMAGE_PRESETS = [
   {
     id: 'multi-camera-nine-grid', sourceId: 'builtin_md_1', category: 'storyboard',
     label: '多机位九宫格', icon: 'grid-3x3', aspectRatio: '1:1', quality: '1K',
@@ -100,17 +100,73 @@ export const IMAGE_PRESETS = [
   },
 ];
 
+const LOCKED_ASPECT_PRESETS = new Set([
+  'multi-camera-nine-grid', 'multi-camera-nine-grid-4k', 'story-four-grid',
+  'face-three-view', 'product-three-view', 'storyboard-twenty-five-grid',
+  'cinematic-lighting-sheet', 'character-reference-sheet', 'character-expression-sheet',
+  'panorama-360', 'packaging-variants', 'packaging-presentation',
+]);
+const NARRATIVE_PRESETS = new Set(['story-four-grid', 'storyboard-twenty-five-grid']);
+
+function presetSubjectPolicy(preset) {
+  if (preset.id === 'packaging-master') return 'style-reference';
+  if (['packaging-variants', 'packaging-presentation', 'product-three-view'].includes(preset.id)) return 'product-structure';
+  if (preset.category === 'character') return 'character-identity';
+  if (preset.category === 'lighting') return 'composition-lock';
+  if (preset.category === 'view') return 'scene-continuity';
+  return 'strict-reference';
+}
+
+export function normalizeImagePreset(preset) {
+  if (!preset) return null;
+  return {
+    version: 1,
+    enabled: true,
+    aspectPolicy: LOCKED_ASPECT_PRESETS.has(preset.id) ? 'locked' : 'inherit',
+    subjectPolicy: presetSubjectPolicy(preset),
+    promptPlaceholder: NARRATIVE_PRESETS.has(preset.id)
+      ? (preset.id === 'story-four-grid' ? '可选：补充起因、发展、转折和结果' : '可选：补充剧情目标、关键动作、转折和结尾')
+      : '可选：补充需要调整的细节',
+    validation: preset.validation || {
+      expectedLayout: preset.id.includes('nine-grid') ? '3x3'
+        : preset.id === 'story-four-grid' || preset.id === 'packaging-presentation' ? '2x2'
+        : preset.id === 'storyboard-twenty-five-grid' ? '5x5'
+        : preset.id === 'character-expression-sheet' || preset.id === 'cinematic-lighting-sheet' ? '2x3'
+        : ['face-three-view', 'product-three-view'].includes(preset.id) ? '1x3'
+        : preset.id === 'character-reference-sheet' ? 'reference-sheet'
+        : preset.id === 'packaging-variants' ? 'series'
+        : preset.id === 'panorama-360' ? 'equirectangular'
+        : 'single',
+    },
+    ...preset,
+  };
+}
+
+export function setImagePresetLibrary(library = {}) {
+  const categories = Array.isArray(library.categories) ? library.categories : [];
+  const presets = Array.isArray(library.presets) ? library.presets : [];
+  if (categories.length) IMAGE_PRESET_CATEGORIES = categories;
+  if (presets.length) IMAGE_PRESETS = presets.map(normalizeImagePreset).filter(preset => preset.enabled !== false);
+}
+
+export function imagePresetLibrarySnapshot() {
+  return {
+    categories: IMAGE_PRESET_CATEGORIES.map(category => ({ ...category })),
+    presets: IMAGE_PRESETS.map(normalizeImagePreset),
+  };
+}
+
 const SUBJECT_PLACEHOLDERS = [
   '[主体详细描述]', '[角色面部详细描述]', '[产品详细描述]', '[主体/场景/动作]',
   '[事件/场景]', '[主体/场景]', '[主体]',
 ];
 
 export function imagePresetById(id) {
-  return IMAGE_PRESETS.find(preset => preset.id === id) || null;
+  return normalizeImagePreset(IMAGE_PRESETS.find(preset => preset.id === id));
 }
 
 export function imagePresetsForCategory(categoryId) {
-  return IMAGE_PRESETS.filter(preset => preset.category === categoryId);
+  return IMAGE_PRESETS.filter(preset => preset.category === categoryId && preset.enabled !== false).map(normalizeImagePreset);
 }
 
 export function closestSupportedAspectRatio(width, height, supported = []) {
@@ -146,8 +202,16 @@ export function composeImagePresetPrompt(preset, sourcePrompt) {
     '[美妆/大健康食品]': '当前参考产品所属的真实品类',
   };
   for (const [placeholder, value] of Object.entries(replacements)) positive = positive.split(placeholder).join(value);
+  const lockInstruction = {
+    'style-reference': '参考图只用于控制品类、气质、色彩和材质方向；允许按当前预设重新设计包装，但不得复制参考品牌、Logo或具体版式。',
+    'product-structure': '严格锁定参考产品的结构、比例、材质、颜色、Logo位置和关键识别特征；只允许当前预设指定的视角、陈列或轻量SKU变化。',
+    'character-identity': '严格锁定参考角色的身份、脸型、五官、发型、服装和配饰；只允许当前预设指定的角度、姿态或表情变化。',
+    'composition-lock': '严格锁定参考图的主体、姿态、构图、镜头和场景关系；只改变当前预设指定的光影条件。',
+    'scene-continuity': '保持参考场景的空间关系、主体身份和关键识别特征，按当前预设扩展视角，不得制造不合理空间。',
+    'strict-reference': '严格基于输入参考图片生成新的组合图片。锁定主体身份、造型、产品结构、材质、颜色、场景关系和关键识别特征；只允许当前预设明确指定的视角、分格和剧情变化。',
+  }[preset?.subjectPolicy] || '严格基于输入参考图片生成新的组合图片，并保持主体一致。';
   return [
-    '严格基于输入参考图片生成新的组合图片。锁定参考图中主体的身份、脸型、发型、服装、产品结构、材质、颜色、Logo位置、场景关系和关键识别特征；除当前预设明确要求的视角、分格、表情或光影变化外，不得重新设计主体。',
+    lockInstruction,
     `主体描述：${subject}`,
     `生成任务：${positive}`,
   ].join('\n\n');

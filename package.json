@@ -19,7 +19,9 @@
     "test:providers": "node standalone/provider-contract-e2e.mjs",
     "test:agent": "node standalone/agent-e2e.mjs",
     "test:keyboard": "node standalone/keyboard-shortcuts-e2e.mjs",
-    "test:canvas": "node standalone/canvas-interactions-e2e.mjs"
+    "test:canvas": "node standalone/canvas-interactions-e2e.mjs",
+    "test:image-presets": "node standalone/image-presets-e2e.mjs",
+    "test:design-system": "node standalone/design-system-e2e.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

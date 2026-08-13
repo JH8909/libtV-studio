@@ -8,6 +8,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import { applyAgentProposal, configuredAgentModels, createAgentReply, ensureAgentSession, reviewSequenceClip } from './agent.mjs';
+import { imagePresetLibrarySnapshot, normalizeImagePreset } from './public/image-presets.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 for (const envFile of [join(ROOT,'.env'), join(dirname(ROOT),'.env')]) { try { if (existsSync(envFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envFile); } catch (error) { console.warn(`Could not load ${envFile}:`, error.message); } }
@@ -71,14 +72,17 @@ const FFMPEG_FONT_FILE = (() => { if (process.env.FFMPEG_FONT_FILE && existsSync
 for (const dir of [DATA, ASSETS_DIR, EXPORTS_DIR]) mkdirSync(dir, { recursive: true });
 
 function emptyDb() {
-  return { version: 2, projects: {}, jobs: {}, assets: {} };
+  return { version: 3, projects: {}, jobs: {}, assets: {}, promptLibrary: imagePresetLibrarySnapshot() };
 }
 
 let state = emptyDb();
 if (existsSync(DB_FILE)) {
   try { state = JSON.parse(readFileSync(DB_FILE, 'utf8')); } catch { state = emptyDb(); }
 }
-state.version = 2; state.projects ||= {}; state.jobs ||= {}; state.assets ||= {};
+state.version = 3; state.projects ||= {}; state.jobs ||= {}; state.assets ||= {};
+if (!Array.isArray(state.promptLibrary?.presets) || !state.promptLibrary.presets.length) state.promptLibrary = imagePresetLibrarySnapshot();
+state.promptLibrary.categories ||= imagePresetLibrarySnapshot().categories;
+state.promptLibrary.presets = state.promptLibrary.presets.map(normalizeImagePreset);
 
 let saveChain = Promise.resolve();
 function saveDb() {
@@ -131,7 +135,7 @@ async function enqueueGeneration(jobRequest, { requestId, sourceNodeId, sourceKe
   const existing = findExistingJob(jobRequest.projectId, stableRequestId, key);
   if (existing) return existing;
   const id = randomUUID(); const ts = now();
-  const job = { id, projectId:jobRequest.projectId, capability:jobRequest.capability, providerId:jobRequest.providerId, modelId:jobRequest.modelId, status:'queued', phase:'queued', progress:0, attempt:0, nextAttemptAt:null, requestId:stableRequestId, sourceNodeId:String(sourceNodeId || ''), sourceKey:key, request:jobRequest, outputAssetIds:[], createdAt:ts, updatedAt:ts };
+  const job = { id, projectId:jobRequest.projectId, capability:jobRequest.capability, providerId:jobRequest.providerId, modelId:jobRequest.modelId, status:'queued', phase:'queued', progress:0, progressMode:'phase', attempt:0, nextAttemptAt:null, requestId:stableRequestId, sourceNodeId:String(sourceNodeId || ''), sourceKey:key, request:jobRequest, outputAssetIds:[], createdAt:ts, updatedAt:ts };
   state.jobs[id] = job; await saveDb(); setImmediate(scheduleJobs); return job;
 }
 function scheduleJobs() {
@@ -566,7 +570,7 @@ async function bailianVideoGenerate(job, signal) {
     taskId=created.output?.task_id||created.task_id||created.id;if(!taskId)throw new Error(`百炼 video did not return task_id: ${sanitizeProviderMessage(created.message||created.code||'empty output')}`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
   }
   const deadline=Date.now()+Number(process.env.BAILIAN_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.BAILIAN_POLL_INTERVAL_MS||2000));
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const data=await providerPollJson(`${BAILIAN_MEDIA_BASE_URL}/tasks/${encodeURIComponent(taskId)}`,{headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`}},'百炼 video status',signal),output=data.output||data,status=String(output.task_status||output.status||'').toLowerCase();if(['succeeded','success','completed'].includes(status)){const url=recursivelyFindUrl(output,'video');if(!url)throw new Error('百炼 video completed without a result URL');job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);}if(['failed','fail','canceled','cancelled'].includes(status))throw new Error(`百炼 video failed: ${sanitizeProviderMessage(output.message||output.error_message||output.code||status)}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(output.progress||job.progress||5)));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const data=await providerPollJson(`${BAILIAN_MEDIA_BASE_URL}/tasks/${encodeURIComponent(taskId)}`,{headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`}},'百炼 video status',signal),output=data.output||data,status=String(output.task_status||output.status||'').toLowerCase();if(['succeeded','success','completed'].includes(status)){const url=recursivelyFindUrl(output,'video');if(!url)throw new Error('百炼 video completed without a result URL');job.progress=95;job.progressMode='provider';await saveDb();return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);}if(['failed','fail','canceled','cancelled'].includes(status))throw new Error(`百炼 video failed: ${sanitizeProviderMessage(output.message||output.error_message||output.code||status)}`);if(Number.isFinite(Number(output.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Math.min(90,Number(output.progress)));}await saveDb();}
   throw new Error('百炼 video generation timed out');
 }
 
@@ -583,7 +587,7 @@ async function agnesTextGenerate(job, signal) {
       if(!response.headers.get('content-type')?.includes('text/event-stream')){const data=await response.json().catch(()=>({})),result=contentText(data.choices?.[0]?.message?.content).trim();if(result)return result;throw new Error('Agnes text returned no content');}
       const reader=response.body?.getReader();if(!reader)throw new Error('Agnes text returned no stream');
       const decoder=new TextDecoder();let buffer='',result='',mode='unknown',lastSave=0;
-      const consume=line=>{if(!line.startsWith('data:'))return;const value=line.slice(5).trim();if(!value||value==='[DONE]')return;let data;try{data=JSON.parse(value);}catch{return;}const delta=contentText(data.choices?.[0]?.delta?.content);if(!delta)return;if(result&&mode==='unknown')mode=delta.startsWith(result)?'cumulative':'incremental';result=mode==='cumulative'&&delta.startsWith(result)?delta:result+delta;job.outputText=result;job.progress=Math.min(90,12+Math.floor(result.length/300));job.updatedAt=now();};
+    const consume=line=>{if(!line.startsWith('data:'))return;const value=line.slice(5).trim();if(!value||value==='[DONE]')return;let data;try{data=JSON.parse(value);}catch{return;}const delta=contentText(data.choices?.[0]?.delta?.content);if(!delta)return;if(result&&mode==='unknown')mode=delta.startsWith(result)?'cumulative':'incremental';result=mode==='cumulative'&&delta.startsWith(result)?delta:result+delta;job.outputText=result;job.progressMode='stream';job.progress=Math.min(90,12+Math.floor(result.length/300));job.updatedAt=now();};
       while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split(/\r?\n/);buffer=lines.pop()||'';for(const line of lines)consume(line);if(Date.now()-lastSave>=1000){lastSave=Date.now();await saveDb();}}
       buffer+=decoder.decode();if(buffer)consume(buffer);if(result.trim())return result.trim();throw new Error('Agnes text returned no streamed content');
     }catch(error){
@@ -643,7 +647,7 @@ async function agnesVideoGenerate(job, signal) {
     videoId=created.video_id||created.task_id||created.id;if(!videoId)throw new Error('Agnes video did not return video_id');job.providerTaskId=String(videoId);job.progress=Number(created.progress||5);await saveDb();
   }
   const root=AGNES_BASE_URL.replace(/\/v1$/,'');const deadline=Date.now()+Number(process.env.AGNES_VIDEO_TIMEOUT_MS||20*60*1000),baseInterval=Math.max(20,Number(process.env.AGNES_POLL_INTERVAL_MS||5000));let interval=baseInterval;
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status',signal);interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url||recursivelyFindUrl(data,'video');if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data},{},signal);}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);job.progress=Math.max(job.progress||5,Number(data.progress||0));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status',signal);interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url||recursivelyFindUrl(data,'video');if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data},{},signal);}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);if(Number.isFinite(Number(data.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Number(data.progress));}await saveDb();}
   throw new Error('Agnes video generation timed out');
 }
 
@@ -717,7 +721,7 @@ async function apimartGenerate(job, signal) {
     const ticket=Array.isArray(created)?created[0]:created;taskId=ticket?.task_id||ticket?.id;if(!taskId)throw new Error(`APIMart ${kind} did not return task_id`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
   }
   const deadline=Date.now()+Number(process.env.APIMART_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.APIMART_POLL_INTERVAL_MS||2000));
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const payload=apimartPayload(await providerPollJson(`${APIMART_BASE_URL}/tasks/${encodeURIComponent(taskId)}?language=en`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`}},`APIMart ${kind} status`,signal),`APIMart ${kind} status`);const status=String(payload.status||'').toLowerCase();if(status==='completed'){const url=recursivelyFindUrl(payload.result||payload,kind);if(!url)throw new Error(`APIMart ${kind} completed without a result URL`);job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,kind,url,{provider:'apimart',providerUrl:url,model:job.modelId,prompt:req.prompt,apimartResult:payload},{},signal);}if(['failed','cancelled','canceled'].includes(status))throw new Error(`APIMart ${kind} failed: ${payload.error?.message||payload.message||status}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(payload.progress||0)));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const payload=apimartPayload(await providerPollJson(`${APIMART_BASE_URL}/tasks/${encodeURIComponent(taskId)}?language=en`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`}},`APIMart ${kind} status`,signal),`APIMart ${kind} status`);const status=String(payload.status||'').toLowerCase();if(status==='completed'){const url=recursivelyFindUrl(payload.result||payload,kind);if(!url)throw new Error(`APIMart ${kind} completed without a result URL`);job.progress=95;job.progressMode='provider';await saveDb();return ingestRemoteAsset(job.projectId,job.id,kind,url,{provider:'apimart',providerUrl:url,model:job.modelId,prompt:req.prompt,apimartResult:payload},{},signal);}if(['failed','cancelled','canceled'].includes(status))throw new Error(`APIMart ${kind} failed: ${payload.error?.message||payload.message||status}`);if(Number.isFinite(Number(payload.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Math.min(90,Number(payload.progress)));}await saveDb();}
   throw new Error(`APIMart ${kind} generation timed out`);
 }
 
@@ -806,6 +810,7 @@ async function runJob(id, signal) {
     signal?.throwIfAborted(); job.progress = Math.max(3,Number(job.progress||0)); job.updatedAt = now(); await saveDb();
     const variants = job.capability.startsWith('image.') ? Math.max(1, Math.min(4, Math.round(Number(job.request.params?.variants || 1) || 1))) : 1;
     const assets = []; let outputText = null;
+    job.phase = 'submitting'; await saveDb();
     job.phase = 'generating'; await saveDb();
     if (job.providerId === 'deepseek' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,DEEPSEEK_API_KEY,DEEPSEEK_BASE_URL,'DeepSeek text',signal);
     else if (job.providerId === 'bailian' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,BAILIAN_API_KEY,BAILIAN_BASE_URL,'百炼 text',signal);
@@ -865,6 +870,16 @@ async function createExport(project) {
 async function handleApi(req, res, url) {
   const method = req.method || 'GET'; const p = url.pathname;
   if (p === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '2.0.0-standalone', node: process.version, providers: { agnes:Boolean(AGNES_API_KEY), apimart:Boolean(APIMART_API_KEY), deepseek:Boolean(DEEPSEEK_API_KEY), bailian:Boolean(BAILIAN_API_KEY) }, ffmpeg: HAS_FFMPEG, captionFont: Boolean(FFMPEG_FONT_FILE) });
+  if (p === '/api/prompt-library' && method === 'GET') return json(res,200,state.promptLibrary);
+  let promptMatch = p.match(/^\/api\/prompt-library\/([^/]+)$/);
+  if (promptMatch && method === 'PUT') {
+    const preset = state.promptLibrary.presets.find(item => item.id === safeDecode(promptMatch[1]));
+    if (!preset) return notFound(res);
+    const body = await readJson(req), allowed = ['label','scene','positive','negative','aspectRatio','quality','aspectPolicy','subjectPolicy','promptPlaceholder','enabled'];
+    for (const key of allowed) if (Object.hasOwn(body,key)) preset[key] = key === 'enabled' ? body[key] !== false : String(body[key] ?? '').trim();
+    preset.version = Number(preset.version || 1) + 1; preset.updatedAt = now();
+    await saveDb(); return json(res,200,normalizeImagePreset(preset));
+  }
   if (p === '/api/agent/models' && method === 'GET') return json(res,200,{models:await availableAgentModels()});
   if (p === '/api/provider-settings' && method === 'GET') {
     const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,DEEPSEEK_AGENT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_AGENT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},apimartModels=await availableApimartModels(),agnesModels=await availableAgnesModels();
