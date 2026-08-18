@@ -12,9 +12,16 @@ export async function getWorkflow(apiBase: string, projectId: string) {
   return response.json() as Promise<{ version: number; nodes: unknown[]; edges: unknown[] }>;
 }
 
+export async function getAssets(apiBase: string, projectId: string): Promise<ApiAsset[]> {
+  const response = await fetch(`${apiBase}/projects/${projectId}/assets`);
+  if (!response.ok) throw new Error(`assets request failed: ${response.status}`);
+  return (await response.json() as { assets: ApiAsset[] }).assets;
+}
+
 export async function saveWorkflow(apiBase: string, projectId: string, body: { version: number; nodes: unknown[]; edges: unknown[] }) {
   const response = await fetch(`${apiBase}/projects/${projectId}/workflow`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`workflow save failed: ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(`workflow save failed: ${response.status}`), { status: response.status });
+  return response.json() as Promise<{ version: number; nodes: unknown[]; edges: unknown[] }>;
 }
 
 export async function submitGeneration(apiBase: string, request: GenerationRequest): Promise<{ id: string }> {

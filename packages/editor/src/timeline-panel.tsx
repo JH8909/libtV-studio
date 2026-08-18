@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApiAsset, TimelineItemSnapshot, TimelineSnapshot } from "@libtv/shared";
 import { TRACKS } from "./domain";
 import { useTimeline } from "./store";
@@ -10,29 +10,47 @@ export interface TimelinePanelProps {
   projectId: string;
   assets: ApiAsset[];
   onUseAsReference?: (asset: ApiAsset, item: TimelineItemSnapshot) => void;
+  refreshKey?: number;
 }
 
-export function TimelinePanel({ apiBase, projectId, assets, onUseAsReference }: TimelinePanelProps) {
+export function TimelinePanel({ apiBase, projectId, assets, onUseAsReference, refreshKey = 0 }: TimelinePanelProps) {
   const timeline = useTimeline();
   const [saveState, setSaveState] = useState("loading");
+  const [reloadKey, setReloadKey] = useState(0);
+  const updatedAtRef = useRef<string | undefined>(undefined);
+  const savedTimelineRef = useRef("");
   const assetsById = useMemo(() => new Map(assets.map((asset) => [asset.id, asset])), [assets]);
 
   useEffect(() => {
+    useTimeline.getState().setHydrated(false);
     fetch(`${apiBase}/projects/${projectId}/timeline`).then(async (response) => {
       if (!response.ok) throw new Error(`timeline load failed: ${response.status}`);
-      const body = await response.json() as TimelineSnapshot;
+      const body = await response.json() as TimelineSnapshot & { updatedAt?: string };
       useTimeline.getState().hydrate(body);
+      updatedAtRef.current = body.updatedAt;
+      savedTimelineRef.current = JSON.stringify({ fps: body.fps, width: body.width, height: body.height, items: body.items });
       setSaveState("saved");
     }).catch((error) => setSaveState(error instanceof Error ? error.message : String(error)));
-  }, [apiBase, projectId]);
+  }, [apiBase, projectId, refreshKey, reloadKey]);
 
   useEffect(() => {
     if (!timeline.hydrated) return;
+    const snapshot = JSON.stringify({ fps: timeline.fps, width: timeline.width, height: timeline.height, items: timeline.items });
+    if (snapshot === savedTimelineRef.current) return;
     setSaveState("saving");
     const timer = setTimeout(() => {
-      fetch(`${apiBase}/projects/${projectId}/timeline`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fps: timeline.fps, width: timeline.width, height: timeline.height, items: timeline.items }) })
-        .then((response) => { if (!response.ok) throw new Error(`timeline save failed: ${response.status}`); setSaveState("saved"); })
-        .catch((error) => setSaveState(error instanceof Error ? error.message : String(error)));
+      fetch(`${apiBase}/projects/${projectId}/timeline`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fps: timeline.fps, width: timeline.width, height: timeline.height, items: timeline.items, expectedUpdatedAt: updatedAtRef.current }) })
+        .then(async (response) => {
+          if (!response.ok) throw Object.assign(new Error(`timeline save failed: ${response.status}`), { status: response.status });
+          const saved = await response.json() as { updatedAt: string };
+          updatedAtRef.current = saved.updatedAt;
+          savedTimelineRef.current = snapshot;
+          setSaveState("saved");
+        })
+        .catch((error: Error & { status?: number }) => {
+          setSaveState(error.status === 409 ? "changed by Agent — reloading" : error.message);
+          if (error.status === 409) setReloadKey((value) => value + 1);
+        });
     }, 700);
     return () => clearTimeout(timer);
   }, [apiBase, projectId, timeline.hydrated, timeline.fps, timeline.width, timeline.height, timeline.items]);

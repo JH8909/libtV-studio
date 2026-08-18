@@ -4,14 +4,16 @@ Run from the repository root with `./start-local.sh` (macOS/Linux) or `start-loc
 
 The runtime uses Node.js built-ins only; no npm install, database, Redis or Docker is required. FFmpeg is required for Timeline → MP4 export.
 
-## LibTV-style canvas
-- Double-click blank canvas → Add Node catalog.
-- Right-click blank canvas → Canvas Context Menu.
-- Right-click a node → Run, Duplicate, Disconnect, Inspect, Delete.
-- V / H / C → Select / Hand / Connect mouse modes in the top-right toolbar.
-- Drag a node header → move node.
-- Drag right output handle → left input handle → connect.
-- Mouse wheel → zoom; Space + drag → temporary pan.
+完整中文操作与功能介绍见仓库根目录的 [操作指南](../操作指南.md)。
+
+## Canvas
+
+- Double-click blank canvas or use the bottom **+** button to add nodes.
+- Drag a node header to move it; drag right output port to left input port to connect it.
+- Generated image/video nodes are preview-first. Click a preview to expand its prompt and parameters; click the same preview, another node, or blank canvas to collapse the active composer without hiding the media.
+- Image/video result toolbars appear only after a result exists and its preview is active. They contain Copy, Properties, image enlargement, Download and Delete.
+- A job's state is shown in the node header. Failure creates a non-interactive canvas-top notice for five seconds; use the retry control on the failed node to submit again.
+- Mouse wheel zooms; `H` or `Space` pans; `V` selects; `F` fits; `Delete` removes the current selected item.
 
 ## AI nodes
 - Manual Text
@@ -20,7 +22,7 @@ The runtime uses Node.js built-ins only; no npm install, database, Redis or Dock
 - Text-to-Video / First-frame Video / First+Last-frame Video / Reference Video
 - Asset nodes for uploaded/generated image/video/audio
 
-Open **模型/API** in the top bar to configure Agnes, APIMart, DeepSeek and 阿里云百炼. APIMart fetches the account's model list; DeepSeek uses OpenAI-compatible Chat Completions, and 百炼 uses compatible Chat Completions for text/Agent plus native DashScope media endpoints for image/video. Secrets remain server-side in `standalone/data/provider-settings.json` and do not enter workflow JSON.
+Open **模型/API** in the top bar to configure Canvas and creative Agent providers: Agnes, APIMart, DeepSeek and 阿里云百炼. Secrets remain server-side and do not enter workflow JSON.
 
 You can also copy `standalone/.env.example` to `standalone/.env`.
 
@@ -37,12 +39,12 @@ node standalone/provider-contract-e2e.mjs
 node standalone/agnes-provider-e2e.mjs
 ```
 
-## Creative planning Agent
+## Creative Agent
 
-Open **Agent** in the top bar to create and revise a project-level short-film plan. A confirmed proposal appends a brief node and one Text → Image → Video group per shot. It does not run generation, modify the Timeline or export.
+Open **Agent** in the top bar for a project-persistent creative conversation. It uses the configured text models directly through the local Studio server and can suggest ideas, themes, visual directions, characters, scenes and shot concepts.
 
-Configure an Agnes, APIMart, DeepSeek or 百炼 Agent model under **模型/API**. Conversations and proposals persist in the local project; prompts are sent only to the provider selected in the Agent panel.
+The creative Agent is read-only: it does not modify the Canvas, submit generation jobs, change the Timeline or execute tools. Conversations and card favorites are stored in the local project database. Existing DeepSeek configuration is used as a normal OpenAI-compatible text API when enabled.
 
 ```bash
-node standalone/agent-e2e.mjs
+node standalone/creative-agent-e2e.mjs
 ```

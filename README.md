@@ -25,16 +25,16 @@ start-local.cmd
 
 Open `http://127.0.0.1:3000`.
 
-## v2.0 creative planning Agent
+## v2.0 creative Agent
 
-The top-right **Agent** button opens a project-persistent planning workspace:
-- Start from one idea and receive a creative brief, style bible, story arc and 3–12 shot plan.
-- Continue the conversation to revise the pending proposal.
-- Review the exact node impact, then apply the whole plan once.
-- Applying appends one brief node plus a Text → Image → Video group for every shot. Nodes remain idle: Agent never starts paid generation, changes the Timeline or exports media.
-- Agnes and enabled APIMart planning models are supported through server-side settings. Conversation content is sent to the selected provider; credentials and project history remain local.
+The top-right **Agent** button opens a project-persistent creative conversation:
+- Explore ideas, themes, visual directions, characters, scenes and shot concepts.
+- Continue the conversation to compare and polish creative directions.
+- Copy or favorite creative cards without changing the project.
+- The Agent is read-only: it never modifies the Canvas, starts paid generation, changes the Timeline or exports media.
+- Configured text models are called through the local server; credentials and project history remain local.
 
-Agent model output is strictly validated and converted to graph data by the local server. Models never return executable patches or arbitrary node objects.
+Agent model output is strictly validated into read-only creative cards by the local server. Models never return executable patches, tool calls or arbitrary node objects.
 
 ## Canvas interaction
 
@@ -118,7 +118,7 @@ Duration/aspect/resolution choices are driven from Provider Registry metadata. R
 
 Click **模型/API** in the top bar. The modal currently supports:
 - Agnes AI text, image and video
-- APIMart: enter one API Key, then enable models grouped by text/Agent, image and video
+- APIMart: enter one API Key, then enable models grouped by text, image and video
 
 Credentials are sent only to the local Standalone server and saved in:
 
@@ -146,7 +146,7 @@ The adapter supports `text.generate`, `image.generate`, `image.edit`, `video.gen
 APIMART_API_KEY=...
 ```
 
-The server calls `GET /v1/models`, classifies the returned models for the Canvas and Agent selectors, uploads reference images, and uses APIMart's asynchronous image/video task API.
+The server calls `GET /v1/models`, classifies the returned models for the Canvas and creative Agent selectors, uploads reference images, and uses APIMart's asynchronous image/video task API.
 
 ### DeepSeek / Alibaba Cloud Bailian
 
@@ -156,7 +156,7 @@ BAILIAN_API_KEY=...
 BAILIAN_MEDIA_BASE_URL=https://dashscope.aliyuncs.com/api/v1
 ```
 
-DeepSeek uses OpenAI-compatible Chat Completions for `text.generate` and Agent planning. 百炼 uses compatible Chat Completions for text/Agent, plus native DashScope media endpoints for `image.generate` and `video.generate`; configure Base URL and category models from **模型/API** when defaults do not match your workspace.
+DeepSeek uses OpenAI-compatible Chat Completions for `text.generate` and the creative Agent. 百炼 uses compatible Chat Completions for text and the creative Agent, plus native DashScope media endpoints for `image.generate` and `video.generate`; configure Base URL and category models from **模型/API** when defaults do not match your workspace.
 
 ## Asset pipeline
 

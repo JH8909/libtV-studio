@@ -1,0 +1,47 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const app = read('standalone/public/app.js');
+const html = read('standalone/public/index.html');
+const css = read('standalone/public/styles.css');
+
+const checks = [
+  ['styles define the four radius tokens', ['--radius-control', '--radius-surface', '--radius-container', '--radius-pill'].every((token) => css.includes(token))],
+  ['all source dropdowns use app-select', !/<select\b/i.test(app) && !/<select\b/i.test(html) && app.includes('function appSelectMarkup')],
+  ['project control and creative Agent model selection use native Prompt Bar controls', html.includes('id="projectSelect"') && html.includes('id="agentModelSelect"') && html.includes('id="agentPromptForm"') && html.includes('data-promptbar') && app.includes('data-agent-model-trigger')],
+  ['secondary controls use the documented geometry tokens', css.includes('.app-select>summary') && css.includes('.app-select-popover') && css.includes('.app-select-option')],
+  ['legacy high-specificity controls are normalized', css.includes('.generator-chips .generator-mode-menu summary{border-radius:var(--radius-control)}') && css.includes('.node-generation .node-ref-role-badge{border-radius:var(--radius-pill)}') && css.includes('.welcome-card-list button{border-radius:var(--radius-container)}')],
+  ['system prompt review text is not rendered in nodes', /function imagePresetReview\(n\)\s*\{\s*return ''\s*;?\s*\}/.test(app) && css.includes('.preset-review{display:none!important}')],
+  ['generation preview keeps the original 14px/13px connected shell', css.includes('.generator-preview,.generator-composer{position:relative;background:#252525;border:1px solid #414141;border-radius:14px') && css.includes('.generator-preview .node-media{width:100%;height:100%;max-height:none;border-radius:13px;object-fit:contain;background:#202020}') && css.includes('.node-generation .generator-preview{border-top:0;border-radius:0 0 14px 14px}') && css.includes('.node-generation .generator-preview .node-media{border-radius:0 0 13px 13px}')],
+  ['upload preview keeps its original dashed frame and blue hover', css.includes('.upload-node-dropzone:hover,.upload-node-preview:hover{border-color:#8fcce9;background:#252d31}') && css.includes('.upload-node-preview{display:block;width:100%;padding:0;overflow:hidden;border:1px dashed #555;border-radius:8px;background:#202020;cursor:pointer}') && css.includes('.upload-node-preview .node-media{display:block;width:auto;max-width:100%;height:auto;max-height:320px;margin:auto;object-fit:contain;background:#202020;border-radius:7px;cursor:pointer}') && !css.includes('.node-generation .generator-preview:focus-visible') && !css.includes('.upload-node-preview:focus-visible')],
+  ['determinate progress does not use an infinite animation', /\.node-generation \.node-progress\.is-determinate>span\{[^}]*max-width:100%;[^}]*transition:width \.32s ease-out\}/.test(css) && !/\.node-generation \.node-progress\.is-determinate>span\{[^}]*animation:/.test(css)],
+  ['elapsed progress updates do not rebuild the node', /function updateNodeProgressDom\(n\)/.test(app) && /ticker=setInterval\(\(\)=>\{[^}]*updateNodeProgressDom\(n\)/.test(app) && !/ticker=setInterval\(\(\)=>\{[^}]*renderNode\(n\)/.test(app)],
+  ['job list only shows percentages backed by provider progress', /function jobProgressMarkup\(job\)\{const determinate=job\.progressMode==='provider'\|\|job\.progressMode==='stream'/.test(app) && /\$\{determinate\?` · \$\{progress\}%`:/ .test(app)],
+  ['progress paint is clipped to the node width', /\.node-generation \.node-progress\{[^}]*width:var\(--preview-width,430px\);max-width:var\(--preview-width,430px\);[^}]*overflow:hidden;contain:paint;clip-path:inset\(0\)/.test(css) && /@keyframes node-progress-indeterminate\{0%\{left:-30%\}100%\{left:100%\}\}/.test(css)],
+  ['reduced motion keeps an understandable static progress state', /prefers-reduced-motion:reduce[\s\S]*\.node-generation \.node-progress\.is-indeterminate>span\{left:0;width:100%;opacity:\.45\}/.test(css)],
+  ['video generation nodes use the shared custom player', /customVideoPlayerMarkup\(out\.publicUrl/.test(app) && !/node-current-preview[^`]*<video[^>]*controls/.test(app) && app.includes('function bindCustomVideoPlayers')],
+  ['custom player controls isolate playback from node expansion', /\$\$\('button,input',player\)\.forEach\(control=>\['pointerdown','click','dblclick'\]/.test(app) && app.includes("data-video-action=\"fullscreen\"")],
+  ['transient menus share one exclusive interaction group', app.includes("const INTERACTION_DETAILS_SELECTOR='.app-select,.generator-mode-menu") && /menu\.open\)\{closeControlDropdowns\(menu\);positionOpenDetails\(menu\);\}/.test(app)],
+  ['top-level surfaces collapse expanded node composers', app.includes('function preparePrimarySurface()') && app.includes('collapseExpandedNodeComposers()') && app.includes('async function openProviderSettings()')],
+  ['preview expansion is keyboard accessible and restores focus', /function generationPreviewToggleAttrs\(n\).*tabindex="0".*aria-expanded/.test(app) && /\['Enter',' '\]\.includes\(e\.key\).*toggleComposerFromPreview\(n\);requestAnimationFrame/.test(app)],
+  ['video controls stay thin and shrinkable', /custom-video-controls input\[type=range\]\{[^}]*width:0;max-width:100%;min-width:0;[^}]*flex:1 1 0/.test(css) && /::-webkit-slider-runnable-track\{height:2px/.test(css)],
+  ['node and lightbox players use one control standard', !app.includes("compact:previewSize.width<320") && !css.includes('.custom-video-player.is-compact') && css.includes('.media-lightbox-player .custom-video-controls{left:8px;right:8px;bottom:8px}')],
+  ['video progress is white without thumb or focus rectangle', css.includes('linear-gradient(90deg,#fff var(--video-progress),rgba(255,255,255,.3)') && /::-webkit-slider-thumb\{[^}]*width:0;height:0/.test(css) && /input\[type=range\]:focus-visible\{outline:none/.test(css)],
+  ['image and video lightboxes share one large contain viewport', css.includes('width:min(1440px,calc(100vw - 48px))') && css.includes('height:min(900px,calc(100vh - 48px))') && !css.includes('.media-lightbox[data-kind="video"] .media-lightbox-content') && /\.media-lightbox-stage video\{[^}]*max-height:none;object-fit:contain/.test(css)],
+  ['provider model menus escape card clipping and cap long lists', css.includes('.provider-card:has(.provider-app-select[open])') && /provider-app-select \.app-select-popover\{[^}]*max-height:min\(320px/.test(css) && app.includes("menu.closest('.provider-settings-form,.floating-drawer,.modal-backdrop')")],
+  ['timeline entry stays out of node parameter rows', html.includes('id="timelineToggleBtn"') && app.includes('data-action="timelineOutput"') && app.includes("if(action==='timelineOutput')return addAssetToTimeline") && !app.includes('class="generator-timeline"')],
+  ['native creative Agent shell replaces Harness', html.includes('id="agentOverlay"') && html.includes('id="agentMessages"') && app.includes('function openAgent') && !/harness|DeepSeek Harness|harnessFrame|harnessPort/i.test(html + app)],
+  ['creative Agent keeps copy/favorite actions and read-only prompt scope', html.includes('data-agent-prompt') && app.includes('data-agent-copy') && app.includes('data-agent-favorite') && app.includes('creative-agent/conversations') && !app.includes('libtv:harness-project')],
+  ['creative Agent Prompt Bar keeps fixed height, icon model control and equal card margins', css.includes('.agent-prompt-composer{grid-template-columns:28px 71px') && css.includes('height:120px;min-height:120px') && css.includes('.agent-message-assistant{width:100%;max-width:100%}') && css.includes('.agent-card-list{width:100%;max-width:none}') && css.includes('.agent-panel{font-size:14px}')],
+  ['creative Agent aligns below the topbar and uses one icon size without a model chevron', css.includes('.agent-overlay{position:absolute;top:50px') && css.includes('.agent-model-icon{display:block;width:16px;height:16px') && /agent-prompt-model-trigger[\s\S]*?current\?agentModelIcon\(current\.model\):''\}<\/button>/.test(app)],
+  ['preview and pointer overlays share one outer-box language', css.includes('--ds-overlay-radius:var(--radius-container)') && css.includes('--ds-overlay-shadow:0 18px 42px rgba(0,0,0,.45)') && css.includes('.preview-controls,.preview-fullscreen-controls,.custom-video-controls') && css.includes('.agent-prompt-source-menu,.agent-prompt-model-menu')],
+  ['native titles and icon-only controls use one unclipped dark rounded tooltip', /function initUnifiedTooltips\(\)/.test(app) && app.includes(`selector='[title],button[aria-label],summary[aria-label],[role="button"][aria-label]'`) && /item\.dataset\.tooltip=nativeLabel\|\|accessibleLabel;item\.removeAttribute\('title'\)/.test(app) && css.includes('.app-tooltip{position:fixed;z-index:6000') && /\.agent-overlay\{[^}]*z-index:5000/.test(css) && css.includes('border:1px solid var(--ds-overlay-border);border-radius:var(--radius-surface);background:var(--ds-overlay-surface);color:var(--ds-overlay-ink);box-shadow:var(--ds-overlay-shadow)')],
+];
+
+for (const [label, pass] of checks) {
+  console.log(`${pass ? 'PASS' : 'FAIL'} ${label}`);
+  if (!pass) process.exitCode = 1;
+}

@@ -7,7 +7,9 @@ import { randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import dns from 'node:dns/promises';
 import net from 'node:net';
-import { applyAgentProposal, configuredAgentModels, createAgentReply, ensureAgentSession, reviewSequenceClip } from './agent.mjs';
+import { buildStandaloneCreativeContext } from './creative-context.mjs';
+import { buildCreativeAgentSystemPrompt, createCreativeAgentConversation, parseCreativeAgentReply } from './creative-agent.mjs';
+import { imagePresetLibrarySnapshot, normalizeImagePreset } from './public/image-presets.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 for (const envFile of [join(ROOT,'.env'), join(dirname(ROOT),'.env')]) { try { if (existsSync(envFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envFile); } catch (error) { console.warn(`Could not load ${envFile}:`, error.message); } }
@@ -30,19 +32,20 @@ const PROVIDER_SETTINGS_FILE = join(DATA, 'provider-settings.json');
 let providerSettings = {};
 try { if (existsSync(PROVIDER_SETTINGS_FILE)) providerSettings = JSON.parse(readFileSync(PROVIDER_SETTINGS_FILE,'utf8')); } catch { providerSettings = {}; }
 const apimartProxyBase=String(providerSettings.APIMART_BASE_URL||process.env.APIMART_BASE_URL||'https://api.apimart.ai/v1');
+const agnesDirectHost=(()=>{try{return new URL(String(providerSettings.AGNES_BASE_URL||process.env.AGNES_BASE_URL||'https://apihub.agnes-ai.com/v1')).hostname;}catch{return'';}})();
 if(process.env.ALL_PROXY&&!process.env.HTTPS_PROXY&&!process.env.HTTP_PROXY&&process.env.LIBTV_PROXY_BOOTSTRAPPED!=='1'&&!process.execArgv.includes('--use-env-proxy')&&(providerSettings.APIMART_API_KEY||process.env.APIMART_API_KEY)&&/^https:\/\//i.test(apimartProxyBase)){
-  const child=spawn(process.execPath,['--use-env-proxy',...process.execArgv,fileURLToPath(import.meta.url),...process.argv.slice(2)],{stdio:'inherit',windowsHide:true,env:{...process.env,HTTPS_PROXY:process.env.ALL_PROXY,HTTP_PROXY:process.env.ALL_PROXY,LIBTV_PROXY_BOOTSTRAPPED:'1'}});
+  const noProxy=[process.env.NO_PROXY,agnesDirectHost].filter(Boolean).join(',');
+  const child=spawn(process.execPath,['--use-env-proxy',...process.execArgv,fileURLToPath(import.meta.url),...process.argv.slice(2)],{stdio:'inherit',windowsHide:true,env:{...process.env,HTTPS_PROXY:process.env.ALL_PROXY,HTTP_PROXY:process.env.ALL_PROXY,NO_PROXY:noProxy,LIBTV_PROXY_BOOTSTRAPPED:'1'}});
   const code=await new Promise(resolve=>child.on('exit',resolve));process.exit(typeof code==='number'?code:0);
 }
 const retiredProviderKeys=Object.keys(providerSettings).filter(key=>/^(?:OPENAI|OPENAI_COMPAT|ARK|VOLCENGINE|KLING|GEMINI|VEO|FAL)_/.test(key)||/^APIMART_(?:TEXT|AGENT|IMAGE|VIDEO)_MODEL$/.test(key)||/^APIMART_(?:BASE|CHAT_BASE)_URL$/.test(key));
 if(retiredProviderKeys.length){for(const key of retiredProviderKeys)delete providerSettings[key];writeFileSync(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2));}
 const cfg = (key, fallback='') => String(providerSettings[key] || process.env[key] || fallback);
-let AGNES_API_KEY, AGNES_BASE_URL, AGNES_TEXT_MODEL, AGNES_AGENT_MODEL, AGNES_IMAGE_MODEL, AGNES_VIDEO_MODEL, APIMART_API_KEY, APIMART_BASE_URL, APIMART_CHAT_BASE_URL, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_TEXT_MODEL, DEEPSEEK_AGENT_MODEL, BAILIAN_API_KEY, BAILIAN_BASE_URL, BAILIAN_MEDIA_BASE_URL, BAILIAN_TEXT_MODEL, BAILIAN_AGENT_MODEL, BAILIAN_IMAGE_MODEL, BAILIAN_VIDEO_MODEL, PUBLIC_BASE_URL;
+let AGNES_API_KEY, AGNES_BASE_URL, AGNES_TEXT_MODEL, AGNES_IMAGE_MODEL, AGNES_VIDEO_MODEL, APIMART_API_KEY, APIMART_BASE_URL, APIMART_CHAT_BASE_URL, DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_TEXT_MODEL, BAILIAN_API_KEY, BAILIAN_BASE_URL, BAILIAN_MEDIA_BASE_URL, BAILIAN_TEXT_MODEL, BAILIAN_IMAGE_MODEL, BAILIAN_VIDEO_MODEL, PUBLIC_BASE_URL;
 function refreshProviderRuntime(){
   AGNES_API_KEY = cfg('AGNES_API_KEY');
   AGNES_BASE_URL = cfg('AGNES_BASE_URL','https://apihub.agnes-ai.com/v1').replace(/\/$/,'');
   AGNES_TEXT_MODEL = cfg('AGNES_TEXT_MODEL','agnes-2.5-flash');
-  AGNES_AGENT_MODEL = cfg('AGNES_AGENT_MODEL',AGNES_TEXT_MODEL);
   AGNES_IMAGE_MODEL = cfg('AGNES_IMAGE_MODEL','agnes-image-2.1-flash');
   AGNES_VIDEO_MODEL = cfg('AGNES_VIDEO_MODEL','agnes-video-v2.0');
   APIMART_API_KEY = cfg('APIMART_API_KEY');
@@ -51,12 +54,10 @@ function refreshProviderRuntime(){
   DEEPSEEK_API_KEY = cfg('DEEPSEEK_API_KEY');
   DEEPSEEK_BASE_URL = cfg('DEEPSEEK_BASE_URL','https://api.deepseek.com').replace(/\/$/,'');
   DEEPSEEK_TEXT_MODEL = cfg('DEEPSEEK_TEXT_MODEL','deepseek-v4-pro');
-  DEEPSEEK_AGENT_MODEL = cfg('DEEPSEEK_AGENT_MODEL',DEEPSEEK_TEXT_MODEL);
   BAILIAN_API_KEY = cfg('BAILIAN_API_KEY');
   BAILIAN_BASE_URL = cfg('BAILIAN_BASE_URL','https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/$/,'');
   BAILIAN_MEDIA_BASE_URL = cfg('BAILIAN_MEDIA_BASE_URL','https://dashscope.aliyuncs.com/api/v1').replace(/\/$/,'');
   BAILIAN_TEXT_MODEL = cfg('BAILIAN_TEXT_MODEL','qwen-plus');
-  BAILIAN_AGENT_MODEL = cfg('BAILIAN_AGENT_MODEL',BAILIAN_TEXT_MODEL);
   BAILIAN_IMAGE_MODEL = cfg('BAILIAN_IMAGE_MODEL','qwen-image-2.0');
   BAILIAN_VIDEO_MODEL = cfg('BAILIAN_VIDEO_MODEL','wan2.7-t2v-2026-06-12');
   PUBLIC_BASE_URL = cfg('PUBLIC_BASE_URL').replace(/\/$/,'');
@@ -69,18 +70,55 @@ const FFMPEG_FONT_FILE = (() => { if (process.env.FFMPEG_FONT_FILE && existsSync
 for (const dir of [DATA, ASSETS_DIR, EXPORTS_DIR]) mkdirSync(dir, { recursive: true });
 
 function emptyDb() {
-  return { version: 2, projects: {}, jobs: {}, assets: {} };
+  return { version: 4, projects: {}, jobs: {}, assets: {}, creativeAgent: { conversations: {} }, promptLibrary: imagePresetLibrarySnapshot() };
 }
 
 let state = emptyDb();
 if (existsSync(DB_FILE)) {
   try { state = JSON.parse(readFileSync(DB_FILE, 'utf8')); } catch { state = emptyDb(); }
 }
-state.version = 2; state.projects ||= {}; state.jobs ||= {}; state.assets ||= {};
+state.version = 4; state.projects ||= {}; state.jobs ||= {}; state.assets ||= {}; state.creativeAgent ||= { conversations: {} }; state.creativeAgent.conversations ||= {};
+if (!Array.isArray(state.promptLibrary?.presets) || !state.promptLibrary.presets.length) state.promptLibrary = imagePresetLibrarySnapshot();
+state.promptLibrary.categories ||= imagePresetLibrarySnapshot().categories;
+state.promptLibrary.presets = state.promptLibrary.presets.map(normalizeImagePreset);
 
 let saveChain = Promise.resolve();
+function syncGenerationJobToCanvas(job) {
+  const sourceNodeId = String(job?.sourceNodeId || "");
+  if (!sourceNodeId) return false;
+  const project = state.projects[job.projectId];
+  const node = project?.workflow?.nodes?.find((candidate) => candidate?.id === sourceNodeId);
+  if (!node || !["imageGen", "videoGen", "textGen"].includes(node.type)) return false;
+  const data = node.data || (node.data = {});
+  const next = {
+    jobId: ["succeeded", "failed", "canceled"].includes(job.status) ? "" : job.id,
+    generationId: job.id,
+    status: job.status || "queued",
+    phase: job.phase || job.status || "queued",
+    progressMode: job.progressMode || "phase",
+    progress: Number(job.progress || 0),
+    error: job.error || "",
+    nextAttemptAt: job.nextAttemptAt || null,
+    providerAttempt: Number(job.providerAttempt || 0),
+    providerMaxAttempts: Number(job.providerMaxAttempts || 0),
+  };
+  let changed = false;
+  for (const [key, value] of Object.entries(next)) {
+    if (JSON.stringify(data[key]) !== JSON.stringify(value)) { data[key] = value; changed = true; }
+  }
+  if (job.status === "succeeded") {
+    const outputAssetIds = Array.isArray(job.outputAssetIds) ? job.outputAssetIds.map(String).filter(Boolean) : [];
+    const variantAssetIds = outputAssetIds.length > 1 ? outputAssetIds : [];
+    for (const [key, value] of [["outputAssetIds", outputAssetIds], ["variantAssetIds", variantAssetIds], ["selectedVariantIndex", 0]]) {
+      if (JSON.stringify(data[key]) !== JSON.stringify(value)) { data[key] = value; changed = true; }
+    }
+  }
+  if (changed) { project.workflowRevision = Number(project.workflowRevision || 1) + 1; project.updatedAt = now(); }
+  return changed;
+}
 function saveDb() {
   saveChain = saveChain.then(async () => {
+    for (const job of Object.values(state.jobs)) syncGenerationJobToCanvas(job);
     const tmp = `${DB_FILE}.tmp`;
     await fsp.writeFile(tmp, JSON.stringify(state, null, 2));
     await fsp.rename(tmp, DB_FILE);
@@ -90,6 +128,7 @@ function saveDb() {
 
 const providerRunning = new Set();
 const jobControllers = new Map();
+const canvasSelections = new Map();
 let schedulerTimer = null;
 
 function abortError() { return Object.assign(new Error('canceled'), { name: 'AbortError' }); }
@@ -102,7 +141,7 @@ function sleep(ms, signal) {
     signal.addEventListener('abort', cancel, { once: true });
   });
 }
-function isSerializedMediaJob(job) { return /^(image|video|audio)\./.test(job.capability); }
+function serializedMediaLane(job) { const kind=String(job.capability||'').match(/^(image|video|audio)\./)?.[1];return kind?`${job.providerId}:${kind}`:''; }
 function retryDelay(error, attempt, baseMs = PROVIDER_RETRY_BASE_MS) {
   const hinted = Number(error?.retryAfterMs);
   const message = String(error?.message || '');
@@ -129,7 +168,7 @@ async function enqueueGeneration(jobRequest, { requestId, sourceNodeId, sourceKe
   const existing = findExistingJob(jobRequest.projectId, stableRequestId, key);
   if (existing) return existing;
   const id = randomUUID(); const ts = now();
-  const job = { id, projectId:jobRequest.projectId, capability:jobRequest.capability, providerId:jobRequest.providerId, modelId:jobRequest.modelId, status:'queued', phase:'queued', progress:0, attempt:0, nextAttemptAt:null, requestId:stableRequestId, sourceNodeId:String(sourceNodeId || ''), sourceKey:key, request:jobRequest, outputAssetIds:[], createdAt:ts, updatedAt:ts };
+  const job = { id, projectId:jobRequest.projectId, capability:jobRequest.capability, providerId:jobRequest.providerId, modelId:jobRequest.modelId, status:'queued', phase:'queued', progress:0, progressMode:'phase', attempt:0, nextAttemptAt:null, requestId:stableRequestId, sourceNodeId:String(sourceNodeId || ''), sourceKey:key, request:jobRequest, outputAssetIds:[], createdAt:ts, updatedAt:ts };
   state.jobs[id] = job; await saveDb(); setImmediate(scheduleJobs); return job;
 }
 function scheduleJobs() {
@@ -139,18 +178,18 @@ function scheduleJobs() {
   for (const job of queued) {
     const due = job.nextAttemptAt ? Date.parse(job.nextAttemptAt) : 0;
     if (due > current) { nextAt = Math.min(nextAt, due); continue; }
-    if (isSerializedMediaJob(job) && providerRunning.has(job.providerId)) continue;
+    const lane=serializedMediaLane(job);if (lane && providerRunning.has(lane)) continue;
     startJob(job);
   }
   if (Number.isFinite(nextAt)) schedulerTimer = setTimeout(scheduleJobs, Math.max(1, nextAt - Date.now()));
 }
 function startJob(job) {
   if (job.status !== 'queued') return;
-  if (isSerializedMediaJob(job)) providerRunning.add(job.providerId);
+  const lane=serializedMediaLane(job);if (lane) providerRunning.add(lane);
   job.status = 'processing'; job.phase = 'preparing'; job.nextAttemptAt = null; job.attempt = Number(job.attempt || 0) + 1; job.updatedAt = now();
   const controller = new AbortController(); jobControllers.set(job.id, controller);
   void runJob(job.id, controller.signal).finally(() => {
-    jobControllers.delete(job.id); if (isSerializedMediaJob(job)) providerRunning.delete(job.providerId); scheduleJobs();
+    jobControllers.delete(job.id); if (lane) providerRunning.delete(lane); scheduleJobs();
   });
 }
 
@@ -183,7 +222,7 @@ function cleanFilename(name = 'asset.bin') {
 }
 function mimeFromExt(file) {
   const ext = extname(file).toLowerCase();
-  return ({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.json': 'application/json' })[ext] || 'application/octet-stream';
+  return ({ '.html': 'text/html; charset=utf-8', '.htm': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.mkv': 'video/x-matroska', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.aac': 'audio/aac', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.md': 'text/markdown; charset=utf-8', '.csv': 'text/csv; charset=utf-8', '.xml': 'application/xml', '.pdf': 'application/pdf', '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation' })[ext] || 'application/octet-stream';
 }
 function kindFromMime(mime, filename = '') {
   if ((mime || '').startsWith('image/')) return 'image';
@@ -217,62 +256,29 @@ function projectAssets(projectId, { tag, kind } = {}) {
 function projectJobs(projectId) { return Object.values(state.jobs).filter(j => j.projectId === projectId).sort((a,b) => b.createdAt.localeCompare(a.createdAt)); }
 
 let agnesModelCache={expiresAt:0,models:[]};
-
 function agnesModelCapabilities(item, modelId) {
-  const raw=JSON.stringify(item||{}).toLowerCase();
-  const id=String(modelId||'').toLowerCase();
-  const image=/image|img|seedream|flux|qwen-image|gpt-image|nano-banana/.test(`${id} ${raw}`);
-  const video=/video|seedance|veo|kling|sora|wan|hailuo/.test(`${id} ${raw}`);
-  const unsupported=/embedding|moderation|rerank|speech|audio|tts|asr/.test(`${id} ${raw}`);
-  const capabilities=[];
-  if (video) capabilities.push('video.generate','video.image_to_video','video.first_last_frame');
-  else if (image) capabilities.push('image.generate','image.edit');
-  else if (!unsupported) capabilities.push('text.generate');
-  return capabilities;
+  const raw=JSON.stringify(item||{}).toLowerCase(),id=String(modelId||'').toLowerCase();
+  const image=/image|img|seedream|flux|qwen-image|gpt-image|nano-banana/.test(`${id} ${raw}`),video=/video|seedance|veo|kling|sora|wan|hailuo/.test(`${id} ${raw}`),unsupported=/embedding|moderation|rerank|speech|audio|tts|asr/.test(`${id} ${raw}`),capabilities=[];
+  if(video)capabilities.push('video.generate','video.image_to_video','video.first_last_frame');else if(image)capabilities.push('image.generate','image.edit');else if(!unsupported)capabilities.push('text.generate');return capabilities;
 }
-
 function agnesModelConstraints(capabilities) {
-  if (capabilities.includes('image.generate')) return {aspectRatios:['1:1','3:4','4:3','16:9','9:16','2:3','3:2','21:9'],resolutions:['1K','2K','3K','4K']};
-  if (capabilities.includes('video.generate')) return {durations:[3,5,10,18],aspectRatios:['16:9','9:16','1:1','4:3','3:4'],resolutions:['480p','720p','1080p'],maxImageRefs:2};
-  return {};
+  if(capabilities.includes('image.generate'))return {aspectRatios:['1:1','3:4','4:3','16:9','9:16','2:3','3:2','21:9'],resolutions:['1K','2K']};
+  if(capabilities.includes('video.generate'))return {durations:[3,5,10,18],aspectRatios:['16:9','9:16','1:1','4:3','3:4'],resolutions:['480p','720p','1080p'],maxImageRefs:2};return {};
 }
-
 function agnesModelFromItem(item) {
-  const modelId=String(typeof item==='string'?item:item?.id||item?.name||'').trim();
-  if (!modelId) return null;
-  const capabilities=agnesModelCapabilities(item,modelId);
-  return {providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,capabilities,constraints:agnesModelConstraints(capabilities),configured:true};
+  const modelId=String(typeof item==='string'?item:item?.id||item?.name||'').trim();if(!modelId)return null;const capabilities=agnesModelCapabilities(item,modelId);return {providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,capabilities,constraints:agnesModelConstraints(capabilities),configured:true};
 }
-
 function agnesConfiguredModels() {
-  return [
-    agnesModelFromItem({id:AGNES_TEXT_MODEL}),
-    agnesModelFromItem({id:AGNES_IMAGE_MODEL}),
-    agnesModelFromItem({id:AGNES_VIDEO_MODEL}),
-  ].filter(Boolean);
+  return [agnesModelFromItem({id:AGNES_TEXT_MODEL}),agnesModelFromItem({id:AGNES_IMAGE_MODEL}),agnesModelFromItem({id:AGNES_VIDEO_MODEL})].filter(Boolean);
 }
-
 async function availableAgnesModels() {
-  const fallback=agnesConfiguredModels();
-  if (!AGNES_API_KEY) return fallback;
-  if (agnesModelCache.expiresAt>Date.now()) return agnesModelCache.models;
-  try {
-    const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});
-    if (!response.ok) throw new Error(`Agnes models failed ${response.status}`);
-    const body=await response.json();
-    const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];
-    const discovered=items.map(agnesModelFromItem).filter(Boolean);
-    const merged=new Map(fallback.map(model=>[model.modelId,model]));
-    for (const model of discovered) merged.set(model.modelId,{...merged.get(model.modelId),...model});
-    agnesModelCache={expiresAt:Date.now()+300_000,models:[...merged.values()]};
-    return agnesModelCache.models;
-  } catch { return fallback; }
+  const fallback=agnesConfiguredModels();if(!AGNES_API_KEY)return fallback;if(agnesModelCache.expiresAt>Date.now())return agnesModelCache.models;
+  try{const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error(`Agnes models failed ${response.status}`);const body=await response.json(),items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[],discovered=items.map(agnesModelFromItem).filter(Boolean),merged=new Map(fallback.map(model=>[model.modelId,model]));for(const model of discovered)merged.set(model.modelId,{...merged.get(model.modelId),...model});agnesModelCache={expiresAt:Date.now()+300_000,models:[...merged.values()]};return agnesModelCache.models;}catch{return fallback;}
 }
 
 let apimartModelCache={expiresAt:0,models:[]};
 function cachedApimartModels() {
-  const raw=providerSettings.APIMART_MODELS;
-  try{const items=Array.isArray(raw)?raw:(typeof raw==='string'?JSON.parse(raw||'[]'):[]);return items.map(apimartModelDescriptor).filter(Boolean);}catch{return[];}
+  const raw=providerSettings.APIMART_MODELS;try{const items=Array.isArray(raw)?raw:(typeof raw==='string'?JSON.parse(raw||'[]'):[]);return items.map(apimartModelDescriptor).filter(Boolean);}catch{return[];}
 }
 async function persistProviderSettings() {
   await fsp.writeFile(PROVIDER_SETTINGS_FILE,JSON.stringify(providerSettings,null,2));try{await fsp.chmod(PROVIDER_SETTINGS_FILE,0o600);}catch{}
@@ -281,15 +287,14 @@ function apimartModelDescriptor(item) {
   const modelId=String(typeof item==='string'?item:item?.id||item?.name||'').trim();if(!modelId)return null;
   const declared=[item?.type,item?.category,item?.modality,item?.model_type,...(Array.isArray(item?.capabilities)?item.capabilities:[])].filter(Boolean).join(' ').toLowerCase(),id=modelId.toLowerCase();
   if(/(?:audio|speech|tts|whisper|embedding|moderation)/.test(declared)||/(?:^|[-_.])(?:tts|whisper|embedding|moderation)(?:$|[-_.])/.test(id))return null;
-  const video=declared.includes('video')||/(?:video|seedance|sora|veo|hailuo|minimax-h3|flux-3-video|skyreels|happyhorse|kling|vidu|pixverse|omni-flash)/.test(id)||(/wan2[.-][567]/.test(id)&&!id.includes('image'));
-  const image=!video&&(declared.includes('image')||/(?:image|imagen|seedream|flux|qwen-image|midjourney|nano-banana|z-image)/.test(id));
+  const video=declared.includes('video')||/(?:video|seedance|sora|veo|hailuo|minimax-h3|flux-3-video|skyreels|happyhorse|kling|vidu|pixverse|omni-flash)/.test(id)||(/wan2[.-][567]/.test(id)&&!id.includes('image')),image=!video&&(declared.includes('image')||/(?:image|imagen|seedream|flux|qwen-image|midjourney|nano-banana|z-image)/.test(id));
   if(video)return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['video.generate','video.image_to_video','video.first_last_frame','video.reference'],constraints:{durations:[4,5,6,8,10,12,15],aspectRatios:['16:9','9:16','1:1','4:3','3:4','21:9','adaptive'],resolutions:['480p','720p','1080p','4k'],audioModes:['ambient','silent','music','voiceover','full'],maxImageRefs:9,maxVideoRefs:3,maxAudioRefs:3},configured:true};
   if(image)return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['image.generate','image.edit'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4','3:2','2:3','5:4','4:5','2:1','1:2','3:1','1:3','21:9','9:21'],resolutions:['1K','2K','4K'],maxImageRefs:16},configured:true};
   return {providerId:'apimart',modelId,displayName:`APIMart · ${modelId}`,capabilities:['text.generate'],constraints:{},configured:true};
 }
 async function availableApimartModels(strict=false) {
   if(!APIMART_API_KEY)return[];if(!strict)return cachedApimartModels();if(apimartModelCache.expiresAt>Date.now())return apimartModelCache.models;
-  try{const response=await fetch(`${APIMART_BASE_URL}/models`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`},signal:AbortSignal.timeout(8_000)}),body=await response.json().catch(()=>({}));if(!response.ok)throw providerHttpError('APIMart models',response,body);const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];const models=items.map(apimartModelDescriptor).filter(Boolean);if(!models.length)throw new Error('APIMart models returned an empty list');providerSettings.APIMART_MODELS=items;await persistProviderSettings();apimartModelCache={expiresAt:Date.now()+300_000,models};return models;}catch(error){apimartModelCache={expiresAt:0,models:[]};const detail=error.message==='fetch failed'?'无法连接 APIMart，请检查网络或代理设置':sanitizeProviderMessage(error.message);throw Object.assign(new Error(`APIMart 模型拉取失败：${error.status===402?'余额不足，请先在 APIMart 充值或确认额度。':''}${detail}`),{status:error.status||502});}
+  try{const response=await fetch(`${APIMART_BASE_URL}/models`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`},signal:AbortSignal.timeout(8_000)}),body=await response.json().catch(()=>({}));if(!response.ok)throw providerHttpError('APIMart models',response,body);const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[],models=items.map(apimartModelDescriptor).filter(Boolean);if(!models.length)throw new Error('APIMart models returned an empty list');providerSettings.APIMART_MODELS=items;await persistProviderSettings();apimartModelCache={expiresAt:Date.now()+300_000,models};return models;}catch(error){apimartModelCache={expiresAt:0,models:[]};const detail=error.message==='fetch failed'?'无法连接 APIMart，请检查网络或代理设置':sanitizeProviderMessage(error.message);throw Object.assign(new Error(`APIMart 模型拉取失败：${error.status===402?'余额不足，请先在 APIMart 充值或确认额度。':''}${detail}`),{status:error.status||502});}
 }
 function enabledApimartModels(models) {
   if(!Object.hasOwn(providerSettings,'APIMART_ENABLED_MODELS'))return models;const enabled=new Set(String(providerSettings.APIMART_ENABLED_MODELS||'').split(',').map(id=>id.trim()).filter(Boolean));return models.filter(model=>enabled.has(model.modelId));
@@ -297,9 +302,10 @@ function enabledApimartModels(models) {
 function apimartSettingsPayload(models) {
   const enabled=enabledApimartModels(models);return {apimartModels:models,enabledApimartModelIds:enabled.map(model=>model.modelId)};
 }
-function textProviderModel(providerId, label, modelId) {
+function textProviderModel(providerId,label,modelId) {
   return modelId&&{providerId,modelId,displayName:`${label} · ${modelId}`,capabilities:['text.generate'],constraints:{},configured:true};
 }
+
 function bailianImageProviderModel() {
   return BAILIAN_IMAGE_MODEL&&{providerId:'bailian',modelId:BAILIAN_IMAGE_MODEL,displayName:`百炼 · ${BAILIAN_IMAGE_MODEL}`,capabilities:['image.generate'],constraints:{aspectRatios:['1:1','16:9','9:16','4:3','3:4'],resolutions:['1K','2K'],maxImageRefs:0},configured:true};
 }
@@ -314,24 +320,6 @@ async function listModels() {
   if (DEEPSEEK_API_KEY) models.push(textProviderModel('deepseek','DeepSeek',DEEPSEEK_TEXT_MODEL));
   if (BAILIAN_API_KEY) models.push(textProviderModel('bailian','百炼',BAILIAN_TEXT_MODEL),bailianImageProviderModel(),bailianVideoProviderModel());
   return models;
-}
-
-function agentConfig() {
-  return {
-    agnesKey:AGNES_API_KEY, agnesBase:AGNES_BASE_URL, agnesModel:AGNES_AGENT_MODEL,
-    apimartKey:APIMART_API_KEY, apimartBase:APIMART_CHAT_BASE_URL,
-    deepseekKey:DEEPSEEK_API_KEY, deepseekBase:DEEPSEEK_BASE_URL, deepseekModel:DEEPSEEK_AGENT_MODEL,
-    bailianKey:BAILIAN_API_KEY, bailianBase:BAILIAN_BASE_URL, bailianModel:BAILIAN_AGENT_MODEL,
-  };
-}
-
-let agentModelCache={expiresAt:0,models:[]};
-async function availableAgentModels() {
-  const configured=configuredAgentModels(agentConfig()),apimart=enabledApimartModels(await availableApimartModels()).filter(model=>model.capabilities.includes('text.generate')).map(({providerId,modelId,displayName,configured})=>({providerId,modelId,displayName,configured}));if(!AGNES_API_KEY)return[...configured,...apimart];
-  if(agentModelCache.expiresAt>Date.now())return agentModelCache.models;
-  try{
-    const response=await fetch(`${AGNES_BASE_URL}/models`,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`},signal:AbortSignal.timeout(10_000)});if(!response.ok)throw new Error(`Agnes models failed ${response.status}`);const body=await response.json();const items=Array.isArray(body?.data)?body.data:Array.isArray(body?.models)?body.models:Array.isArray(body)?body:[];const ids=[...new Set(items.map(item=>typeof item==='string'?item:item?.id||item?.name).filter(id=>typeof id==='string'&&id.trim()&&!/(?:image|video)/i.test(id)).map(id=>id.trim()))];const models=[AGNES_AGENT_MODEL,...ids.filter(id=>id!==AGNES_AGENT_MODEL)].map(modelId=>({providerId:'agnes',modelId,displayName:`Agnes · ${modelId}`,configured:true}));agentModelCache={expiresAt:Date.now()+300_000,models:[...configured.filter(model=>model.providerId!=='agnes'),...apimart,...models]};return agentModelCache.models;
-  }catch{return [...configured,...apimart];}
 }
 
 const GENERATION_REFERENCE_ROLES = new Set(['first-frame','last-frame','reference-image','reference-video','reference-audio']);
@@ -369,7 +357,8 @@ function validateGenerationRequest(model, body, references) {
   if (c.aspectRatios?.length && params.aspectRatio && !c.aspectRatios.includes(params.aspectRatio)) {
     throw Object.assign(new Error(`aspectRatio must be one of: ${c.aspectRatios.join(', ')}`), { status: 400 });
   }
-  if (c.resolutions?.length && params.resolution && !c.resolutions.includes(params.resolution)) {
+  const legacyAgnesImage4K = model.providerId === 'agnes' && body.capability.startsWith('image.') && String(params.resolution || params.quality || '').toUpperCase() === '4K';
+  if (c.resolutions?.length && params.resolution && !c.resolutions.includes(params.resolution) && !legacyAgnesImage4K) {
     throw Object.assign(new Error(`resolution must be one of: ${c.resolutions.join(', ')}`), { status: 400 });
   }
   if (body.capability.startsWith('image.')) {
@@ -404,6 +393,26 @@ function validateGenerationRequest(model, body, references) {
 
 function preflightProviderRequest(model, request) {
   // No longer enforce PUBLIC_BASE_URL for Agnes video - providerImageReferenceValue supports data-uri fallback
+}
+
+async function prepareStandaloneGeneration(body) {
+  const project = projectOr404(body.projectId);
+  if (!project) throw Object.assign(new Error('project_not_found'), { status: 404 });
+  const model = (await listModels()).find(item => item.providerId === body.providerId && item.modelId === body.modelId && item.capabilities.includes(body.capability));
+  if (!model) throw Object.assign(new Error('model_not_available'), { status: 400 });
+  const references = Array.isArray(body.references) ? body.references.map(normalizeGenerationReference) : [];
+  const jobRequest = {
+    projectId: project.id,
+    capability: String(body.capability),
+    providerId: String(body.providerId),
+    modelId: String(body.modelId),
+    prompt: String(body.prompt || ''),
+    params: body.params || {},
+    references,
+  };
+  validateGenerationRequest(model, jobRequest, references);
+  preflightProviderRequest(model, jobRequest);
+  return { project, model, jobRequest };
 }
 
 function computeInitialTags({kind, metadata, source}) {
@@ -456,8 +465,9 @@ function providerHttpError(label, response, data) {
   return error;
 }
 
-async function agnesRequest(url, options, label, signal) {
-  const response = await fetch(url, { ...options, signal });
+async function agnesRequest(url, options, label, signal, timeoutMs=Number(process.env.AGNES_REQUEST_TIMEOUT_MS||180_000)) {
+  const combined=AbortSignal.any([signal||new AbortController().signal,AbortSignal.timeout(Math.max(1,timeoutMs))]);
+  let response;try{response=await fetch(url,{...options,signal:combined});}catch(error){if(signal?.aborted)throw abortError();if(error?.name==='TimeoutError')throw new Error(`${label} timed out after ${Math.round(timeoutMs/1000)} seconds`);throw error;}
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw providerHttpError(label, response, data);
   return data;
@@ -495,9 +505,111 @@ async function openAICompatibleTextGenerate(job, apiKey, baseUrl, label, signal)
   if(Array.isArray(content))return content.map(item=>item?.text||item?.content||'').join('\n').trim();
   throw new Error(`${label} returned no content`);
 }
+
+async function completeCreativeAgent(providerId, modelId, messages, signal) {
+  const models = await listModels();
+  const model = models.find((item) => item.providerId === providerId && item.modelId === modelId && item.capabilities?.includes('text.generate'));
+  if (!model) throw Object.assign(new Error('model_not_available'), { status: 400 });
+  let apiKey = '', baseUrl = '', label = '';
+  if (providerId === 'apimart') { apiKey = APIMART_API_KEY; baseUrl = APIMART_CHAT_BASE_URL; label = 'APIMart creative agent'; }
+  else if (providerId === 'agnes') { apiKey = AGNES_API_KEY; baseUrl = AGNES_BASE_URL; label = 'Agnes creative agent'; }
+  else if (providerId === 'deepseek') { apiKey = DEEPSEEK_API_KEY; baseUrl = DEEPSEEK_BASE_URL; label = 'DeepSeek API creative agent'; }
+  else if (providerId === 'bailian') { apiKey = BAILIAN_API_KEY; baseUrl = BAILIAN_BASE_URL; label = '百炼 creative agent'; }
+  else throw Object.assign(new Error(`unknown_provider: ${providerId}`), { status: 400 });
+  if (!apiKey) throw Object.assign(new Error(`${label} API key is not configured`), { status: 422 });
+  const body = { model: modelId, stream: false, messages, temperature: 0.75 };
+  const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+  const timeoutMs = Math.max(1_000, Number(process.env.CREATIVE_AGENT_TIMEOUT_MS || 60_000));
+  const combinedSignal = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(timeoutMs)]);
+  let response;
+  try {
+    response = providerId === 'apimart'
+      ? apimartPayload(await providerJson(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body) }, label, combinedSignal), label)
+      : await providerJson(`${baseUrl}/chat/completions`, { method: 'POST', headers, body: JSON.stringify(body) }, label, combinedSignal);
+  } catch (error) {
+    if (error?.name === 'TimeoutError') throw new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)} seconds`);
+    throw error;
+  }
+  const content = (response.data || response).choices?.[0]?.message?.content;
+  if (typeof content === 'string' && content.trim()) return content.trim();
+  if (Array.isArray(content)) return content.map((item) => item?.text || item?.content || '').join('\n').trim();
+  throw new Error(`${label} returned no content`);
+}
+
+function creativeAgentConversationList(projectId) {
+  return Object.values(state.creativeAgent?.conversations || {})
+    .filter((conversation) => conversation.projectId === projectId)
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+}
+
+function creativeAgentConversation(projectId, conversationId) {
+  const conversation = state.creativeAgent?.conversations?.[conversationId];
+  return conversation?.projectId === projectId ? conversation : null;
+}
+
+function creativeAgentContext(project) {
+  const workflow = { ...project.workflow, version: Number(project.workflowRevision || project.workflow?.version || 1) };
+  const timeline = { ...project.timeline, updatedAt: project.timelineUpdatedAt || project.updatedAt };
+  const assets = projectAssets(project.id);
+  const generations = projectJobs(project.id).slice(0, 50);
+  return {
+    project: { id: project.id, name: project.name, settings: project.settings || {} },
+    creative: buildStandaloneCreativeContext({ project, workflow, timeline, assets, generations }),
+  };
+}
+
+function creativeAgentMessageView(message) {
+  return { id: message.id, role: message.role, text: message.text || '', cards: message.cards || [], createdAt: message.createdAt, error: message.error || '' };
+}
+
+function creativeAgentConversationView(conversation) {
+  return {
+    ...conversation,
+    messages: (conversation.messages || []).map((message) => {
+      if (message.role !== 'assistant' || (message.cards || []).length) return creativeAgentMessageView(message);
+      const parsed = parseCreativeAgentReply(message.text || '');
+      return parsed.cards.length ? { ...creativeAgentMessageView(message), text: parsed.text, cards: parsed.cards } : creativeAgentMessageView(message);
+    }),
+  };
+}
+
+async function createCreativeAgentConversationForProject(projectId) {
+  const project = projectOr404(projectId);
+  if (!project) throw Object.assign(new Error('project_not_found'), { status: 404 });
+  const conversation = createCreativeAgentConversation(projectId, now());
+  state.creativeAgent.conversations[conversation.id] = conversation;
+  await saveDb();
+  return conversation;
+}
+
+async function sendCreativeAgentMessage(project, conversation, body, signal) {
+  const message = String(body.message || '').trim();
+  if (!message) throw Object.assign(new Error('message is required'), { status: 400 });
+  const providerId = String(body.providerId || '').trim();
+  const modelId = String(body.modelId || '').trim();
+  const userMessage = { id: randomUUID(), role: 'user', text: message.slice(0, 12_000), cards: [], createdAt: now() };
+  conversation.messages ||= [];
+  conversation.messages.push(userMessage);
+  conversation.updatedAt = now();
+  if (conversation.messages.filter((item) => item.role === 'user').length === 1) conversation.title = message.slice(0, 48);
+  await saveDb();
+  const history = conversation.messages.slice(-24).map((item) => ({ role: item.role, content: item.text || '' }));
+  const system = buildCreativeAgentSystemPrompt(creativeAgentContext(project));
+  const raw = await completeCreativeAgent(providerId, modelId, [{ role: 'system', content: system }, ...history], signal);
+  const reply = parseCreativeAgentReply(raw);
+  const assistantMessage = { id: randomUUID(), role: 'assistant', text: reply.text, cards: reply.cards, createdAt: now() };
+  conversation.messages.push(assistantMessage);
+  conversation.updatedAt = now();
+  await saveDb();
+  return { message: creativeAgentMessageView(assistantMessage), conversation };
+}
 function bailianImageSize(modelId, params={}) {
   const ratio=String(params.aspectRatio||'1:1'),hi=/qwen-image-(?:2|3)\./.test(modelId),sizes=hi?{'16:9':'2688*1536','9:16':'1536*2688','1:1':'2048*2048','4:3':'2368*1728','3:4':'1728*2368'}:{'16:9':'1664*928','9:16':'928*1664','1:1':'1328*1328','4:3':'1472*1104','3:4':'1104*1472'};
   return sizes[ratio]||sizes['1:1'];
+}
+function imagePromptWithNegativeFallback(req) {
+  const prompt=String(req.prompt||'').trim(),negative=String(req.params?.negativePrompt||'').trim();
+  return negative?`${prompt}\n\nNegative constraints — do not generate any of the following:\n${negative}`:prompt;
 }
 async function bailianImageGenerate(job, signal) {
   if(!BAILIAN_API_KEY)throw new Error('BAILIAN_API_KEY is not configured');const req=job.request,params=req.params||{};
@@ -516,31 +628,43 @@ async function bailianVideoGenerate(job, signal) {
     taskId=created.output?.task_id||created.task_id||created.id;if(!taskId)throw new Error(`百炼 video did not return task_id: ${sanitizeProviderMessage(created.message||created.code||'empty output')}`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
   }
   const deadline=Date.now()+Number(process.env.BAILIAN_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.BAILIAN_POLL_INTERVAL_MS||2000));
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const data=await providerPollJson(`${BAILIAN_MEDIA_BASE_URL}/tasks/${encodeURIComponent(taskId)}`,{headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`}},'百炼 video status',signal),output=data.output||data,status=String(output.task_status||output.status||'').toLowerCase();if(['succeeded','success','completed'].includes(status)){const url=recursivelyFindUrl(output,'video');if(!url)throw new Error('百炼 video completed without a result URL');job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);}if(['failed','fail','canceled','cancelled'].includes(status))throw new Error(`百炼 video failed: ${sanitizeProviderMessage(output.message||output.error_message||output.code||status)}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(output.progress||job.progress||5)));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const data=await providerPollJson(`${BAILIAN_MEDIA_BASE_URL}/tasks/${encodeURIComponent(taskId)}`,{headers:{Authorization:`Bearer ${BAILIAN_API_KEY}`}},'百炼 video status',signal),output=data.output||data,status=String(output.task_status||output.status||'').toLowerCase();if(['succeeded','success','completed'].includes(status)){const url=recursivelyFindUrl(output,'video');if(!url)throw new Error('百炼 video completed without a result URL');job.progress=95;job.progressMode='provider';await saveDb();return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'bailian',providerUrl:url,model:job.modelId,prompt:req.prompt,bailianResult:data},{},signal);}if(['failed','fail','canceled','cancelled'].includes(status))throw new Error(`百炼 video failed: ${sanitizeProviderMessage(output.message||output.error_message||output.code||status)}`);if(Number.isFinite(Number(output.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Math.min(90,Number(output.progress)));}await saveDb();}
   throw new Error('百炼 video generation timed out');
 }
 
 async function agnesTextGenerate(job, signal) {
-  const req=job.request; job.progress=12; await saveDb();
-  const body={model:job.modelId,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
-  let data,networkAttempt=0;
-  while(true){
-    try{data=await agnesRequest(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes text',signal);break;}
-    catch(error){if(!isTransientFetchError(error)||networkAttempt>=2)throw error;networkAttempt+=1;await sleep(Math.min(4000,500*2**(networkAttempt-1)),signal);}
+  const req=job.request,maxAttempts=Math.max(1,Number(process.env.AGNES_TEXT_NETWORK_ATTEMPTS||2)),timeoutMs=Math.max(1,Number(process.env.AGNES_TEXT_TIMEOUT_MS||180_000));
+  const body={model:job.modelId,stream:true,messages:[{role:'system',content:String(req.params?.system||'You are a professional video creative assistant.')},{role:'user',content:req.prompt}],temperature:Number(req.params?.temperature??0.7)};
+  const contentText=content=>typeof content==='string'?content:Array.isArray(content)?content.map(item=>item?.text||item?.content||'').join('\n'):'';
+  for(let attempt=1;attempt<=maxAttempts;attempt+=1){
+    job.providerAttempt=attempt;job.providerMaxAttempts=maxAttempts;job.outputText='';job.progress=12;job.updatedAt=now();await saveDb();
+    const combined=AbortSignal.any([signal||new AbortController().signal,AbortSignal.timeout(timeoutMs)]);
+    try{
+      const response=await fetch(`${AGNES_BASE_URL}/chat/completions`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:combined});
+      if(!response.ok){const data=await response.json().catch(()=>({}));throw providerHttpError('Agnes text',response,data);}
+      if(!response.headers.get('content-type')?.includes('text/event-stream')){const data=await response.json().catch(()=>({})),result=contentText(data.choices?.[0]?.message?.content).trim();if(result)return result;throw new Error('Agnes text returned no content');}
+      const reader=response.body?.getReader();if(!reader)throw new Error('Agnes text returned no stream');
+      const decoder=new TextDecoder();let buffer='',result='',mode='unknown',lastSave=0;
+    const consume=line=>{if(!line.startsWith('data:'))return;const value=line.slice(5).trim();if(!value||value==='[DONE]')return;let data;try{data=JSON.parse(value);}catch{return;}const delta=contentText(data.choices?.[0]?.delta?.content);if(!delta)return;if(result&&mode==='unknown')mode=delta.startsWith(result)?'cumulative':'incremental';result=mode==='cumulative'&&delta.startsWith(result)?delta:result+delta;job.outputText=result;job.progressMode='stream';job.progress=Math.min(90,12+Math.floor(result.length/300));job.updatedAt=now();};
+      while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const lines=buffer.split(/\r?\n/);buffer=lines.pop()||'';for(const line of lines)consume(line);if(Date.now()-lastSave>=1000){lastSave=Date.now();await saveDb();}}
+      buffer+=decoder.decode();if(buffer)consume(buffer);if(result.trim())return result.trim();throw new Error('Agnes text returned no streamed content');
+    }catch(error){
+      if(signal?.aborted)throw abortError();const timedOut=error?.name==='TimeoutError';if(timedOut)error=new Error(`Agnes text timed out after ${Math.round(timeoutMs/1000)} seconds`);const retryable=timedOut||isTransientFetchError(error);if(!retryable||attempt>=maxAttempts)throw error;job.phase='retrying';job.error=`网络波动，准备第 ${attempt+1}/${maxAttempts} 次请求`;job.updatedAt=now();await saveDb();await sleep(Math.min(2000,500*2**(attempt-1)),signal);job.phase='generating';job.error='';
+    }
   }
-  const content=data.choices?.[0]?.message?.content;
-  if(typeof content==='string'&&content.trim())return content.trim();
-  if(Array.isArray(content))return content.map(x=>x?.text||x?.content||'').join('\n').trim();
-  throw new Error('Agnes text returned no content');
+  throw new Error('Agnes text failed');
 }
 
 async function agnesImageGenerate(job, signal) {
   const req=job.request,refs=[];
   for(const reference of req.references||[]){const asset=state.assets[reference.assetId];if(asset?.projectId===job.projectId&&asset.kind==='image')refs.push(await providerImageReferenceValue(asset));}
   const extra_body={response_format:'url'};if(refs.length)extra_body.image=refs;
-  const body={model:job.modelId,prompt:req.prompt,size:req.params?.quality||req.params?.resolution||'2K',ratio:req.params?.aspectRatio||'1:1',extra_body};
+  const requestedSize=String(req.params?.quality||req.params?.resolution||'2K').toUpperCase();
+  const size=['1K','2K'].includes(requestedSize)?requestedSize:'2K';
+  const timeoutMs=Math.max(1,Number(process.env.AGNES_IMAGE_TIMEOUT_MS||600_000));
+  const body={model:job.modelId,prompt:imagePromptWithNegativeFallback(req),size,ratio:req.params?.aspectRatio||'1:1',extra_body};
   job.progress=20;await saveDb();
-  const data=await agnesRequest(`${AGNES_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes image',signal);
+  const data=await agnesRequest(`${AGNES_BASE_URL}/images/generations`,{method:'POST',headers:{Authorization:`Bearer ${AGNES_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body)},'Agnes image',signal,timeoutMs);
   const output=data.data?.[0];if(!output)throw new Error('Agnes image returned no output');
   if(output.b64_json){const filename=`${job.id}-agnes.png`,target=join(ASSETS_DIR,filename);await fsp.writeFile(target,Buffer.from(output.b64_json,'base64'));return addAsset({projectId:job.projectId,kind:'image',filename,mime:'image/png',localPath:target,metadata:{...(await mediaMetadata(target)),provider:'agnes',providerUrl:typeof output.url==='string'?output.url:undefined,localOnly:!output.url,model:job.modelId,prompt:req.prompt},source:'external'});}
   if(output.url)return ingestRemoteAsset(job.projectId,job.id,'image',output.url,{provider:'agnes',providerUrl:output.url,model:job.modelId,prompt:req.prompt,agnesResult:data},{},signal);
@@ -581,7 +705,7 @@ async function agnesVideoGenerate(job, signal) {
     videoId=created.video_id||created.task_id||created.id;if(!videoId)throw new Error('Agnes video did not return video_id');job.providerTaskId=String(videoId);job.progress=Number(created.progress||5);await saveDb();
   }
   const root=AGNES_BASE_URL.replace(/\/v1$/,'');const deadline=Date.now()+Number(process.env.AGNES_VIDEO_TIMEOUT_MS||20*60*1000),baseInterval=Math.max(20,Number(process.env.AGNES_POLL_INTERVAL_MS||5000));let interval=baseInterval;
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status',signal);interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url||recursivelyFindUrl(data,'video');if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data},{},signal);}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);job.progress=Math.max(job.progress||5,Number(data.progress||0));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const query=new URL(`${root}/agnesapi`);query.searchParams.set('video_id',String(videoId));query.searchParams.set('model_name',job.modelId);let data;try{data=await agnesRequest(query,{headers:{Authorization:`Bearer ${AGNES_API_KEY}`}},'Agnes video status',signal);interval=baseInterval;}catch(error){if(error?.status===429){interval=Math.min(60000,Math.max(interval*2,error.retryAfterMs||0));continue;}throw error;}const status=String(data.status||'').toLowerCase();if(status==='completed'){const url=data.metadata?.url||data.url||recursivelyFindUrl(data,'video');if(!url)throw new Error('Agnes video completed without a result URL');return ingestRemoteAsset(job.projectId,job.id,'video',url,{provider:'agnes',model:job.modelId,prompt:req.prompt,seconds:data.seconds,size:data.size,agnesResult:data},{},signal);}if(status==='failed')throw new Error(`Agnes video failed: ${data.error?.message||data.error||'unknown error'}`);if(Number.isFinite(Number(data.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Number(data.progress));}await saveDb();}
   throw new Error('Agnes video generation timed out');
 }
 
@@ -640,7 +764,7 @@ function apimartPublicAssetUrl(asset) {
 async function apimartGenerate(job, signal) {
   if(!APIMART_API_KEY)throw new Error('APIMART_API_KEY is not configured');const req=job.request,params=req.params||{},kind=req.capability.startsWith('image.')?'image':'video';let taskId=job.providerTaskId;
   if(!taskId){
-    const body={model:job.modelId,prompt:kind==='video'?seedancePrompt(req):req.prompt};
+    const body={model:job.modelId,prompt:kind==='video'?seedancePrompt(req):imagePromptWithNegativeFallback(req)};
     if(kind==='image'){
       body.n=1;body.size=params.aspectRatio||'1:1';body.resolution=String(params.resolution||params.quality||'2K').toLowerCase();
       const imageUrls=[];for(const ref of req.references||[]){const asset=state.assets[ref.assetId];if(asset?.projectId===job.projectId&&asset.kind==='image')imageUrls.push(await apimartImageUrl(asset,signal));}if(imageUrls.length)body.image_urls=imageUrls;
@@ -655,11 +779,12 @@ async function apimartGenerate(job, signal) {
     const ticket=Array.isArray(created)?created[0]:created;taskId=ticket?.task_id||ticket?.id;if(!taskId)throw new Error(`APIMart ${kind} did not return task_id`);job.providerTaskId=String(taskId);job.progress=5;await saveDb();
   }
   const deadline=Date.now()+Number(process.env.APIMART_TIMEOUT_MS||20*60*1000),interval=Math.max(20,Number(process.env.APIMART_POLL_INTERVAL_MS||2000));
-  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const payload=apimartPayload(await providerPollJson(`${APIMART_BASE_URL}/tasks/${encodeURIComponent(taskId)}?language=en`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`}},`APIMart ${kind} status`,signal),`APIMart ${kind} status`);const status=String(payload.status||'').toLowerCase();if(status==='completed'){const url=recursivelyFindUrl(payload.result||payload,kind);if(!url)throw new Error(`APIMart ${kind} completed without a result URL`);job.progress=95;await saveDb();return ingestRemoteAsset(job.projectId,job.id,kind,url,{provider:'apimart',providerUrl:url,model:job.modelId,prompt:req.prompt,apimartResult:payload},{},signal);}if(['failed','cancelled','canceled'].includes(status))throw new Error(`APIMart ${kind} failed: ${payload.error?.message||payload.message||status}`);job.progress=Math.max(job.progress||5,Math.min(90,Number(payload.progress||0)));await saveDb();}
+  while(Date.now()<deadline){await sleep(interval,signal);if(job.status==='canceled')throw abortError();const payload=apimartPayload(await providerPollJson(`${APIMART_BASE_URL}/tasks/${encodeURIComponent(taskId)}?language=en`,{headers:{Authorization:`Bearer ${APIMART_API_KEY}`}},`APIMart ${kind} status`,signal),`APIMart ${kind} status`);const status=String(payload.status||'').toLowerCase();if(status==='completed'){const url=recursivelyFindUrl(payload.result||payload,kind);if(!url)throw new Error(`APIMart ${kind} completed without a result URL`);job.progress=95;job.progressMode='provider';await saveDb();return ingestRemoteAsset(job.projectId,job.id,kind,url,{provider:'apimart',providerUrl:url,model:job.modelId,prompt:req.prompt,apimartResult:payload},{},signal);}if(['failed','cancelled','canceled'].includes(status))throw new Error(`APIMart ${kind} failed: ${payload.error?.message||payload.message||status}`);if(Number.isFinite(Number(payload.progress))){job.progressMode='provider';job.progress=Math.max(job.progress||5,Math.min(90,Number(payload.progress)));}await saveDb();}
   throw new Error(`APIMart ${kind} generation timed out`);
 }
 
 async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, downloadHeaders = {}, signal) {
+  const generation = state.jobs[jobId];
   const url = await safeRemoteUrl(rawUrl);
   const response = await fetch(url, { redirect: 'follow', headers: downloadHeaders, signal });
   if (!response.ok || !response.body) throw new Error(`output download failed ${response.status}`);
@@ -673,7 +798,7 @@ async function ingestRemoteAsset(projectId, jobId, kind, rawUrl, metadata = {}, 
     for await (const chunk of response.body) { size += chunk.length; if (size > MAX_REMOTE_BYTES) throw new Error('remote output exceeds MAX_REMOTE_BYTES'); if (!file.write(chunk)) await new Promise(r => file.once('drain', r)); }
     await new Promise((r,j) => file.end(err => err ? j(err) : r()));
   } catch (error) { file.destroy(); await fsp.rm(target, { force: true }); throw error; }
-  return addAsset({ projectId, kind, filename, mime, localPath: target, metadata: { ...metadata, ...(await mediaMetadata(target)), size }, source: 'external' });
+  return addAsset({ projectId, kind, filename, mime, localPath: target, metadata: { ...metadata, generationId: jobId, generatedAt: generation?.createdAt || now(), ...(await mediaMetadata(target)), size }, source: 'external' });
 }
 
 
@@ -744,6 +869,7 @@ async function runJob(id, signal) {
     signal?.throwIfAborted(); job.progress = Math.max(3,Number(job.progress||0)); job.updatedAt = now(); await saveDb();
     const variants = job.capability.startsWith('image.') ? Math.max(1, Math.min(4, Math.round(Number(job.request.params?.variants || 1) || 1))) : 1;
     const assets = []; let outputText = null;
+    job.phase = 'submitting'; await saveDb();
     job.phase = 'generating'; await saveDb();
     if (job.providerId === 'deepseek' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,DEEPSEEK_API_KEY,DEEPSEEK_BASE_URL,'DeepSeek text',signal);
     else if (job.providerId === 'bailian' && job.capability === 'text.generate') outputText = await openAICompatibleTextGenerate(job,BAILIAN_API_KEY,BAILIAN_BASE_URL,'百炼 text',signal);
@@ -802,24 +928,87 @@ async function createExport(project) {
 
 async function handleApi(req, res, url) {
   const method = req.method || 'GET'; const p = url.pathname;
+  if (p.startsWith('/internal/')) return notFound(res);
   if (p === '/api/health' && method === 'GET') return json(res, 200, { ok: true, version: '2.0.0-standalone', node: process.version, providers: { agnes:Boolean(AGNES_API_KEY), apimart:Boolean(APIMART_API_KEY), deepseek:Boolean(DEEPSEEK_API_KEY), bailian:Boolean(BAILIAN_API_KEY) }, ffmpeg: HAS_FFMPEG, captionFont: Boolean(FFMPEG_FONT_FILE) });
-  if (p === '/api/agent/models' && method === 'GET') return json(res,200,{models:await availableAgentModels()});
+  if (p === '/api/prompt-library' && method === 'GET') return json(res,200,state.promptLibrary);
+  let promptMatch = p.match(/^\/api\/prompt-library\/([^/]+)$/);
+  if (promptMatch && method === 'PUT') {
+    const preset = state.promptLibrary.presets.find(item => item.id === safeDecode(promptMatch[1]));
+    if (!preset) return notFound(res);
+    const body = await readJson(req), allowed = ['label','scene','positive','negative','aspectRatio','quality','aspectPolicy','subjectPolicy','promptPlaceholder','enabled'];
+    for (const key of allowed) if (Object.hasOwn(body,key)) preset[key] = key === 'enabled' ? body[key] !== false : String(body[key] ?? '').trim();
+    preset.version = Number(preset.version || 1) + 1; preset.updatedAt = now();
+    await saveDb(); return json(res,200,normalizeImagePreset(preset));
+  }
   if (p === '/api/provider-settings' && method === 'GET') {
-    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,DEEPSEEK_AGENT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_AGENT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},apimartModels=await availableApimartModels(),agnesModels=await availableAgnesModels();
+    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},apimartModels=await availableApimartModels(),agnesModels=await availableAgnesModels();
     return json(res,200,{settings,configured:{agnes:Boolean(AGNES_API_KEY),apimart:Boolean(APIMART_API_KEY),deepseek:Boolean(DEEPSEEK_API_KEY),bailian:Boolean(BAILIAN_API_KEY)},agnesModels,...apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/provider-settings' && method === 'PUT') {
-    const body=await readJson(req); const allowed=new Set(['AGNES_API_KEY','AGNES_BASE_URL','AGNES_TEXT_MODEL','AGNES_AGENT_MODEL','AGNES_IMAGE_MODEL','AGNES_VIDEO_MODEL','APIMART_API_KEY','APIMART_ENABLED_MODELS','DEEPSEEK_API_KEY','DEEPSEEK_BASE_URL','DEEPSEEK_TEXT_MODEL','DEEPSEEK_AGENT_MODEL','BAILIAN_API_KEY','BAILIAN_BASE_URL','BAILIAN_MEDIA_BASE_URL','BAILIAN_TEXT_MODEL','BAILIAN_AGENT_MODEL','BAILIAN_IMAGE_MODEL','BAILIAN_VIDEO_MODEL','PUBLIC_BASE_URL']);
+    const body=await readJson(req); const allowed=new Set(['AGNES_API_KEY','AGNES_BASE_URL','AGNES_TEXT_MODEL','AGNES_IMAGE_MODEL','AGNES_VIDEO_MODEL','APIMART_API_KEY','APIMART_ENABLED_MODELS','DEEPSEEK_API_KEY','DEEPSEEK_BASE_URL','DEEPSEEK_TEXT_MODEL','BAILIAN_API_KEY','BAILIAN_BASE_URL','BAILIAN_MEDIA_BASE_URL','BAILIAN_TEXT_MODEL','BAILIAN_IMAGE_MODEL','BAILIAN_VIDEO_MODEL','PUBLIC_BASE_URL']);
     for(const [key,value] of Object.entries(body||{})){if(!allowed.has(key))continue;const v=String(value||'').trim();if(key==='APIMART_ENABLED_MODELS')providerSettings[key]=v;else if(v)providerSettings[key]=v;}if(body?.APIMART_API_KEY&&!Object.hasOwn(body,'APIMART_ENABLED_MODELS'))delete providerSettings.APIMART_ENABLED_MODELS;
-    await persistProviderSettings(); refreshProviderRuntime();agentModelCache={expiresAt:0,models:[]};agnesModelCache={expiresAt:0,models:[]};apimartModelCache={expiresAt:0,models:[]};const pullApimart=APIMART_API_KEY&&(Object.hasOwn(body||{},'APIMART_API_KEY')||body?.APIMART_REFRESH_MODELS==='1');const apimartModels=pullApimart?await availableApimartModels(true):await availableApimartModels();
-    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_AGENT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,DEEPSEEK_AGENT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_AGENT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},agnesModels=await availableAgnesModels();
+    await persistProviderSettings(); refreshProviderRuntime();
+    agnesModelCache={expiresAt:0,models:[]};apimartModelCache={expiresAt:0,models:[]};const pullApimart=APIMART_API_KEY&&(Object.hasOwn(body||{},'APIMART_API_KEY')||body?.APIMART_REFRESH_MODELS==='1');const apimartModels=pullApimart?await availableApimartModels(true):await availableApimartModels();
+    const settings={AGNES_API_KEY:'',AGNES_BASE_URL,AGNES_TEXT_MODEL,AGNES_IMAGE_MODEL,AGNES_VIDEO_MODEL,APIMART_API_KEY:'',DEEPSEEK_API_KEY:'',DEEPSEEK_BASE_URL,DEEPSEEK_TEXT_MODEL,BAILIAN_API_KEY:'',BAILIAN_BASE_URL,BAILIAN_MEDIA_BASE_URL,BAILIAN_TEXT_MODEL,BAILIAN_IMAGE_MODEL,BAILIAN_VIDEO_MODEL,PUBLIC_BASE_URL},agnesModels=await availableAgnesModels();
     return json(res,200,{ok:true,settings,models:await listModels(),configured:{agnes:Boolean(AGNES_API_KEY),apimart:Boolean(APIMART_API_KEY),deepseek:Boolean(DEEPSEEK_API_KEY),bailian:Boolean(BAILIAN_API_KEY)},agnesModels,...apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
+  let creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations$/);
+  if (creativeMatch && method === 'GET') {
+    const projectId = safeDecode(creativeMatch[1]);
+    if (!projectOr404(projectId)) return notFound(res);
+    return json(res, 200, { conversations: creativeAgentConversationList(projectId).map((conversation) => ({ ...conversation, messages: undefined })) });
+  }
+  if (creativeMatch && method === 'POST') {
+    const conversation = await createCreativeAgentConversationForProject(safeDecode(creativeMatch[1]));
+    return json(res, 201, conversation);
+  }
+  creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations\/([^/]+)$/);
+  if (creativeMatch && method === 'GET') {
+    const conversation = creativeAgentConversation(safeDecode(creativeMatch[1]), safeDecode(creativeMatch[2]));
+    return conversation ? json(res, 200, creativeAgentConversationView(conversation)) : notFound(res);
+  }
+  creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations\/([^/]+)\/messages$/);
+  if (creativeMatch && method === 'POST') {
+    const projectId = safeDecode(creativeMatch[1]);
+    const conversation = creativeAgentConversation(projectId, safeDecode(creativeMatch[2]));
+    const project = projectOr404(projectId);
+    if (!project || !conversation) return notFound(res);
+    const body = await readJson(req);
+    const controller = new AbortController();
+    let closed = false;
+    res.on('close', () => { closed = true; controller.abort(); });
+    res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' });
+    const sendEvent = (event, data) => { if (!closed) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
+    try {
+      sendEvent('thinking', { message: '正在整理创意…' });
+      const result = await sendCreativeAgentMessage(project, conversation, body, controller.signal);
+      sendEvent('delta', { text: result.message.text });
+      sendEvent('cards', { cards: result.message.cards });
+      sendEvent('done', { conversationId: conversation.id, message: result.message });
+    } catch (error) {
+      if (!closed) sendEvent('error', { error: sanitizeProviderMessage(error?.message || error), retryable: ![400, 404, 422].includes(Number(error?.status)) });
+    } finally {
+      if (!closed) res.end();
+    }
+    return;
+  }
+  creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations\/([^/]+)\/cards\/([^/]+)$/);
+  if (creativeMatch && method === 'PATCH') {
+    const conversation = creativeAgentConversation(safeDecode(creativeMatch[1]), safeDecode(creativeMatch[2]));
+    if (!conversation) return notFound(res);
+    const body = await readJson(req);
+    const card = (conversation.messages || []).flatMap((message) => message.cards || []).find((item) => item.id === safeDecode(creativeMatch[3]));
+    if (!card) return notFound(res);
+    card.favorite = body.favorite === true;
+    conversation.updatedAt = now();
+    await saveDb();
+    return json(res, 200, card);
+  }
   if (p === '/api/projects' && method === 'GET') return json(res, 200, { projects: Object.values(state.projects).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)) });
   if (p === '/api/projects' && method === 'POST') {
     const body = await readJson(req); const id = randomUUID(); const ts = now();
-    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 2, nodes: [], edges: [], sequence:null }, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, createdAt: ts, updatedAt: ts };
+    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 2, nodes: [], edges: [] }, workflowRevision:1, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, timelineUpdatedAt:ts, createdAt: ts, updatedAt: ts };
     state.projects[id] = project; await saveDb(); return json(res, 201, project);
   }
   let m = p.match(/^\/api\/projects\/([^/]+)$/);
@@ -831,46 +1020,24 @@ async function handleApi(req, res, url) {
     for (const key of Object.keys(state.assets)) if (state.assets[key].projectId === m[1]) delete state.assets[key];
     await saveDb(); return json(res, 200, { ok: true });
   }
-  m = p.match(/^\/api\/projects\/([^/]+)\/agent$/);
-  if (m && method === 'GET') { const pr=projectOr404(m[1]); if(!pr)return notFound(res); return json(res,200,ensureAgentSession(pr)); }
-  if (m && method === 'DELETE') { const pr=projectOr404(m[1]); if(!pr)return notFound(res); pr.agentSession={version:1,selectedProviderId:'',selectedModelId:'',messages:[],proposals:[]}; pr.updatedAt=now(); await saveDb(); return json(res,200,pr.agentSession); }
-  m = p.match(/^\/api\/projects\/([^/]+)\/agent\/messages$/);
-  if (m && method === 'POST') {
-    const pr=projectOr404(m[1]); if(!pr)return notFound(res); const body=await readJson(req); const content=String(body.content||'').trim();
-    if(!content||content.length>12000)throw Object.assign(new Error('Agent message must be 1-12000 characters'),{status:400});
-    const available=await availableAgentModels(), chosen=available.find(model=>model.providerId===body.providerId&&model.modelId===body.modelId);
-    if(!chosen)throw Object.assign(new Error('Agent model is not configured'),{status:400});
-    const session=ensureAgentSession(pr), userMessage={id:randomUUID(),role:'user',content,createdAt:now()};
-    session.selectedProviderId=chosen.providerId;session.selectedModelId=chosen.modelId;session.messages.push(userMessage);session.messages=session.messages.slice(-100);pr.updatedAt=now();await saveDb();
-    const streaming=String(req.headers.accept||'').includes('application/x-ndjson'),writeEvent=event=>{if(!res.writableEnded)res.write(`${JSON.stringify(event)}\n`);};if(streaming)res.writeHead(200,{'content-type':'application/x-ndjson; charset=utf-8','cache-control':'no-store','x-accel-buffering':'no'});
-    const controller=new AbortController(),abort=()=>controller.abort();req.once('aborted',abort);res.once('close',abort);
-    let reply;try{reply=await createAgentReply({project:pr,messages:session.messages,models:await listModels(),providerId:chosen.providerId,modelId:chosen.modelId,config:agentConfig(),signal:controller.signal,onMessageEvent:streaming?writeEvent:null});}catch(error){if(streaming){writeEvent({type:'error',message:error.message});res.end();return;}throw error;}finally{req.off('aborted',abort);res.off('close',abort);}
-    let proposal=null;
-    if(reply.kind==='proposal'){
-      for(const item of session.proposals)if(item.status==='pending')item.status='superseded';
-      proposal={id:randomUUID(),status:'pending',providerId:chosen.providerId,modelId:chosen.modelId,plan:reply.plan,appliedNodeIds:[],createdAt:now(),appliedAt:null};
-      session.proposals.push(proposal);session.proposals=session.proposals.slice(-20);
-    }
-    const assistantMessage={id:randomUUID(),role:'assistant',content:reply.message,questions:reply.questions,proposalId:proposal?.id||null,createdAt:now()};
-    session.messages.push(assistantMessage);session.messages=session.messages.slice(-100);pr.updatedAt=now();await saveDb();
-    if(streaming){writeEvent({type:'final',message:assistantMessage,proposal,session});return res.end();}return json(res,201,{message:assistantMessage,proposal,session});
-  }
-  m = p.match(/^\/api\/projects\/([^/]+)\/agent\/proposals\/([^/]+)\/apply$/);
-  if (m && method === 'POST') {
-    const pr=projectOr404(m[1]);if(!pr)return notFound(res);const session=ensureAgentSession(pr),proposal=session.proposals.find(item=>item.id===m[2]);if(!proposal)return notFound(res);
-    const result=applyAgentProposal(pr,proposal,await listModels());pr.updatedAt=now();await saveDb();return json(res,200,{...result,proposal});
-  }
-  m = p.match(/^\/api\/projects\/([^/]+)\/sequence\/clips\/([^/]+)\/review$/);
-  if (m && method === 'POST') {
-    const pr=projectOr404(m[1]);if(!pr)return notFound(res);const body=await readJson(req);
-    const result=reviewSequenceClip(pr,m[2],String(body.decision||''),String(body.observedEndState||''),await listModels());pr.updatedAt=now();await saveDb();return json(res,200,result);
+  m = p.match(/^\/api\/projects\/([^/]+)\/canvas\/selection$/);
+  if (m && method === 'PUT') {
+    const pr=projectOr404(m[1]);if(!pr)return notFound(res);const body=await readJson(req),nodeIds=Array.isArray(body.nodeIds)?body.nodeIds.map(String).filter(id=>pr.workflow.nodes.some(node=>node.id===id)):[],edgeIds=Array.isArray(body.edgeIds)?body.edgeIds.map(String).filter(id=>pr.workflow.edges.some(edge=>edge.id===id)):[];
+    const selection={nodeIds:[...new Set(nodeIds)],edgeIds:[...new Set(edgeIds)]};canvasSelections.set(pr.id,selection);return json(res,200,selection);
   }
   m = p.match(/^\/api\/projects\/([^/]+)\/workflow$/);
-  if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.workflow) : notFound(res); }
-  if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.workflow = { version: Number(body.version || 1), nodes: Array.isArray(body.nodes) ? body.nodes : [], edges: Array.isArray(body.edges) ? body.edges : [], sequence:body.sequence&&typeof body.sequence==='object'?body.sequence:null }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.workflow); }
+  if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,{ ...pr.workflow, version:Number(pr.workflowRevision || pr.workflow?.version || 1) }) : notFound(res); }
+  if (m && method === 'PUT') {
+    const pr = projectOr404(m[1]); if (!pr) return notFound(res);
+    const body = await readJson(req); const version = Number(pr.workflowRevision || pr.workflow?.version || 1);
+    if (Number(body.version) !== version) return json(res,409,{error:'workflow_version_conflict',expectedVersion:Number(body.version),actualVersion:version});
+    const nextVersion = version + 1;
+    pr.workflow = { version: nextVersion, nodes: Array.isArray(body.nodes) ? body.nodes : [], edges: Array.isArray(body.edges) ? body.edges : [] };
+    pr.workflowRevision = nextVersion; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.workflow);
+  }
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline$/);
   if (m && method === 'GET') { const pr = projectOr404(m[1]); return pr ? json(res,200,pr.timeline) : notFound(res); }
-  if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.timeline = { fps: Number(body.fps || 30), width: Number(body.width || 1280), height: Number(body.height || 720), items: Array.isArray(body.items) ? body.items : [], tracks: body.tracks && typeof body.tracks === 'object' ? body.tracks : (pr.timeline.tracks || {}) }; pr.updatedAt = now(); await saveDb(); return json(res,200,pr.timeline); }
+  if (m && method === 'PUT') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const body = await readJson(req); pr.timeline = { fps: Number(body.fps || 30), width: Number(body.width || 1280), height: Number(body.height || 720), items: Array.isArray(body.items) ? body.items : [], tracks: body.tracks && typeof body.tracks === 'object' ? body.tracks : (pr.timeline.tracks || {}) }; pr.timelineUpdatedAt=now();pr.updatedAt = pr.timelineUpdatedAt; await saveDb(); return json(res,200,pr.timeline); }
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/reshoot$/);
   if (m && method === 'POST') {
     const pr = projectOr404(m[1]); if (!pr) return notFound(res);
@@ -959,12 +1126,7 @@ async function handleApi(req, res, url) {
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/export$/);
   if (m && method === 'POST') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const asset = await createExport(pr); return json(res,201,asset); }
   if (p === '/api/generations' && method === 'POST') {
-    const body = await readJson(req); const pr = projectOr404(body.projectId); if (!pr) return json(res,404,{error:'project_not_found'});
-  const model = (await listModels()).find(x => x.providerId === body.providerId && x.modelId === body.modelId && x.capabilities.includes(body.capability)); if (!model) return json(res,400,{error:'model_not_available'});
-    const references = Array.isArray(body.references) ? body.references.map(normalizeGenerationReference) : [];
-    for (const ref of references) { const a = state.assets[ref.assetId]; if (!a || a.projectId !== pr.id) return json(res,400,{error:'invalid_reference',assetId:ref.assetId}); }
-    const jobRequest = { projectId:pr.id, capability:String(body.capability), providerId:String(body.providerId), modelId:String(body.modelId), prompt:String(body.prompt||''), params:body.params||{}, references };
-    validateGenerationRequest(model, jobRequest, references); preflightProviderRequest(model, jobRequest);
+    const body = await readJson(req); const { jobRequest } = await prepareStandaloneGeneration(body);
     const job = await enqueueGeneration(jobRequest,{requestId:body.requestId,sourceNodeId:body.sourceNodeId}); return json(res,202,job);
   }
   m = p.match(/^\/api\/generations\/([^/]+)$/);
@@ -975,7 +1137,15 @@ async function handleApi(req, res, url) {
   if (m && method === 'GET') {
     if (!state.jobs[m[1]]) return notFound(res);
     res.writeHead(200, { 'content-type':'text/event-stream', 'cache-control':'no-cache, no-transform', connection:'keep-alive' }); let closed=false; req.on('close',()=>closed=true);
-    while (!closed) { const job=state.jobs[m[1]]; if (!job) break; res.write(`event: generation\ndata: ${JSON.stringify({...job,outputs:(job.outputAssetIds||[]).map(id=>state.assets[id]).filter(Boolean)})}\n\n`); if (['succeeded','failed','canceled'].includes(job.status)) break; await sleep(500); } return res.end();
+    const openedAt=Date.now(), EVENT_MAX_LIFETIME_MS=10*60*1000; let lastPing=0;
+    while (!closed) {
+      if (Date.now()-openedAt>EVENT_MAX_LIFETIME_MS) break;
+      const job=state.jobs[m[1]]; if (!job) break;
+      res.write(`event: generation\ndata: ${JSON.stringify({...job,outputs:(job.outputAssetIds||[]).map(id=>state.assets[id]).filter(Boolean)})}\n\n`);
+      if (['succeeded','failed','canceled'].includes(job.status)) break;
+      if (Date.now()-lastPing>=25_000) { res.write(': ping\n\n'); lastPing=Date.now(); }
+      await sleep(500);
+    } return res.end();
   }
   return notFound(res);
 }
@@ -994,7 +1164,7 @@ function serveFile(req, res, file) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-    if (url.pathname.startsWith('/api/')) return await handleApi(req,res,url);
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/internal/')) return await handleApi(req,res,url);
     if (url.pathname.startsWith('/media/assets/')) { const name = basename(safeDecode(url.pathname.slice('/media/assets/'.length))); return name&&name!=='.'?serveFile(req,res,join(ASSETS_DIR,name)):notFound(res); }
     if (url.pathname.startsWith('/vendor/icons/')) { const name=cleanFilename(safeDecode(url.pathname.slice('/vendor/icons/'.length))); if (/^[a-z0-9-]+\.svg$/.test(name)) return serveFile(req,res,join(TABLER_ICONS,name)); return notFound(res); }
     if (url.pathname === '/' || url.pathname === '/index.html') return serveFile(req, res, join(PUBLIC,'index.html'));

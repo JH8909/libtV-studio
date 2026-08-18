@@ -18,6 +18,7 @@ export function StudioShell() {
   const [assets, setAssets] = useState<ApiAsset[]>([]);
   const [error, setError] = useState<string>();
   const [timelineOpen, setTimelineOpen] = useState(true);
+  const [domainRefreshKey, setDomainRefreshKey] = useState(0);
 
   const refreshAssets = async (id = projectId) => {
     if (!id) return;
@@ -61,7 +62,7 @@ export function StudioShell() {
       <strong>LibTV Studio</strong><span style={{ fontSize: 11, opacity: .45 }}>API-first · Project {projectId.slice(0, 8)}</span><span style={{ flex: 1 }} />
       <button onClick={() => refreshAssets()}>Refresh assets</button><button onClick={() => setTimelineOpen((x) => !x)}>{timelineOpen ? "Hide" : "Show"} timeline</button>
     </header>
-    <section style={{ minHeight: 0, display: "grid", gridTemplateColumns: "210px 1fr" }}>
+    <section style={{ minHeight: 0, display: "grid", gridTemplateColumns: "210px minmax(0, 1fr)" }}>
       <aside style={{ overflow: "auto", padding: 10, background: "#0f1116", borderRight: "1px solid #252a33" }}>
         <div style={{ fontSize: 11, fontWeight: 800, margin: "4px 4px 10px" }}>ASSET LIBRARY</div>
         <div style={{ display: "grid", gap: 8 }}>
@@ -74,8 +75,8 @@ export function StudioShell() {
           {!assets.length && <div style={{ fontSize: 12, opacity: .5 }}>Generate something on the canvas. Completed outputs appear here.</div>}
         </div>
       </aside>
-      <main style={{ minWidth: 0, minHeight: 0 }}><StudioCanvas apiBase={API} projectId={projectId} onAssetProduced={() => refreshAssets()} /></main>
+      <main style={{ minWidth: 0, minHeight: 0 }}><StudioCanvas apiBase={API} projectId={projectId} refreshKey={domainRefreshKey} onAssetProduced={() => refreshAssets()} /></main>
     </section>
-    {timelineOpen && <section style={{ minHeight: 0 }}><TimelinePanel apiBase={API} projectId={projectId} assets={assets} onUseAsReference={useAsReference} /></section>}
+    {timelineOpen && <section style={{ minHeight: 0 }}><TimelinePanel apiBase={API} projectId={projectId} assets={assets} refreshKey={domainRefreshKey} onUseAsReference={useAsReference} /></section>}
   </div>;
 }

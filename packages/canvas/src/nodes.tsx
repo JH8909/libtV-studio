@@ -33,13 +33,14 @@ function incomingContext(nodeId: string): { prompt?: string; assets: ApiAsset[] 
   return { prompt: prompts.at(-1), assets };
 }
 
-export function GenerationNode({ id, data }: NodeProps<StudioNode>) {
+export function GenerationNode({ id, data, type }: NodeProps<StudioNode>) {
   const runtime = useCanvasRuntime();
   const patch = useStudioFlow((state) => state.patchNode);
   const [running, setRunning] = useState(false);
-  const capability = data.capability ?? "image.generate";
+  const capability = data.capability ?? data.forcedCapability ?? (type === "videoGen" ? "video.generate" : type === "textGen" ? "text.generate" : "image.generate");
   const models = useMemo(() => runtime.models.filter((model) => model.capabilities.includes(capability)), [runtime.models, capability]);
-  const selected = models.find((model) => model.providerId === data.providerId && model.modelId === data.modelId) ?? models[0];
+  const [storedProviderId, storedModelId] = String(data.modelKey || "").split("::");
+  const selected = models.find((model) => model.providerId === (data.providerId || storedProviderId) && model.modelId === (data.modelId || storedModelId)) ?? models[0];
 
   const run = async () => {
     if (!selected) return patch(id, { error: `No model supports ${capability}` });
@@ -69,12 +70,12 @@ export function GenerationNode({ id, data }: NodeProps<StudioNode>) {
     }
   };
 
-  const output = data.outputs?.[0];
+  const output = data.outputs?.[0] ?? runtime.assets.find((asset) => data.outputAssetIds?.includes(asset.id));
   return <div style={box}>
     <Handle type="target" position={Position.Left} />
     <div style={header}>{String(data.title ?? capability).toUpperCase()}</div>
     <div style={body}>
-      <select className="nodrag" value={selected ? `${selected.providerId}::${selected.modelId}` : ""} onChange={(event) => { const [providerId, modelId] = event.target.value.split("::"); patch(id, { providerId, modelId }); }} style={{ padding: 8, borderRadius: 8, background: "#191c22", color: "inherit", border: "1px solid #303640" }}>
+      <select className="nodrag" value={selected ? `${selected.providerId}::${selected.modelId}` : ""} onChange={(event) => { const [providerId, modelId] = event.target.value.split("::"); patch(id, { providerId, modelId, modelKey: event.target.value }); }} style={{ padding: 8, borderRadius: 8, background: "#191c22", color: "inherit", border: "1px solid #303640" }}>
         {models.map((model) => <option key={`${model.providerId}/${model.modelId}`} value={`${model.providerId}::${model.modelId}`}>{model.displayName}</option>)}
       </select>
       <textarea className="nodrag" placeholder="Optional node-specific prompt; empty = use connected Prompt" value={String(data.prompt ?? "")} onChange={(event) => patch(id, { prompt: event.target.value })} rows={3} style={{ resize: "vertical", width: "100%", boxSizing: "border-box", borderRadius: 8, padding: 9, background: "#191c22", border: "1px solid #303640", color: "inherit" }} />
@@ -88,7 +89,8 @@ export function GenerationNode({ id, data }: NodeProps<StudioNode>) {
 }
 
 export function AssetNode({ data }: NodeProps<StudioNode>) {
-  const asset = data.asset;
+  const runtime = useCanvasRuntime();
+  const asset = data.asset ?? runtime.assets.find((candidate) => candidate.id === data.assetId);
   return <div style={{ ...box, minWidth: 220 }}>
     <div style={header}>ASSET · {asset?.kind?.toUpperCase()}</div>
     <div style={body}>

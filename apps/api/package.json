@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=../../.env --import tsx --watch src/server.ts",
-    "start": "node --env-file=../../.env --import tsx src/server.ts",
+    "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/server.ts",
+    "start": "node --env-file-if-exists=../../.env --import tsx src/server.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

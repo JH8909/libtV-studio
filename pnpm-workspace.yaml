@@ -1,7 +1,18 @@
 packages:
   - apps/*
   - packages/*
+onlyBuiltDependencies:
+  - esbuild
+  - koffi
+  - msgpackr-extract
+  - node-pty
+  - protobufjs
+  - sharp
 allowBuilds:
+  '@google/genai': set this to true or false
   esbuild: true
+  koffi: true
+  msgpackr-extract: set this to true or false
+  node-pty: true
+  protobufjs: true
   sharp: true
-  msgpackr-extract: false

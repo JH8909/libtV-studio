@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=../../.env --import tsx --watch src/worker.ts",
-    "start": "node --env-file=../../.env --import tsx src/worker.ts",
+    "dev": "node --env-file-if-exists=../../.env --import tsx --watch src/worker.ts",
+    "start": "node --env-file-if-exists=../../.env --import tsx src/worker.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

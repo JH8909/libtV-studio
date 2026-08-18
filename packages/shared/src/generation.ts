@@ -27,6 +27,7 @@ export const GenerationReferenceSchema = z.object({
 
 export const GenerationRequestSchema = z.object({
   projectId: z.string().min(1),
+  requestId: z.string().min(1).max(200).optional(),
   capability: z.enum(CAPABILITIES),
   providerId: z.string().min(1),
   modelId: z.string().min(1),

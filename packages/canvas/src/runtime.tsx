@@ -7,6 +7,7 @@ export interface CanvasRuntime {
   apiBase: string;
   projectId: string;
   models: ProviderModel[];
+  assets: ApiAsset[];
   onAssetProduced?: (assets: ApiAsset[]) => void;
 }
 

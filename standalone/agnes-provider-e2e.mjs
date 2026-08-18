@@ -23,7 +23,10 @@ const fake = http.createServer(async (request, response) => {
   captures.push({ method: request.method, url: request.url, headers: request.headers, body });
   response.setHeader('content-type', 'application/json');
   if (request.method === 'POST' && request.url === '/agnes/v1/chat/completions') {
-    return response.end(JSON.stringify({ choices: [{ message: { content: 'Agnes contract text' } }] }));
+    response.setHeader('content-type','text/event-stream');
+    response.write(`data: ${JSON.stringify({choices:[{delta:{content:'Agnes contract '}}]})}\n\n`);
+    await new Promise(resolve=>setTimeout(resolve,20));
+    return response.end(`data: ${JSON.stringify({choices:[{delta:{content:'text'}}]})}\n\ndata: [DONE]\n\n`);
   }
   if (request.method === 'GET' && request.url === '/agnes/v1/models') {
     return response.end(JSON.stringify({ object: 'list', data: [
@@ -112,11 +115,11 @@ try {
     headers: { 'content-type': 'image/png', 'x-filename': 'reference.png' },
     body: Buffer.from(pngBase64, 'base64'),
   }, 201);
+  const discovered=(await request('/api/provider-settings')).agnesModels;
+  if (discovered.length !== 7) throw new Error(`expected 7 discovered Agnes models, got ${discovered.length}`);
   const models = (await request('/api/models')).models.filter(model => model.providerId === 'agnes');
-  if (models.length !== 7) throw new Error(`expected 7 Agnes models, got ${models.length}`);
-  if (models.filter(model => model.capabilities.includes('text.generate')).length !== 4) throw new Error('Agnes text model discovery failed');
-  if (models.filter(model => model.capabilities.includes('image.generate')).length !== 2) throw new Error('Agnes image model discovery failed');
-  if (models.filter(model => model.capabilities.includes('video.generate')).length !== 1) throw new Error('Agnes video model discovery failed');
+  if (models.length !== 3) throw new Error(`expected 3 configured Agnes generation models, got ${models.length}`);
+  if (!models.some(model => model.capabilities.includes('text.generate')) || !models.some(model => model.capabilities.includes('image.generate')) || !models.some(model => model.capabilities.includes('video.generate'))) throw new Error('configured Agnes capabilities are incomplete');
 
   async function submit(capability, params, references = [], expected = 'failed') {
     const model = models.find(candidate => candidate.capabilities.includes(capability));
@@ -133,7 +136,7 @@ try {
 
   const text = await submit('text.generate', { system: 'System contract', temperature: 0.2 }, [], 'succeeded');
   if (text.outputText !== 'Agnes contract text') throw new Error('Agnes text output missing');
-  const imageJob = await submit('image.edit', { resolution: '2K', aspectRatio: '3:4' }, [{ assetId: image.id, role: 'reference-image' }], 'succeeded');
+  const imageJob = await submit('image.edit', { resolution: '4K', aspectRatio: '3:4' }, [{ assetId: image.id, role: 'reference-image' }], 'succeeded');
   if (imageJob.outputs.length !== 1 || imageJob.outputs[0].kind !== 'image') throw new Error('Agnes image output missing');
   const videoJobs = [];
   videoJobs.push(await submit('video.generate', { duration: 5, resolution: '720p', aspectRatio: '16:9' }));
@@ -148,7 +151,7 @@ try {
   const authRequests = captures.filter(capture => capture.url?.startsWith('/agnes/'));
   if (authRequests.some(capture => capture.headers.authorization !== 'Bearer agnes-test-key')) throw new Error('Agnes bearer header missing');
   const textRequest = captures.find(capture => capture.url === '/agnes/v1/chat/completions');
-  if (textRequest?.body?.model !== 'agnes-2.5-flash' || textRequest.body.messages?.[0]?.role !== 'system') throw new Error('Agnes text payload invalid');
+  if (textRequest?.body?.model !== 'agnes-2.5-flash' || textRequest.body.messages?.[0]?.role !== 'system' || textRequest.body.stream !== true) throw new Error('Agnes streaming text payload invalid');
   const imageRequest = captures.find(capture => capture.url === '/agnes/v1/images/generations');
   if (imageRequest?.body?.model !== 'agnes-image-2.1-flash' || imageRequest.body.size !== '2K' || imageRequest.body.ratio !== '3:4') throw new Error('Agnes image parameters invalid');
   if (imageRequest.body.extra_body?.response_format !== 'url' || imageRequest.body.return_base64 !== undefined || !String(imageRequest.body.extra_body?.image?.[0] || '').startsWith(`${base}/media/assets/`)) throw new Error('Agnes image reference payload invalid');

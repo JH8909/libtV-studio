@@ -8,6 +8,7 @@ interface TimelineState extends TimelineSnapshot {
   hydrated: boolean;
   selectedItemId?: string;
   hydrate(snapshot: TimelineSnapshot): void;
+  setHydrated(value: boolean): void;
   setSelected(id?: string): void;
   addAsset(asset: ApiAsset): string;
   removeItem(id: string): void;
@@ -18,6 +19,7 @@ export const useTimeline = create<TimelineState>((set, get) => ({
   ...normalizeTimeline(),
   hydrated: false,
   hydrate: (snapshot) => set({ ...normalizeTimeline(snapshot), hydrated: true }),
+  setHydrated: (hydrated) => set({ hydrated }),
   setSelected: (selectedItemId) => set({ selectedItemId }),
   addAsset: (asset) => {
     const current = get();
