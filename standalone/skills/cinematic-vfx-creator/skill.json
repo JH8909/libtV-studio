@@ -1,0 +1,131 @@
+{
+  "id": "cinematic-vfx-creator",
+  "version": 1,
+  "sourceVersion": "1.0.8",
+  "name": "影视打斗特效skill",
+  "category": "专业影视",
+  "kind": "视频",
+  "cover": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/873b0cc591dc4a7c1f6f7050c3827c6bf5a4f131.png",
+  "author": "星曜AG",
+  "description": "一句话生成角色人物影视特效支持文字参考图/视频",
+  "cardSummary": "一句话生成角色人物影视特效支持文字参考图/视频",
+  "usage": "真人漫剧/打斗/短片/动画/热血漫画/3D动漫等",
+  "howToUse": "在 Agent 中选择该 Skill，输入视频需求，按需添加参考素材；发送后执行工作流。",
+  "tags": [
+    "专业影视",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "e34caf9cbad3423fafde536334a91f03",
+    "skillUuid": "8cf1df0c1ac741e6b0cbc27d4c1f41c6",
+    "skillKey": "cinematic-vfx-creator-9d8925c591a643bbad8ca8cfbb87922c",
+    "inputType": "只需要一句话即可，如果希望是什么风火雷电系列都可以说明，可自由搭配组合技能名称，用户描述的场景、角色、风格意图、情绪基调、特效诉",
+    "outputContent": "支持15-最高30秒的技能打斗特效竖版和横板视频",
+    "url": "https://www.liblib.tv/skill/share?uuid=e34caf9cbad3423fafde536334a91f03",
+    "importedAt": "2026-08-19T13:59:13.649Z"
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "创作描述",
+      "type": "text",
+      "required": true,
+      "placeholder": "例如：黑色战甲角色在雨夜释放雷电，与火焰碰撞，镜头快速推进"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "durationSec",
+      "label": "目标时长",
+      "type": "select",
+      "required": true,
+      "default": 15,
+      "options": [
+        15,
+        30
+      ]
+    },
+    {
+      "id": "aspectRatio",
+      "label": "画幅",
+      "type": "select",
+      "required": true,
+      "default": "9:16",
+      "options": [
+        "9:16",
+        "16:9"
+      ]
+    }
+  ],
+  "outputs": [
+    "动作与特效拆解方案",
+    "一段影视打斗特效视频",
+    "自动加入 Timeline 的视频成片草稿"
+  ],
+  "fixedSteps": [
+    "从一句话提取角色、动作、特效类型、情绪和场景约束",
+    "明确风、火、雷、电等特效组合及其与角色动作的对应关系",
+    "有参考图或视频时锁定人物、服装、动作方向和场景光线",
+    "按目标画幅与时长生成影视打斗特效视频",
+    "将成功的视频结果自动加入 Timeline"
+  ],
+  "rules": {
+    "format": "9:16 / 16:9",
+    "durationSec": 15,
+    "durationOptions": [
+      15,
+      30
+    ],
+    "shotCount": 1,
+    "shotDurationSec": 15,
+    "visual": "角色动作清晰，特效有明确触发关系，避免无意义粒子堆叠",
+    "continuity": "参考图或视频优先锁定角色身份、服装、动作方向和场景光线",
+    "safety": "不新增无指令角色，不改变主体身份，不出现随机变脸、换装、肢体穿模和无指令切镜"
+  },
+  "promptTemplates": {
+    "vfxPlanSystem": "你是影视动作指导和特效总监。把用户一句话拆成角色、动作、特效触发、镜头、场景、情绪与连续性约束，输出简洁可执行的生成计划。不要新增未指定的人物或剧情。",
+    "vfxPlanPrompt": "请拆解以下影视打斗特效需求：{{INSTRUCTION}}。输出：角色与服装、动作链、特效类型与触发点、场景与光线、镜头运动、连续性约束、负面约束。",
+    "vfxVideoPrompt": "影视打斗特效视频生成指令：{{INSTRUCTION}}。角色动作必须清晰可追踪，特效在动作触发点出现并服从物理方向；保持角色身份、服装、场景和镜头连续。支持风火雷电等元素组合，但不得无意义堆叠粒子；不得随机增加角色、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/70c2ecb45d47ad77c0fda7a37a0b7514c291b7e1.mp4",
+      "label": "案例 1"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/ee0f3bc39416828679b9135288f3e87162a6001e.mp4",
+      "label": "案例 2"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/f1f83c6466f64f930840928cbb45ee3807017499.mp4",
+      "label": "案例 3"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/50af9d483827edbcae9c8e3291b7e336daa46073.mp4",
+      "label": "案例 4",
+      "canvasUrl": "https://www.liblib.tv/canvas/share?spaceId=1736822&projectId=18aa61c9c3e148b48c655dbb6586d4a2"
+    }
+  ],
+  "execution": {
+    "workflow": "cinematic-vfx",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": true,
+    "appendVideosToTimeline": true,
+    "audioMode": "full"
+  }
+}

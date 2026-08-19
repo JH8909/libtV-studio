@@ -19,10 +19,13 @@
     "test:providers": "node standalone/provider-contract-e2e.mjs",
     "test:media-provider": "node standalone/media-provider-contract-e2e.mjs",
     "test:creative-agent": "node standalone/creative-agent-e2e.mjs",
+    "test:agent-playwright": "node standalone/agent-playwright-e2e.mjs",
+    "test:playwright": "node standalone/agent-playwright-e2e.mjs",
     "test:keyboard": "node standalone/keyboard-shortcuts-e2e.mjs",
     "test:canvas": "node standalone/canvas-interactions-e2e.mjs",
     "test:image-presets": "node standalone/image-presets-e2e.mjs",
-    "test:design-system": "node standalone/design-system-e2e.mjs"
+    "test:design-system": "node standalone/design-system-e2e.mjs",
+    "test:skill-schema": "node standalone/skill-schema-e2e.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

@@ -25,6 +25,8 @@ start-local.cmd
 
 Open `http://127.0.0.1:3000`.
 
+**文档**：[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) · [TESTING.md](./TESTING.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [CHANGELOG.md](./CHANGELOG.md)
+
 ## v2.0 creative Agent
 
 The top-right **Agent** button opens a project-persistent creative conversation:
@@ -51,7 +53,7 @@ The Standalone UI was rebuilt around the LibTV-style spatial interaction request
 - Edges remain selectable/deletable and media-reference roles remain inspectable.
 - Bottom-center canvas bar contains Add / Undo / Redo / Fit / Zoom / Help.
 
-See `INTERACTION_v1.3.md` for the interaction contract.
+See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for UI/UX and canvas interaction. Run `pnpm test:design-system` to validate conventions.
 
 ## Text nodes
 
@@ -210,23 +212,7 @@ Timeline → MP4 supports:
 
 ## Regression tests
 
-Creative planning Agent, provider contracts, proposal revision and graph application:
-
-```bash
-node standalone/agent-e2e.mjs
-```
-
-Provider contracts using local fake vendor endpoints — no paid request:
-
-```bash
-node standalone/provider-contract-e2e.mjs
-```
-
-v1.3 Provider Contract coverage:
-- APIMart model discovery and categorized selection
-- APIMart text/Agent, image upload, asynchronous image/video tasks and first/last frames
-
-See `TEST_REPORT_v2.0.md` for the final regression results.
+See [TESTING.md](./TESTING.md) for all `pnpm test:*` commands.
 
 ## Persistence
 
@@ -256,4 +242,4 @@ Standalone and service architecture share the same domain boundary:
 
 `Project → Workflow → GenerationJob → Asset → TimelineItem → GenerationReference`
 
-`UPSTREAM_COMPONENTS.md` records the pinned TongFlow, OpenChatCut and mcp-video-gen reference snapshots.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for invariants and upstream integration notes.

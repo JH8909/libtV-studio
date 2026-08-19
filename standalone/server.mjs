@@ -19,7 +19,7 @@ import {
   parseCreativeAgentReply,
 } from "./creative-agent.mjs";
 import { normalizeImagePreset } from "./public/image-presets.js";
-import { buildSkillWorkflow, listSkills, skillById } from "./skill-catalog.mjs";
+import { buildSkillWorkflow, importLiblibSkill, listSkills, skillById } from "./skill-catalog.mjs";
 import { cleanFilename, contentTypeOnly, kindFromMime, mimeFromExt } from "./lib/media.mjs";
 import { createProviderHttp } from "./providers/http.mjs";
 import {
@@ -222,30 +222,57 @@ function applySkillToProject(project, body = {}) {
   const skillId = String(body.skillId || "").trim();
   const skill = skillById(skillId);
   if (!skill) throw Object.assign(new Error("skill_not_found"), { status: 404 });
-  const selectedAsset =
-    String(body.productAssetId || "").trim() || projectAssets(project.id, { kind: "image" })[0]?.id;
-  if (!selectedAsset) {
-    throw Object.assign(new Error("product_image_required"), {
-      status: 400,
-      message: "请先在素材库上传一张产品图片。",
+  let result;
+  const genericMediaWorkflow = ["cinematic-vfx", "generic-video", "generic-image"].includes(skill.execution?.workflow);
+  if (genericMediaWorkflow) {
+    const requestedReference =
+      String(body.referenceAssetId || body.productAssetId || "").trim() ||
+      (Array.isArray(body.attachments)
+        ? body.attachments.find((item) => ["image", "video"].includes(String(item?.kind || "")))?.id || ""
+        : "");
+    const reference = requestedReference ? state.assets[requestedReference] : null;
+    const allowedReferenceKinds = skill.execution?.workflow === "generic-image" ? ["image"] : ["image", "video"];
+    if (requestedReference && (!reference || reference.projectId !== project.id || !allowedReferenceKinds.includes(reference.kind))) {
+      throw Object.assign(new Error("invalid_reference_asset"), {
+        status: 400,
+        message: skill.execution?.workflow === "generic-image" ? "图片 Skill 的参考素材必须是当前画布中的图片。" : "参考素材必须是当前画布中的图片或视频。",
+      });
+    }
+    result = buildSkillWorkflow({
+      skill,
+      existingWorkflow: project.workflow,
+      referenceAssetId: requestedReference,
+      referenceKind: reference?.kind || "",
+      instruction: body.instruction || body.message || body.sellingPoints,
+      durationSec: body.durationSec,
+      aspectRatio: body.aspectRatio,
+    });
+  } else {
+    const selectedAsset =
+      String(body.productAssetId || "").trim() || projectAssets(project.id, { kind: "image" })[0]?.id;
+    if (!selectedAsset) {
+      throw Object.assign(new Error("product_image_required"), {
+        status: 400,
+        message: "请先在素材库上传一张产品图片。",
+      });
+    }
+    const asset = state.assets[selectedAsset];
+    if (!asset || asset.projectId !== project.id || asset.kind !== "image") {
+      throw Object.assign(new Error("invalid_product_image"), {
+        status: 400,
+        message: "Skill 需要当前画布中的图片素材作为产品参考。",
+      });
+    }
+    result = buildSkillWorkflow({
+      skill,
+      existingWorkflow: project.workflow,
+      productAssetId: selectedAsset,
+      sellingPoints: body.sellingPoints || body.message,
+      brandName: body.brandName,
+      durationSec: body.durationSec,
+      aspectRatio: body.aspectRatio,
     });
   }
-  const asset = state.assets[selectedAsset];
-  if (!asset || asset.projectId !== project.id || asset.kind !== "image") {
-    throw Object.assign(new Error("invalid_product_image"), {
-      status: 400,
-      message: "Skill 需要当前画布中的图片素材作为产品参考。",
-    });
-  }
-  const result = buildSkillWorkflow({
-    skill,
-    existingWorkflow: project.workflow,
-    productAssetId: selectedAsset,
-    sellingPoints: body.sellingPoints || body.message,
-    brandName: body.brandName,
-    durationSec: body.durationSec,
-    aspectRatio: body.aspectRatio,
-  });
   const nextVersion = Number(project.workflowRevision || project.workflow?.version || 1) + 1;
   project.workflow = { version: nextVersion, nodes: result.nodes, edges: result.edges };
   project.workflowRevision = nextVersion;
@@ -313,11 +340,19 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
   if (body.skillId) {
     const skillBody = { ...body };
     if (!skillBody.productAssetId) skillBody.productAssetId = attachments.find((asset) => asset.kind === "image")?.id || "";
+    if (!skillBody.referenceAssetId) skillBody.referenceAssetId = attachments.find((asset) => ["image", "video"].includes(asset.kind))?.id || "";
     const applied = applySkillToProject(project, skillBody);
+    const workflowType = applied.skill.execution?.workflow;
+    const isVfx = workflowType === "cinematic-vfx";
+    const isGenericMedia = ["cinematic-vfx", "generic-video", "generic-image"].includes(workflowType);
     const assistantMessage = {
       id: randomUUID(),
       role: "assistant",
-      text: `已启用「${applied.skill.name}」Skill。已绑定产品图并创建创意锚点、五镜头分镜、关键帧、首帧视频、旁白方案和BGM方案节点；接下来按依赖顺序生成并把成功镜头加入 Timeline。`,
+      text: isVfx
+        ? `已启用「${applied.skill.name}」Skill。已创建动作拆解方案和影视特效视频节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动加入 Timeline。`
+        : isGenericMedia
+          ? `已启用「${applied.skill.name}」Skill。已创建生成计划和${workflowType === "generic-image" ? "图片" : "视频"}节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动保留到画布${workflowType === "generic-video" ? "并加入 Timeline" : ""}。`
+        : `已启用「${applied.skill.name}」Skill。已绑定产品图并创建创意锚点、五镜头分镜、关键帧、首帧视频、旁白方案和BGM方案节点；接下来按依赖顺序生成并把成功镜头加入 Timeline。`,
       cards: [],
       skillRun: {
         id: randomUUID(),
@@ -453,6 +488,11 @@ async function handleApi(req, res, url) {
     return json(res,200,{ok:true,settings,models:await listModels(),configured:{agnes:Boolean(runtimeConfig.AGNES_API_KEY),apimart:Boolean(runtimeConfig.APIMART_API_KEY),deepseek:Boolean(runtimeConfig.DEEPSEEK_API_KEY),bailian:Boolean(runtimeConfig.BAILIAN_API_KEY)},agnesModels,...registry.apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
+  if (p === '/api/skills/import' && method === 'POST') {
+    const body = await readJson(req);
+    const result = await importLiblibSkill(body?.url || body?.shareUrl || body?.uuid);
+    return json(res, result.created ? 201 : 200, result);
+  }
   if (p === '/api/skills' && method === 'GET') return json(res, 200, { skills: listSkills() });
   let skillMatch = p.match(/^\/api\/projects\/([^/]+)\/skills\/([^/]+)\/apply$/);
   if (skillMatch && method === 'POST') {

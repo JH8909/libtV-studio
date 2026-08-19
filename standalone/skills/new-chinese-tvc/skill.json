@@ -7,6 +7,7 @@
   "cover": "/welcome-assets/video-generation.png",
   "author": "LibTV Studio",
   "description": "从产品图片和卖点描述出发，按固定的品牌锚点、五镜头分镜、关键帧、首帧视频和声音方案，生成一支 15 秒新中式品牌 TVC。",
+  "cardSummary": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
   "usage": "品牌广告、产品形象片、电商主视觉视频",
   "howToUse": "先在 Agent 中选择该 Skill，再上传产品图并输入产品卖点；发送后执行固定的画布工作流。",
   "tags": ["TVC", "商业广告", "新中式", "产品视频", "品牌形象"],

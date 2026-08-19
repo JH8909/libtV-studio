@@ -7,7 +7,7 @@ const els = Object.fromEntries([
   'refreshAssetsBtn','assetList','assetLibraryTabs','promptLibraryList','canvas','canvasWorld','edgesLayer','inspector','jobList','jobSummary','archiveCompletedJobsBtn','fitBtn','zoomOutBtn','zoomInBtn','zoomLabel',
   'connectionToast','timelineBody','timelineRuler','timelineMeta','timelineHint','timelineRefBtn','deleteClipBtn','splitClipBtn','duplicateClipBtn','crossfadeBtn','rippleDeleteBtn',
   'timelineUndoBtn','timelineRedoBtn','addTextClipBtn','timelineZoomOutBtn','timelineZoomInBtn','timelineZoomLabel','canvasUndoBtn','canvasRedoBtn','runAllBtn','previewStage','previewPlayBtn','previewTime','previewFullscreenBtn','previewFullscreenModal','previewFullscreenStage','previewFullscreenPlayBtn','previewFullscreenTime','previewFullscreenCloseBtn','mediaLightbox','mediaLightboxStage','mediaLightboxClose','assetPromptModal','assetPromptText','assetPromptCopy','assetPromptClose','toastRoot',
-  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetFilterChips','skillDrawerBtn','skillDrawer','skillCategoryFilters','skillSearchInput','refreshSkillsBtn','skillLibraryList','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentConversationTitle','agentFavoritesBtn','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentCloseBtn','agentMessages','agentEmptyState','agentStatus','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentAttachmentPreview','agentPromptPlusBtn','agentSkillChip','agentDictationBtn','agentSendBtn'
+  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetFilterChips','skillDrawerBtn','skillDrawer','skillCategoryFilters','skillSearchInput','importSkillBtn','refreshSkillsBtn','skillLibraryList','skillDetailModal','skillDetailBody','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentConversationTitle','agentFavoritesBtn','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentCloseBtn','agentMessages','agentEmptyState','agentStatus','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentAttachmentPreview','agentPromptPlusBtn','agentSkillChip','agentDictationBtn','agentSendBtn'
 ].map(id => [id, document.getElementById(id)]));
 
 const NODE_W = 300;
@@ -43,6 +43,17 @@ function restoreInteractionFocus(target){if(target?.isConnected)return target.fo
 function openMediaLightbox(asset){if(!asset||!['image','video'].includes(asset.kind))return;const returnFocus=document.activeElement;prepareModalOpen(els.mediaLightbox);mediaLightboxReturnFocus=returnFocus;els.mediaLightbox.dataset.kind=asset.kind;els.mediaLightboxStage.innerHTML=asset.kind==='image'?`<img src="${esc(asset.publicUrl)}" alt="${esc(asset.filename||'图片预览')}">`:customVideoPlayerMarkup(asset.publicUrl,{autoplay:true,className:'media-lightbox-player',label:asset.filename||'视频预览'});bindCustomVideoPlayers(els.mediaLightboxStage);els.mediaLightbox.classList.remove('hidden');requestAnimationFrame(()=>els.mediaLightboxClose?.focus());}
 function closeMediaLightbox(){els.mediaLightboxStage?.querySelector('video')?.pause();els.mediaLightbox?.classList.add('hidden');els.mediaLightbox?.removeAttribute('data-kind');if(els.mediaLightboxStage)els.mediaLightboxStage.innerHTML='';restoreInteractionFocus(mediaLightboxReturnFocus);mediaLightboxReturnFocus=null;}
 function assetPrompt(a){return String(a?.metadata?.prompt||a?.metadata?.agnesResult?.request_params?.prompt||'').replace(/\s+/g,' ').trim();}
+function assetCardLead(a){
+  const prompt=assetPrompt(a);
+  if(prompt)return prompt;
+  const name=String(a.filename||'').trim();
+  if(/^task_[A-Za-z0-9_-]+\.(mp4|mov|webm|m4v|png|jpe?g|webp|gif|avif)$/i.test(name))return '生成素材';
+  if(name.length>24)return `${name.slice(0,24)}…`;
+  return name||'上传素材';
+}
+function assetCardMeta(a){
+  return assetPrompt(a)?'':'无提示词';
+}
 function openAssetPrompt(a){const prompt=assetPrompt(a),returnFocus=document.activeElement;prepareModalOpen(els.assetPromptModal);assetPromptReturnFocus=returnFocus;els.assetPromptText.value=prompt||'上传素材未包含提示词';els.assetPromptCopy.disabled=!prompt;els.assetPromptModal.classList.remove('hidden');requestAnimationFrame(()=>prompt?els.assetPromptCopy.focus():els.assetPromptClose.focus());}
 function closeAssetPrompt(){els.assetPromptModal.classList.add('hidden');restoreInteractionFocus(assetPromptReturnFocus);assetPromptReturnFocus=null;}
 function friendlyError(v){const message=String(v||'');if(['Agnes video image references require PUBLIC_BASE_URL pointing to this Studio','当前图片仅保存在本机，Agnes 视频无法访问。请重新运行 Agnes 图片节点后再生成视频；本地上传图片需在“模型/API → Agnes AI”配置素材公网地址'].includes(v))return '该图片没有 Agnes 可访问的公网地址。请配置素材公网地址，或改用支持内联图片的模型。';if(/fetch failed|failed to fetch|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(message))return '暂时无法连接 Agnes 服务，请检查网络和“模型/API”配置后重试。';if(/video queue is full/i.test(message))return '视频服务当前排队已满，自动重试仍未成功，请稍后点击重试。图片、提示词和参数已保留。';if(/rate limit|rate exceeded|allows\s+\d+\s+requests?\s+per/i.test(message))return 'Agnes 视频接口触发频率限制（当前约每分钟 2 次），请等待限流窗口结束后再重试。图片、提示词和参数已保留。';return v;}
@@ -530,6 +541,7 @@ function openTextOutputPage(n){if(!n?.data?.outputText)return;const returnFocus=
 function openDirectTextOutputPage({title,text,preset='',render}){if(!text)return;const returnFocus=document.activeElement;prepareModalOpen(els.textOutputModal);textOutputReturnFocus=returnFocus;S.textOutputNodeId=null;S.textOutputDirect={preset,render};S.textOutputOriginal=text;els.textOutputTitle.textContent=title||'脚本全文';els.textOutputEditor.value=text;els.textOutputModal.classList.remove('hidden');setTextOutputEditing(false);if(els.textOutputTable){els.textOutputTable.scrollTop=0;els.textOutputTable.scrollLeft=0;}}
 function closeTextOutputPage(){els.textOutputEditor.value=S.textOutputOriginal;S.textOutputNodeId=null;S.textOutputDirect=null;S.textOutputOriginal='';els.textOutputModal?.classList.add('hidden');els.textOutputModal?.querySelector('.text-output-page')?.classList.remove('is-editing');restoreInteractionFocus(textOutputReturnFocus);textOutputReturnFocus=null;}
 function downloadNodeOutput(n){const out=nodeOutputAssets(n).map(findAsset).find(Boolean);if(!out)return;const link=document.createElement('a');link.href=out.publicUrl;link.download=out.filename||'';document.body.append(link);link.click();link.remove();}
+async function downloadSkillExample(url,filename='skill-example'){const target=String(url||'').trim();if(!target)return;try{const response=await fetch(target);if(!response.ok)throw new Error(`HTTP ${response.status}`);const blob=await response.blob(),blobUrl=URL.createObjectURL(blob),link=document.createElement('a');link.href=blobUrl;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(blobUrl),1000);toast('示例媒体已开始下载','info');}catch{const link=document.createElement('a');link.href=target;link.target='_blank';link.rel='noopener';link.download=filename;document.body.append(link);link.click();link.remove();toast('浏览器已打开原始媒体链接，请在浏览器中保存','info');}}
 function inferReferenceRole(n,asset){
   if(n.type==='imageGen')return 'reference-image';
   const cap=videoNodeCapability(n);
@@ -991,39 +1003,180 @@ function renderSkillFilters(){
   $$('[data-skill-category]',els.skillCategoryFilters).forEach(button=>button.addEventListener('click',()=>{S.skillFilter=button.dataset.skillCategory||'all';renderSkillLibrary();}));
 }
 function skillMatches(skill){
-  const query=String(S.skillQuery||'').trim().toLowerCase(),haystack=[skill.name,skill.category,skill.author,skill.description,skill.usage,...(skill.tags||[])].join(' ').toLowerCase();
+  const query=String(S.skillQuery||'').trim().toLowerCase(),haystack=[skill.name,skill.category,skill.author,skill.description,skill.usage,skill.cardSummary,skill.howToUse,...(skill.tags||[])].join(' ').toLowerCase();
   return (S.skillFilter==='all'||(skill.category||'创作工作流')===S.skillFilter)&&(!query||haystack.includes(query));
 }
+function skillDetailSpecs(skill){
+  const duration=Number(skill.rules?.durationSec||0),format=skill.rules?.format||'16:9',shots=Number(skill.rules?.shotCount||0);
+  return [skill.category||'创作工作流',duration?`${duration} 秒`:null,format,shots?`${shots} 镜`:null].filter(Boolean).join(' · ');
+}
+function skillDetailFlowSteps(skill){
+  const steps=(skill.fixedSteps||[]).filter(Boolean);
+  if(steps.length<=4)return steps;
+  return [steps[0],steps[Math.floor((steps.length-1)/2)],steps[steps.length-1]];
+}
+function skillDetailDeliverables(skill){
+  const outputs=(skill.outputs||[]).filter(Boolean);
+  if(!outputs.length)return '按 Skill 配置自动生成画布节点与时间线内容。';
+  if(outputs.length<=4)return `${outputs.join('、')}。`;
+  return `${outputs.slice(0,3).join('、')}等 ${outputs.length} 项产出。`;
+}
+function skillCopyFields(skill){
+  const cardSummary=String(skill.cardSummary||'').trim();
+  const howToRaw=String(skill.howToUse||'').trim();
+  const howToUse=howToRaw?howToRaw.replace(/^先在 Agent 中选择该 Skill，再/,'').replace(/；发送后执行固定的画布工作流。?$/,'，确认后自动写入画布。'):'在 Agent 中选择 Skill，补充素材和卖点后发送即可执行。';
+  const detailLead=String(skill.description||'').trim();
+  let cardBlurb=cardSummary;
+  if(!cardBlurb){
+    const first=detailLead.split(/[。；]/).find(Boolean);
+    cardBlurb=first?(first.endsWith('。')?first:`${first}。`):'';
+  }
+  return {cardBlurb,howToUse,detailLead};
+}
+function skillCardBlurb(skill){
+  return skillCopyFields(skill).cardBlurb;
+}
+function skillExampleItems(skill){
+  const source=Array.isArray(skill?.examples)?skill.examples:Array.isArray(skill?.caseItems)?skill.caseItems:[];
+  return source.map((item,index)=>{
+    const url=String(item?.url||item?.publicUrl||item?.videoUrl||item?.imageUrl||'').trim(),rawType=String(item?.type||'').toLowerCase(),path=url.split('?')[0].toLowerCase();
+    let type=['image','video'].includes(rawType)?rawType:/\.(jpe?g|png|webp|gif|avif)$/.test(path)?'image':/\.(mp4|webm|mov|m4v|avi)$/.test(path)?'video':'';
+    if(!type&&url)type=rawType==='image'?'image':'video';
+    return {type,url,label:String(item?.label||item?.name||`案例 ${index+1}`).trim()||`案例 ${index+1}`};
+  }).filter(item=>item.url&&item.type);
+}
+function skillExampleFilename(skill,index,item){
+  const path=item.url.split('?')[0].toLowerCase(),match=path.match(/\.(jpe?g|png|webp|gif|avif|mp4|webm|mov|m4v)$/),extension=match?.[1]|| (item.type==='image'?'png':'mp4');
+  return `${String(skill.id||'skill-example').replace(/[^a-z0-9_-]+/gi,'-')}-example-${index+1}.${extension}`;
+}
+function skillPreviewItems(skill){
+  const examples=skillExampleItems(skill);
+  if(examples.length)return examples;
+  const cover=String(skill.cover||'').trim();
+  return [{type:'image',url:cover||'/welcome-assets/video-generation.png',label:skill.name||'封面'}];
+}
+function skillDetailIntroRows(skill){
+  const {howToUse,detailLead}=skillCopyFields(skill),usage=String(skill.usage||'').trim(),inputHint=String(skill.source?.inputType||'').trim(),outputHint=String(skill.source?.outputContent||'').trim()||skillDetailDeliverables(skill),rows=[];
+  if(detailLead)rows.push({label:'介绍',value:detailLead});
+  if(usage)rows.push({label:'使用场景',value:usage});
+  const howValue=inputHint||howToUse;
+  if(howValue)rows.push({label:'如何使用',value:howValue});
+  if(outputHint)rows.push({label:'输出内容',value:outputHint});
+  return rows;
+}
+function skillDetailPreviewSlide(item,index){
+  const active=index===0?' is-active':'';
+  if(item.type==='video')return `<div class="skill-detail-preview-slide${active}" data-skill-preview-index="${index}" data-media-type="video" data-media-url="${esc(item.url)}" data-media-label="${esc(item.label)}"><div class="skill-detail-preview-mount"></div></div>`;
+  return `<div class="skill-detail-preview-slide${active}" data-skill-preview-index="${index}" data-media-type="image"><img src="${esc(item.url)}" alt="${esc(item.label)}" draggable="false"></div>`;
+}
+function skillDetailSyncOrientation(stage,slide){
+  if(!stage||!slide)return;
+  const video=slide.querySelector('video'),img=slide.querySelector('img');
+  let portrait=slide.dataset.orientation==='portrait';
+  if(video?.videoWidth&&video.videoHeight)portrait=video.videoHeight>video.videoWidth*1.02;
+  else if(img?.naturalWidth&&img.naturalHeight)portrait=img.naturalHeight>img.naturalWidth*1.02;
+  slide.dataset.orientation=portrait?'portrait':'landscape';
+  stage.classList.toggle('is-portrait',portrait);
+  stage.classList.toggle('is-landscape',!portrait);
+}
+function skillDetailUnmountSlideMedia(slide){
+  if(!slide||slide.dataset.mediaType!=='video')return;
+  slide.querySelector('video')?.pause();
+  const mount=slide.querySelector('.skill-detail-preview-mount');
+  if(mount)mount.innerHTML='';
+  slide.dataset.mediaMounted='0';
+}
+function skillDetailMountSlideMedia(slide,stage){
+  if(!slide)return;
+  if(slide.dataset.mediaType==='image'){
+    const img=slide.querySelector('img'),sync=()=>skillDetailSyncOrientation(stage,slide);
+    if(img?.complete)sync();else img?.addEventListener('load',sync,{once:true});
+    return;
+  }
+  if(slide.dataset.mediaMounted==='1'){skillDetailSyncOrientation(stage,slide);return;}
+  const mount=slide.querySelector('.skill-detail-preview-mount'),url=slide.dataset.mediaUrl||'',label=slide.dataset.mediaLabel||'案例视频';
+  if(!mount||!url){mount&&(mount.innerHTML='<p class="skill-detail-preview-error">视频地址无效</p>');return;}
+  mount.innerHTML=customVideoPlayerMarkup(url,{className:'skill-detail-player',label});
+  bindCustomVideoPlayers(mount);
+  const video=mount.querySelector('video');
+  if(video){
+    video.preload='metadata';
+    const sync=()=>skillDetailSyncOrientation(stage,slide);
+    video.addEventListener('loadedmetadata',sync);
+    video.addEventListener('loadeddata',sync);
+    video.addEventListener('error',()=>{if(!mount.querySelector('.skill-detail-preview-error'))mount.insertAdjacentHTML('beforeend','<p class="skill-detail-preview-error">视频暂时无法播放</p>');},{once:true});
+    if(video.readyState>=1)sync();
+  }
+  slide.dataset.mediaMounted='1';
+  skillDetailSyncOrientation(stage,slide);
+}
+function bindSkillDetailPreview(root,items){
+  const stage=root.querySelector('.skill-detail-preview-stage'),countEl=root.querySelector('[data-skill-preview-count]'),prevBtn=root.querySelector('[data-skill-preview-prev]'),nextBtn=root.querySelector('[data-skill-preview-next]'),slides=[...root.querySelectorAll('[data-skill-preview-index]')];
+  if(!stage||!slides.length)return;
+  stage.classList.add('is-landscape');
+  let index=0;
+  const updatePager=()=>{if(countEl)countEl.textContent=`${index+1}/${items.length}`;};
+  const show=next=>{skillDetailUnmountSlideMedia(slides[index]);slides[index]?.classList.remove('is-active');index=(next+items.length)%items.length;slides[index]?.classList.add('is-active');skillDetailMountSlideMedia(slides[index],stage);updatePager();};
+  skillDetailMountSlideMedia(slides[index],stage);
+  updatePager();
+  prevBtn?.addEventListener('click',event=>{event.stopPropagation();show(index-1);});
+  nextBtn?.addEventListener('click',event=>{event.stopPropagation();show(index+1);});
+}
 function renderSkillDetail(skill){
-  if(!els.skillLibraryList)return;
-  els.skillDrawer?.classList.add('is-detail');
-  const tags=skill.tags||[],format=skill.rules?.format||'16:9',duration=Number(skill.rules?.durationSec||0),shots=Number(skill.rules?.shotCount||0),kind=skill.kind||'视频';
-  els.skillLibraryList.innerHTML=`<div class="skill-detail-view"><div class="skill-detail-nav"><button type="button" class="skill-detail-back" data-skill-back><span aria-hidden="true">←</span><span>返回 Skill</span></button><span>Skill 详情</span></div><div class="skill-detail-cover"><img src="${esc(skill.cover||'/welcome-assets/video-generation.png')}" alt="" draggable="false"><span class="skill-card-category">${esc(kind)}</span></div><div class="skill-detail-heading"><div><h2>${esc(skill.name)}</h2><span>v${Number(skill.version||1)} · ${esc(skill.category||'创作工作流')}</span></div><button type="button" class="skill-detail-use" data-skill-detail-use>${icon('player-play')}<span>使用</span></button></div><p class="skill-detail-description">${esc(skill.description||'')}</p><div class="skill-card-tags">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div><div class="skill-detail-meta"><span>${esc(skill.author||'LibTV Studio')}</span><span>${duration?`${duration}s · `:''}${esc(format)}${shots?` · ${shots}镜`:''}</span></div><section class="skill-detail-section"><h3>使用方式</h3><p>${esc(skill.howToUse||'选择“使用”后，Skill 会添加到 Agent，发送需求时再执行。')}</p></section><section class="skill-detail-section"><h3>固定步骤</h3><ol>${(skill.fixedSteps||[]).map(step=>`<li>${esc(step)}</li>`).join('')}</ol></section><section class="skill-detail-section"><h3>输出内容</h3><div class="skill-output-tags">${(skill.outputs||[]).map(output=>`<span>${esc(output)}</span>`).join('')}</div></section></div>`;
-  els.skillLibraryList.querySelector('[data-skill-back]')?.addEventListener('click',()=>{S.skillDetailId=null;renderSkillLibrary();});
-  els.skillLibraryList.querySelector('[data-skill-detail-use]')?.addEventListener('click',()=>useSkillFromPlaza(skill.id));
+  if(!els.skillDetailBody)return;
+  const previewItems=skillPreviewItems(skill),introRows=skillDetailIntroRows(skill),introMarkup=introRows.length?`<section class="skill-detail-intro"><h3>简介</h3><dl class="skill-detail-facts">${introRows.map(row=>`<div class="skill-detail-fact"><dt>${esc(row.label)}</dt><dd>${esc(row.value)}</dd></div>`).join('')}</dl></section>`:'',pagerMarkup=previewItems.length>1?`<div class="skill-detail-preview-pager" data-skill-preview-pager><button type="button" class="skill-detail-preview-nav" data-skill-preview-prev aria-label="上一个示例">${icon('chevron-left')}</button><span class="skill-detail-preview-count" data-skill-preview-count>1/${previewItems.length}</span><button type="button" class="skill-detail-preview-nav" data-skill-preview-next aria-label="下一个示例">${icon('chevron-right')}</button></div>`:'';
+  els.skillDetailBody.innerHTML=`<div class="skill-detail-view"><header class="skill-detail-header"><div class="skill-detail-heading"><div class="skill-detail-heading-copy"><h2 id="skillDetailTitle">${esc(skill.name)}</h2></div><div class="skill-detail-actions"><button type="button" class="skill-detail-use" data-skill-detail-use>${icon('player-play')}<span>使用 Skill</span></button><button type="button" class="icon-btn skill-detail-close" title="关闭" aria-label="关闭 Skill 详情">${icon('x')}</button></div></div></header><div class="skill-detail-scroll"><div class="skill-detail-preview">${pagerMarkup}<div class="skill-detail-preview-stage is-landscape">${previewItems.map((item,index)=>skillDetailPreviewSlide(item,index)).join('')}</div></div>${introMarkup}</div></div>`;
+  const detailView=els.skillDetailBody.querySelector('.skill-detail-view');
+  detailView?.querySelector('[data-skill-detail-use]')?.addEventListener('click',()=>useSkillFromPlaza(skill.id));
+  detailView?.querySelector('.skill-detail-close')?.addEventListener('click',()=>closeSkillDetail());
+  if(detailView)bindSkillDetailPreview(detailView,previewItems);
+}
+function closeSkillDetail(){
+  els.skillDetailBody?.querySelectorAll('video').forEach(video=>video.pause());
+  if(els.skillDetailBody)els.skillDetailBody.innerHTML='';
+  els.skillDetailModal?.classList.add('hidden');
+  S.skillDetailId=null;
+  restoreModalFocus(els.skillDetailModal);
 }
 function openSkillDetail(skillId){
   const skill=(S.skills||[]).find(item=>item.id===skillId);if(!skill)return;
-  S.skillDetailId=skill.id;renderSkillLibrary();
+  S.skillDetailId=skill.id;
+  const returnFocus=document.activeElement;
+  closeOtherModals(els.skillDetailModal);
+  modalReturnFocus.set(els.skillDetailModal,returnFocus);
+  renderSkillDetail(skill);
+  els.skillDetailModal?.classList.remove('hidden');
+  requestAnimationFrame(()=>els.skillDetailBody?.querySelector('.skill-detail-close')?.focus());
 }
 function renderSkillLibrary(){
   if(!els.skillLibraryList)return;
-  const detail=(S.skills||[]).find(skill=>skill.id===S.skillDetailId);
-  if(detail){renderSkillDetail(detail);return;}
   els.skillDrawer?.classList.remove('is-detail');
   renderSkillFilters();
   const skills=(S.skills||[]).filter(skillMatches);
   if(!skills.length){els.skillLibraryList.innerHTML=`<div class="empty-state">${(S.skills||[]).length?'没有匹配的 Skill':'暂无可用 Skill'}</div>`;return;}
   els.skillLibraryList.innerHTML=skills.map(skill=>{
-    const tags=(skill.tags||[]).slice(0,4),format=skill.rules?.format||'16:9',duration=Number(skill.rules?.durationSec||0),shots=Number(skill.rules?.shotCount||0),kind=skill.kind||'视频';
-    return `<article class="skill-card" data-skill-id="${esc(skill.id)}" role="button" tabindex="0" aria-label="查看 ${esc(skill.name)} 详情"><div class="skill-card-cover"><img src="${esc(skill.cover||'/welcome-assets/video-generation.png')}" alt="" draggable="false"><span class="skill-card-category">${esc(kind)}</span></div><div class="skill-card-body"><button type="button" class="skill-use-button" data-skill-use>${icon('player-play')}<span>使用</span></button><div class="skill-card-title-row"><div><h3>${esc(skill.name)}</h3><span>v${Number(skill.version||1)} · ${esc(skill.category||'创作工作流')}</span></div></div><p>${esc(skill.description||'')}</p><div class="skill-card-tags">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div><div class="skill-card-meta"><span>${esc(skill.author||'LibTV Studio')}</span><span>${duration?`${duration}s · `:''}${esc(format)}${shots?` · ${shots}镜`:''}</span></div></div></article>`;
+    const kind=skill.kind||'视频',specs=skillDetailSpecs(skill),blurb=skillCardBlurb(skill);
+    return `<article class="skill-card" data-skill-id="${esc(skill.id)}" role="button" tabindex="0" aria-label="查看 ${esc(skill.name)} 详情"><div class="skill-card-cover"><img src="${esc(skill.cover||'/welcome-assets/video-generation.png')}" alt="" draggable="false"><span class="skill-card-category">${esc(kind)}</span></div><div class="skill-card-body"><button type="button" class="skill-use-button" data-skill-use>${icon('player-play')}<span>使用</span></button><div class="skill-card-heading"><h3>${esc(skill.name)}</h3></div><p class="skill-card-blurb">${esc(blurb)}</p><p class="skill-card-specs">${esc(specs)}</p></div></article>`;
   }).join('');
   $$('[data-skill-id]',els.skillLibraryList).forEach(card=>{card.addEventListener('click',event=>{if(event.target.closest('[data-skill-use]'))return;openSkillDetail(card.dataset.skillId);});card.addEventListener('keydown',event=>{if(!['Enter',' '].includes(event.key)||event.target!==card)return;event.preventDefault();openSkillDetail(card.dataset.skillId);});});
   $$('[data-skill-use]',els.skillLibraryList).forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();useSkillFromPlaza(button.closest('[data-skill-id]')?.dataset.skillId);}));
 }
 function useSkillFromPlaza(skillId){
   const skill=(S.skills||[]).find(item=>item.id===skillId);if(!skill)return;
+  closeSkillDetail();
   S.agent.skillId=skill.id;S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;hideDrawer('skillDrawer');openAgent();renderAgentPromptMenu();requestAnimationFrame(()=>els.agentPromptInput?.focus());
+}
+async function importSkillFromLiblib(){
+  const value=prompt('粘贴 Liblib Skill 分享链接或 UUID');
+  const url=String(value||'').trim();
+  if(!url)return;
+  const button=els.importSkillBtn;
+  if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
+  try{
+    const result=await api('/api/skills/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url})});
+    if(result.skill){S.skills=[...(S.skills||[]).filter(skill=>skill.id!==result.skill.id),result.skill];S.skillFilter='all';S.skillQuery='';renderSkillLibrary();renderAgentPromptMenu();openSkillDetail(result.skill.id);toast(`${result.created?'已导入':'已更新'} Skill「${result.skill.name}」`,'info');}
+  }catch(error){toast(`导入 Skill 失败：${error.message}`,'error');}
+  finally{if(button){button.disabled=false;button.removeAttribute('aria-busy');}}
 }
 async function refreshSkills(){try{const data=await api('/api/skills');S.skills=data.skills||[];renderSkillLibrary();renderAgentPromptMenu();}catch(error){toast(`Skill 加载失败：${error.message}`,'error');}}
 async function refreshAssets(){if(!S.projectId)return;const f=S.assetFilter||{},q=new URLSearchParams();if(f.tag&&f.tag!=='all')q.set('tag',f.tag);if(f.kind&&f.kind!=='all')q.set('kind',f.kind);const qs=q.toString();const r=await api(`/api/projects/${S.projectId}/assets${qs?`?${qs}`:''}`);S.assets=r.assets||[];renderAssets();renderSkillLibrary();renderInspector();renderPreview();}
@@ -1037,7 +1190,7 @@ function renderAssets(){
   const kindLabel={image:'图片',video:'视频',audio:'音频'};
   const dateLabel=value=>{const date=new Date(value);if(Number.isNaN(date.getTime()))return '未记录日期';const today=new Date();const start=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();const diff=Math.round((start(today)-start(date))/86400000);if(diff===0)return '今天';if(diff===1)return '昨天';return date.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});};
   const assets=[...S.assets].sort((a,b)=>Date.parse(b.metadata?.generatedAt||b.createdAt||0)-Date.parse(a.metadata?.generatedAt||a.createdAt||0)||String(b.id).localeCompare(String(a.id)));let lastDate='';
-  els.assetList.innerHTML=assets.map(a=>{const prompt=assetPrompt(a),media=a.kind==='image'?`<img class="asset-thumb" src="${esc(a.publicUrl)}" alt="" draggable="false">`:a.kind==='video'?`<video class="asset-thumb" src="${esc(a.publicUrl)}" muted playsinline preload="metadata" draggable="false"></video>`:`<span class="asset-thumb audio">${icon('volume')}</span>`,date=dateLabel(a.metadata?.generatedAt||a.createdAt),heading=date===lastDate?'':(lastDate=date,`<div class="asset-date-group">${esc(date)}</div>`);return `${heading}<div class="asset-card" data-asset="${esc(a.id)}" title="${esc(a.filename)}" role="button" tabindex="0" draggable="true"><button type="button" class="asset-delete" data-asset-delete title="删除素材" aria-label="删除素材">${icon('x')}</button><span class="asset-visual">${media}<span class="asset-kind">${kindLabel[a.kind]||esc(a.kind)}</span></span><span class="asset-card-copy"><span class="asset-name">${esc(a.filename)}</span><button type="button" class="asset-prompt${prompt?'':' is-empty'}"><b>提示词</b><span>${prompt?esc(prompt):'上传素材未包含提示词'}</span></button></span></div>`;}).join('');
+  els.assetList.innerHTML=assets.map(a=>{const prompt=assetPrompt(a),lead=assetCardLead(a),meta=assetCardMeta(a),media=a.kind==='image'?`<img class="asset-thumb" src="${esc(a.publicUrl)}" alt="" draggable="false">`:a.kind==='video'?`<video class="asset-thumb" src="${esc(a.publicUrl)}" muted playsinline preload="metadata" draggable="false"></video>`:`<span class="asset-thumb audio">${icon('volume')}</span>`,date=dateLabel(a.metadata?.generatedAt||a.createdAt),heading=date===lastDate?'':(lastDate=date,`<div class="asset-date-group">${esc(date)}</div>`),cardTitle=prompt||a.filename||lead;return `${heading}<div class="asset-card" data-asset="${esc(a.id)}" title="${esc(cardTitle)}" role="button" tabindex="0" draggable="true" aria-label="${esc(kindLabel[a.kind]||a.kind)} · ${esc(cardTitle)}"><button type="button" class="asset-delete" data-asset-delete title="删除素材" aria-label="删除素材">${icon('x')}</button><span class="asset-visual">${media}<span class="asset-kind">${kindLabel[a.kind]||esc(a.kind)}</span></span><span class="asset-card-copy"><button type="button" class="asset-prompt${prompt?'':' is-empty'}"><span class="asset-card-lead">${esc(lead)}</span>${meta?`<span class="asset-card-meta">${esc(meta)}</span>`:''}</button></span></div>`;}).join('');
   $$('.asset-card',els.assetList).forEach(card=>{card.addEventListener('click',e=>{const a=findAsset(card.dataset.asset);if(!a)return;if(e.target.closest('[data-asset-delete]'))return deleteAsset(a);if(e.target.closest('.asset-prompt'))return openAssetPrompt(a);if(S.assetPick){const pick=S.assetPick;S.assetPick=null;hideDrawer('assetDrawer');pickReferenceAsset(pick.nodeId,a);return;}if(['image','video'].includes(a.kind))openMediaLightbox(a);});card.addEventListener('dragstart',e=>{if(e.target.closest('button'))return e.preventDefault();e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData(ASSET_DRAG_TYPE,card.dataset.asset);});card.addEventListener('keydown',e=>{if(e.target!==card||!['Enter',' '].includes(e.key))return;e.preventDefault();card.click();});});
 }
 function hasDraggedFiles(e){return [...(e.dataTransfer?.types||[])].includes('Files');}
@@ -1201,8 +1354,8 @@ function closeDetailsMenu(menu,{restoreFocus=true}={}){if(!menu)return;menu.open
 function positionOpenDetails(menu){if(!menu?.matches('.app-select'))return;requestAnimationFrame(()=>{if(!menu.open)return;const summary=$('summary',menu),popover=$('.app-select-popover',menu),container=menu.closest('.provider-settings-form,.floating-drawer,.modal-backdrop'),summaryRect=summary?.getBoundingClientRect(),containerRect=container?.getBoundingClientRect();if(!summaryRect||!popover)return;const bottom=containerRect?.bottom||innerHeight,needed=Math.min(320,Math.max(120,popover.scrollHeight));menu.classList.toggle('opens-up',bottom-summaryRect.bottom<needed+12&&summaryRect.top>needed);});}
 function collapseExpandedNodeComposers(){let changed=false;for(const n of S.workflow.nodes.filter(isGenerationNode)){if(n.data.expanded!==true)continue;n.data.expanded=false;const el=els.canvasWorld?.querySelector(`[data-id="${n.id}"]`);if(el)renderNode(n);changed=true;}if(changed)scheduleSave();return changed;}
 function restoreModalFocus(modal){const target=modalReturnFocus.get(modal);modalReturnFocus.delete(modal);restoreInteractionFocus(target);}
-function closeModalElement(modal){if(!modal||modal.classList.contains('hidden'))return;if(modal===els.textOutputModal){modalReturnFocus.delete(modal);return closeTextOutputPage();}if(modal===els.assetPromptModal){modalReturnFocus.delete(modal);return closeAssetPrompt();}if(modal===els.mediaLightbox){modalReturnFocus.delete(modal);return closeMediaLightbox();}if(modal===els.previewFullscreenModal){closeFullscreenPreview();restoreModalFocus(modal);return;}modal.classList.add('hidden');restoreModalFocus(modal);}
-function closeOtherModals(except=null){[els.textOutputModal,els.assetPromptModal,els.mediaLightbox,els.previewFullscreenModal,els.createProjectModal,els.deleteProjectModal,els.providerModal,els.helpModal].forEach(modal=>{if(modal!==except)closeModalElement(modal);});}
+function closeModalElement(modal){if(!modal||modal.classList.contains('hidden'))return;if(modal===els.textOutputModal){modalReturnFocus.delete(modal);return closeTextOutputPage();}if(modal===els.assetPromptModal){modalReturnFocus.delete(modal);return closeAssetPrompt();}if(modal===els.mediaLightbox){modalReturnFocus.delete(modal);return closeMediaLightbox();}if(modal===els.skillDetailModal){modalReturnFocus.delete(modal);return closeSkillDetail();}if(modal===els.previewFullscreenModal){closeFullscreenPreview();restoreModalFocus(modal);return;}modal.classList.add('hidden');restoreModalFocus(modal);}
+function closeOtherModals(except=null){[els.textOutputModal,els.assetPromptModal,els.mediaLightbox,els.skillDetailModal,els.previewFullscreenModal,els.createProjectModal,els.deleteProjectModal,els.providerModal,els.helpModal].forEach(modal=>{if(modal!==except)closeModalElement(modal);});}
 function preparePrimarySurface(){closeControlDropdowns();hideMenus();collapseExpandedNodeComposers();hideDrawer('assetDrawer');hideDrawer('skillDrawer');hideDrawer('inspectorDrawer');setTimelineOpen(false);}
 function prepareModalOpen(modal){const returnFocus=document.activeElement;preparePrimarySurface();closeOtherModals(modal);if(modal)modalReturnFocus.set(modal,returnFocus);}
 function closeTopLayerOnEscape(){
@@ -1211,6 +1364,7 @@ function closeTopLayerOnEscape(){
   if(!els.textOutputModal?.classList.contains('hidden')){closeTextOutputPage();return true;}
   if(!els.assetPromptModal?.classList.contains('hidden')){closeAssetPrompt();return true;}
   if(!els.mediaLightbox?.classList.contains('hidden')){closeMediaLightbox();return true;}
+  if(!els.skillDetailModal?.classList.contains('hidden')){closeSkillDetail();return true;}
   if(!els.previewFullscreenModal?.classList.contains('hidden')){closeFullscreenPreview();return true;}
   if(!els.createProjectModal?.classList.contains('hidden')){closeCreateProject();return true;}
   if(!els.deleteProjectModal?.classList.contains('hidden')){closeDeleteProjectConfirm();return true;}
@@ -1721,7 +1875,7 @@ els.addImageBtn?.addEventListener('click',()=>addImage());els.addVideoBtn?.addEv
 els.addNodeBtn?.addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();showNodeMenu(r.left,r.top-420,findOpenNodePosition());});
 $$('[data-tool]',els.mouseTools).forEach(b=>b.addEventListener('click',()=>setTool(S.tool===b.dataset.tool?'select':b.dataset.tool)));
 els.uploadBtn.addEventListener('click',()=>{preparePrimarySurface();S.uploadTargetNodeId=null;els.fileInput.click();});els.fileInput.addEventListener('change',async()=>{const targetNodeId=S.uploadTargetNodeId,fromAgent=Boolean(S.agent.uploadFromPrompt);S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=false;const uploaded=await uploadFiles([...els.fileInput.files],{targetNodeId});if(fromAgent){if(uploaded.length){const existing=new Set((S.agent.attachments||[]).map(asset=>asset.id));S.agent.attachments=[...(S.agent.attachments||[]),...uploaded.filter(asset=>!existing.has(asset.id))];renderAgentPromptMenu();setAgentStatus(`已添加 ${uploaded.length} 个参考文件，可在发送前移除`);}else setAgentStatus('上传未完成');}els.fileInput.value='';});els.fileInput.addEventListener('cancel',()=>{S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=false;setAgentStatus((S.agent.attachments||[]).length?`已添加 ${(S.agent.attachments||[]).length} 个参考文件，可在发送前移除`:'' );});els.refreshAssetsBtn.addEventListener('click',refreshAssets);els.exportBtn.addEventListener('click',()=>{preparePrimarySurface();exportTimeline();});
-els.assetDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();showDrawer('assetDrawer');});els.skillDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();S.skillDetailId=null;showDrawer('skillDrawer');renderSkillLibrary();});els.refreshSkillsBtn?.addEventListener('click',refreshSkills);els.skillSearchInput?.addEventListener('input',()=>{S.skillQuery=els.skillSearchInput.value;renderSkillLibrary();});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
+els.assetDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();showDrawer('assetDrawer');});els.skillDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();closeSkillDetail();S.skillDetailId=null;showDrawer('skillDrawer');renderSkillLibrary();});els.importSkillBtn?.addEventListener('click',importSkillFromLiblib);els.refreshSkillsBtn?.addEventListener('click',refreshSkills);els.skillSearchInput?.addEventListener('input',()=>{S.skillQuery=els.skillSearchInput.value;renderSkillLibrary();});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
 $$('[data-close-drawer]').forEach(b=>b.addEventListener('click',()=>hideDrawer(b.dataset.closeDrawer)));
 els.providerSettingsBtn?.addEventListener('click',openProviderSettings);els.providerModalClose?.addEventListener('click',()=>closeModalElement(els.providerModal));els.providerSaveBtn?.addEventListener('click',saveProviderSettings);els.providerModal?.addEventListener('pointerdown',e=>{if(e.target===els.providerModal)closeModalElement(els.providerModal);});
 els.helpBtn?.addEventListener('click',()=>{prepareModalOpen(els.helpModal);els.helpModal.classList.remove('hidden');requestAnimationFrame(()=>els.helpModalClose?.focus());});els.helpModalClose?.addEventListener('click',()=>closeModalElement(els.helpModal));els.helpModal?.addEventListener('pointerdown',e=>{if(e.target===els.helpModal)closeModalElement(els.helpModal);});
@@ -1738,6 +1892,7 @@ els.crossfadeBtn?.addEventListener('click',crossfadeWithNext);els.timelineRefBtn
 els.canvasUndoBtn?.addEventListener('click',canvasUndo);els.canvasRedoBtn?.addEventListener('click',canvasRedo);els.timelineUndoBtn?.addEventListener('click',timelineUndo);els.timelineRedoBtn?.addEventListener('click',timelineRedo);els.previewPlayBtn?.addEventListener('click',togglePreview);
 els.previewFullscreenBtn?.addEventListener('click',openFullscreenPreview);els.previewFullscreenCloseBtn?.addEventListener('click',closeFullscreenPreview);els.previewFullscreenPlayBtn?.addEventListener('click',togglePreview);els.previewFullscreenModal?.addEventListener('pointerdown',e=>{if(e.target===els.previewFullscreenModal)closeFullscreenPreview();});
 els.mediaLightboxClose?.addEventListener('click',closeMediaLightbox);els.mediaLightbox?.addEventListener('pointerdown',e=>{if(e.target===els.mediaLightbox)closeMediaLightbox();});
+els.skillDetailModal?.addEventListener('pointerdown',e=>{if(e.target===els.skillDetailModal)closeSkillDetail();});
 els.assetPromptClose?.addEventListener('click',closeAssetPrompt);els.assetPromptModal?.addEventListener('pointerdown',e=>{if(e.target===els.assetPromptModal)closeAssetPrompt();});els.assetPromptCopy?.addEventListener('click',()=>copyTextValue(els.assetPromptText.value,'提示词已复制'));
 els.fitBtn.addEventListener('click',fitCanvas);els.runAllBtn?.addEventListener('click',runAllNodes);els.zoomInBtn.addEventListener('click',()=>{S.view.zoom=Math.min(2.5,S.view.zoom*1.15);updateView();});els.zoomOutBtn.addEventListener('click',()=>{S.view.zoom=Math.max(.25,S.view.zoom/1.15);updateView();});
 function keyboardTargetAllowsTextEntry(target){return target instanceof Element&&Boolean(target.closest('textarea,[contenteditable="true"],[role="textbox"],input:not([type]),input[type="email"],input[type="number"],input[type="password"],input[type="search"],input[type="tel"],input[type="text"],input[type="url"]'));}

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260819-video-controls-frameless" />
+  <link rel="stylesheet" href="/styles.css?v=20260819-skill-video-lazy" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -88,7 +88,7 @@
       </aside>
 
       <aside id="skillDrawer" class="floating-drawer right-drawer skill-drawer hidden-drawer" aria-label="技能广场">
-        <div class="drawer-header"><strong>技能广场</strong><div><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="drawer-header"><strong>技能广场</strong><div><button id="importSkillBtn" class="icon-btn" title="导入 Skill" aria-label="导入 Skill"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="Skill 分类"></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="搜索 Skill" aria-label="搜索 Skill"></label></div>
         <div id="skillLibraryList" class="skill-library-list"></div>
       </aside>
@@ -250,6 +250,12 @@
     </section>
   </div>
 
+  <div id="skillDetailModal" class="modal-backdrop skill-detail-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="skillDetailTitle">
+    <section class="skill-detail-modal" role="document">
+      <div id="skillDetailBody" class="skill-detail-modal-body"></div>
+    </section>
+  </div>
+
   <div id="textOutputModal" class="text-output-modal hidden" role="dialog" aria-modal="true" aria-label="脚本全文">
     <section class="text-output-page">
       <div class="modal-header text-output-header">
@@ -271,6 +277,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/app.js?v=20260819-video-empty-restore"></script>
+  <script type="module" src="/app.js?v=20260819-skill-video-lazy"></script>
 </body>
 </html>

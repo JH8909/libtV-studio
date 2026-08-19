@@ -1,0 +1,109 @@
+{
+  "id": "liblib-skill-86556cc18ca0",
+  "version": 1,
+  "sourceVersion": "1.0.2",
+  "name": "电影质感画面专业生成",
+  "category": "专业影视",
+  "kind": "图片",
+  "cover": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/f91b91c3de22e17a6509f8a2219754a03743eff9.png",
+  "author": "星曜AG",
+  "description": "一句大白话就能生成超质感电影级多风格图片",
+  "cardSummary": "一句大白话就能生成超质感电影级多风格图片",
+  "usage": "适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。",
+  "howToUse": "在 Agent 中选择该 Skill，输入图片需求，按需添加参考素材；发送后执行工作流。",
+  "tags": [
+    "专业影视",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "86556cc18ca0486a8490fd363a029dbc",
+    "skillUuid": "9d4436fe4be04a4393f3881b21eaf41a",
+    "skillKey": "cinematic-image-transformer-9d8925c591a643bbad8ca8cfbb87922c",
+    "inputType": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+    "outputContent": "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片",
+    "url": "https://www.liblib.tv/skill/share?uuid=86556cc18ca0486a8490fd363a029dbc",
+    "importedAt": "2026-08-19T14:08:55.901Z"
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "创作描述",
+      "type": "text",
+      "required": true,
+      "placeholder": "输入主体、场景、风格和构图需求。"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image"
+      ]
+    },
+    {
+      "id": "aspectRatio",
+      "label": "画幅",
+      "type": "select",
+      "required": true,
+      "default": "16:9",
+      "options": [
+        "16:9"
+      ]
+    }
+  ],
+  "outputs": [
+    "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片",
+    "自动加入画布的生成节点"
+  ],
+  "fixedSteps": [
+    "提取主体、场景、构图、风格和光线约束",
+    "有参考素材时锁定主体身份与视觉连续性",
+    "按目标画幅生成图片节点",
+    "保留结果并回到画布继续创作"
+  ],
+  "rules": {
+    "format": "16:9",
+    "shotCount": 1,
+    "continuity": "保持主体身份、服装、材质、场景和光线连续。",
+    "safety": "禁止随机新增主体、变脸、换装、肢体变形、穿模、无指令切镜和画面文字。"
+  },
+  "promptTemplates": {
+    "videoPlanSystem": "你是视觉创意总监。把用户的图片需求拆成主体、场景、构图、风格、光线和连续性约束，输出简洁可执行的生成计划。不要新增未指定的主体。",
+    "videoPlanPrompt": "请拆解以下图片生成需求：{{INSTRUCTION}}。输出主体、场景、构图、风格、光线、参考素材使用方式和负面约束。",
+    "imagePrompt": "图片生成指令：{{INSTRUCTION}}。保持主体身份、结构、材质和风格稳定，画面清晰，避免随机新增主体、变形、文字和水印。画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/557e9b80642bface4f498697a3e2d2894feac74d.png",
+      "label": "案例 1"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/f0c955c21091570b71a321d5d6160eb185ba25c7.png",
+      "label": "案例 2"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/b9f078a421893a4e2c8871f4e21d9a3835998d3e.png",
+      "label": "案例 3"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/7d18f7a21f6622166d519833114cded5fef294c8.png",
+      "label": "案例 4"
+    }
+  ],
+  "execution": {
+    "workflow": "generic-image",
+    "adapter": "single-image",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": false,
+    "appendVideosToTimeline": false,
+    "audioMode": "full"
+  }
+}

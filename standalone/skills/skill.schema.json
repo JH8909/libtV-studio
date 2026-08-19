@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://libtv.studio/schemas/skill.json",
+  "title": "LibTV Skill",
+  "description": "Skill 广场与 Agent 共用的 Skill 元数据。UI 文案字段分工见 standalone/skills/README.md。",
+  "type": "object",
+  "required": ["id", "version", "name", "category", "kind", "description", "cardSummary", "howToUse", "inputs", "outputs", "fixedSteps", "rules", "promptTemplates", "execution"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "category": { "type": "string", "minLength": 1 },
+    "kind": { "type": "string", "enum": ["视频", "图片", "音频", "混合", "工作流"] },
+    "cover": { "type": "string" },
+    "author": { "type": "string" },
+    "description": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 280,
+      "description": "详情页 lead：完整价值说明，可含技术细节。"
+    },
+    "cardSummary": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 72,
+      "description": "列表卡片摘要：一句卖点，不含操作步骤与规格数字。"
+    },
+    "howToUse": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 120,
+      "description": "详情页「怎么用」原文；UI 会去掉 Agent 前缀并统一确认文案。"
+    },
+    "usage": { "type": "string", "description": "可选：适用场景标签，仅用于搜索，不在卡片展示。" },
+    "tags": { "type": "array", "items": { "type": "string" }, "maxItems": 8 },
+    "inputs": { "type": "array", "minItems": 1 },
+    "outputs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "fixedSteps": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "rules": {
+      "type": "object",
+      "required": ["format"],
+      "properties": {
+        "format": { "type": "string" },
+        "durationSec": { "type": "number" },
+        "shotCount": { "type": "integer" }
+      }
+    },
+    "promptTemplates": { "type": "object" },
+    "execution": { "type": "object" }
+  }
+}
