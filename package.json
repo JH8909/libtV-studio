@@ -25,9 +25,11 @@
     "test:canvas": "node standalone/canvas-interactions-e2e.mjs",
     "test:image-presets": "node standalone/image-presets-e2e.mjs",
     "test:design-system": "node standalone/design-system-e2e.mjs",
-    "test:skill-schema": "node standalone/skill-schema-e2e.mjs"
+    "test:skill-schema": "node standalone/skill-schema-e2e.mjs",
+    "icons:sync": "node standalone/scripts/sync-model-icons.mjs"
   },
   "devDependencies": {
+    "@lobehub/icons-static-svg": "^1.92.0",
     "@types/node": "^24.10.1",
     "tsx": "^4.23.1",
     "typescript": "~6.0.2"

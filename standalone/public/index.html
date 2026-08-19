@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260819-skill-video-lazy" />
+  <link rel="stylesheet" href="/styles.css?v=20260820-ds-control-fullwidth" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -88,8 +88,8 @@
       </aside>
 
       <aside id="skillDrawer" class="floating-drawer right-drawer skill-drawer hidden-drawer" aria-label="技能广场">
-        <div class="drawer-header"><strong>技能广场</strong><div><button id="importSkillBtn" class="icon-btn" title="导入 Skill" aria-label="导入 Skill"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
-        <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="Skill 分类"></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="搜索 Skill" aria-label="搜索 Skill"></label></div>
+        <div class="drawer-header"><strong>技能广场</strong><div><button id="importSkillBtn" class="icon-btn" title="导入技能" aria-label="导入技能"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="技能分类"></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="搜索技能" aria-label="搜索技能"></label></div>
         <div id="skillLibraryList" class="skill-library-list"></div>
       </aside>
 
@@ -165,7 +165,6 @@
           </div>
         </div>
       </div>
-      <div id="agentStatus" class="agent-status" role="status" aria-live="polite"></div>
       <form id="agentPromptForm" class="agent-prompt-form" data-promptbar>
         <div class="agent-prompt-anchor">
           <div id="agentPromptSourceMenu" class="agent-prompt-source-menu hidden" role="menu"></div>
@@ -175,6 +174,7 @@
             <textarea id="agentPromptInput" rows="1" placeholder="写下一个想法…" aria-label="创意输入"></textarea>
             <div class="agent-prompt-controls">
               <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="上传文件" title="上传文件"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button>
+              <button id="agentSkillBtn" class="agent-prompt-control" type="button" aria-label="选择技能" title="选择技能" aria-expanded="false" aria-haspopup="menu"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></button>
               <div id="agentModelSelect" class="agent-model-select"></div>
               <button id="agentDictationBtn" class="agent-prompt-control" type="button" aria-label="语音输入" title="语音输入"><i class="ui-icon" style="--icon:url('/vendor/icons/microphone.svg')"></i></button>
               <button id="agentSendBtn" class="agent-send-btn" type="submit" aria-label="发送创意"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i></button>
@@ -194,7 +194,7 @@
   <div id="createProjectModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle">
     <section class="create-project-modal">
       <div class="modal-header"><strong id="createProjectTitle">新建画布</strong></div>
-      <label class="create-project-field"><span>画布名称</span><input id="createProjectInput" type="text" maxlength="120" autocomplete="off"></label>
+      <label class="create-project-field"><span>画布名称</span><input id="createProjectInput" class="ds-control-input" type="text" maxlength="120" autocomplete="off"></label>
       <div class="modal-footer"><button id="createProjectCancel" type="button">取消</button><button id="createProjectConfirm" type="button" class="primary">创建画布</button></div>
     </section>
   </div>
@@ -211,7 +211,7 @@
     <section class="provider-modal">
       <div class="modal-header"><div><strong>模型 / API</strong><small>APIMart 输入 API Key 后自动拉取可用模型；密钥只保存在本机</small></div><button id="providerModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
       <div id="providerSettingsForm" class="provider-settings-form"></div>
-      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存并拉取模型</button></div>
+      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存配置</button></div>
     </section>
   </div>
 
@@ -277,6 +277,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/app.js?v=20260819-skill-video-lazy"></script>
+  <script type="module" src="/app.js?v=20260820-ds-control-fullwidth"></script>
 </body>
 </html>
