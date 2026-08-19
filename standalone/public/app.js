@@ -7,7 +7,7 @@ const els = Object.fromEntries([
   'refreshAssetsBtn','assetList','assetLibraryTabs','promptLibraryList','canvas','canvasWorld','edgesLayer','inspector','jobList','jobSummary','archiveCompletedJobsBtn','fitBtn','zoomOutBtn','zoomInBtn','zoomLabel',
   'connectionToast','timelineBody','timelineRuler','timelineMeta','timelineHint','timelineRefBtn','deleteClipBtn','splitClipBtn','duplicateClipBtn','crossfadeBtn','rippleDeleteBtn',
   'timelineUndoBtn','timelineRedoBtn','addTextClipBtn','timelineZoomOutBtn','timelineZoomInBtn','timelineZoomLabel','canvasUndoBtn','canvasRedoBtn','runAllBtn','previewStage','previewPlayBtn','previewTime','previewFullscreenBtn','previewFullscreenModal','previewFullscreenStage','previewFullscreenPlayBtn','previewFullscreenTime','previewFullscreenCloseBtn','mediaLightbox','mediaLightboxStage','mediaLightboxClose','assetPromptModal','assetPromptText','assetPromptCopy','assetPromptClose','toastRoot',
-  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetFilterChips','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentMessages','agentEmptyState','agentStatus','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentPromptPlusBtn','agentDictationBtn','agentSendBtn'
+  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetFilterChips','skillDrawerBtn','skillDrawer','skillCategoryFilters','skillSearchInput','refreshSkillsBtn','skillLibraryList','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentMessages','agentEmptyState','agentStatus','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentAttachmentPreview','agentPromptPlusBtn','agentSkillChip','agentDictationBtn','agentSendBtn'
 ].map(id => [id, document.getElementById(id)]));
 
 const NODE_W = 300;
@@ -31,8 +31,8 @@ const S = {
   interaction: null, spaceDown: false, suppressNodeClickId: null, saveTimer: null, saveInFlight: null, saveQueued: false, workflowBase: null, timelineSaveTimer: null, projectSwitching: false, homeMode: false, jobFilter: 'all', archivedJobIds: new Set(), pendingDeleteProjectId: null,
   timelineZoom: 1, playheadFrame: 0, previewTimer: null, previewActiveKey: '', previewActiveKeyFull: '',
   tool: 'select', menuWorld: null, menuClient: null, providerSettings: {}, jobWatchers: new Map(), activeReference: null,
-  assetPick:null, assetFilter:{tag:'all',kind:'all'}, assetLibraryTab:'assets', promptLibrary:{categories:[],presets:[]}, uploadTargetNodeId:null, textOutputNodeId:null, textOutputDirect:null, textOutputOriginal:'', canvasNotice:null, canvasNoticeTimer:null,
-  agent: { conversations: [], conversationId: '', messages: [], modelKey: '', busy: false, error: '', modelMenuOpen: false, sourceMenuOpen: false, dictating: false },
+  assetPick:null, assetFilter:{tag:'all',kind:'all'}, assetLibraryTab:'assets', promptLibrary:{categories:[],presets:[]}, skills:[], skillFilter:'all', skillQuery:'', skillDetailId:null, uploadTargetNodeId:null, textOutputNodeId:null, textOutputDirect:null, textOutputOriginal:'', canvasNotice:null, canvasNoticeTimer:null,
+  agent: { conversations: [], conversationId: '', messages: [], modelKey: '', skillId: '', attachments: [], busy: false, error: '', modelMenuOpen: false, sourceMenuOpen: false, dictating: false, uploadFromPrompt: false },
 };
 
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
@@ -72,8 +72,8 @@ function timelinePx(){ return BASE_TIMELINE_PX*S.timelineZoom; }
 async function init(){
   try {
     const requestedProjectId = new URLSearchParams(location.search).get('projectId');
-    const [modelData,projectData,promptLibrary]=await Promise.all([api('/api/models'),api('/api/projects'),api('/api/prompt-library')]);
-    S.promptLibrary=promptLibrary;setImagePresetLibrary(promptLibrary);
+    const [modelData,projectData,promptLibrary,skillData]=await Promise.all([api('/api/models'),api('/api/projects'),api('/api/prompt-library'),api('/api/skills')]);
+    S.promptLibrary=promptLibrary;setImagePresetLibrary(promptLibrary);S.skills=skillData.skills||[];
     S.models=(modelData.models||[]).filter(model=>model.providerId!=='mock'); S.projects=projectData.projects||[];
     if(!S.projects.length){const p=await api('/api/projects',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'My LibTV Project'})});S.projects=[p];}
     renderProjectSelect(); await openProject(S.projects.some(project=>project.id===requestedProjectId)?requestedProjectId:S.projects[0].id); setupGlobalInteractions(); bindAssetFilterChips(); bindAssetLibraryTabs();
@@ -954,7 +954,7 @@ function waitForNodeJob(n,jobId){
     },700);
   });
 }
-async function runAllNodes(){
+async function runAllNodes(skillRun=null){
   const order=topoOrderGenerationNodes();
   if(!order.length)return toast('画布上没有可运行的生成节点');
   let ok=0,fail=0;
@@ -964,6 +964,7 @@ async function runAllNodes(){
     const r=await generateNode(n.id);
     if(r&&r.ok)ok++;else fail++;
   }
+  if(Array.isArray(skillRun?.videoNodeIds)&&fail===0)await appendSkillVideosToTimeline(skillRun);
   toast(`工作流运行完成：成功 ${ok}，失败 ${fail}`,fail?'error':'info');
 }
 async function applyJobUpdate(n,job){const terminal=['succeeded','failed','canceled'];if(n.data.jobId!==job.id||!nodeById(n.id)||terminal.includes(n.data.status))return true;if(n.data.status==='processing'&&job.status==='queued'&&!isRetryWaitPhase(job.phase))return false;const hadText=Boolean(n.data.outputText);n.data.status=job.status;n.data.phase=job.phase;n.data.progressMode=job.progressMode||'phase';n.data.progressStartedAt=terminal.includes(job.status)?null:(n.data.progressStartedAt||Date.now());n.data.nextAttemptAt=job.nextAttemptAt||null;n.data.providerAttempt=job.providerAttempt||0;n.data.providerMaxAttempts=job.providerMaxAttempts||0;n.data.progress=terminal.includes(job.status)?Number(job.progress||0):Math.max(Number(n.data.progress||0),Number(job.progress||0));n.data.error=job.error||'';if(n.type==='textGen'&&job.outputText!=null){n.data.outputText=job.outputText;const preview=els.canvasWorld.querySelector(`[data-id="${n.id}"] .generator-text-result`);if(preview)preview.value=job.outputText;else if(!hadText&&job.outputText)renderNode(n);}upsertJob(job);renderJobs();if(!terminal.includes(job.status)){updateNodeProgressDom(n);return false;}n.data.jobId='';if(job.status==='succeeded'){if(job.outputText!=null)n.data.outputText=job.outputText;const outs=(job.outputs||[]).map(o=>o.id);n.data.variantAssetIds=outs.length>1?outs:[];n.data.selectedVariantIndex=0;n.data.previousOutputAssetIds=[];n.data.outputAssetIds=outs.slice(0,1);n.data.expanded=false;await saveWorkflow();setCanvasNotice(null);await refreshAssets();const output=findAsset(outs[0]);if(n.data.imagePresetId&&output){const preset=imagePresetById(n.data.imagePresetId),expected=String(preset?.aspectRatio||'').split(':').map(Number),actual=Number(output.width)/Number(output.height);n.data.presetReviewWarning=expected.length===2&&expected.every(Boolean)&&actual>0&&Math.abs(Math.log(actual/(expected[0]/expected[1])))>.18?'输出比例与预设版式不一致，请检查宫格完整性':'';}renderNode(n);renderEdges();for(const e of S.workflow.edges.filter(e=>e.source===n.id)){const t=nodeById(e.target);if(t&&isGenerationNode(t))renderNode(t);}scheduleSave();return true;}renderNode(n);scheduleSave();if(job.status==='failed')setCanvasNotice(n,job.error||'生成失败');else toast(friendlyError(job.error)||(job.status==='canceled'?'任务已取消':job.status),job.status==='failed'?'error':'info');return true;}
@@ -972,7 +973,50 @@ function resumeNodeJobs(){for(const n of S.workflow.nodes)if(n.data?.jobId&&['qu
 function upsertJob(job){const i=S.jobs.findIndex(j=>j.id===job.id);if(i>=0)S.jobs[i]=job;else S.jobs.unshift(job);}
 
 /* ---------------- Assets ---------------- */
-async function refreshAssets(){if(!S.projectId)return;const f=S.assetFilter||{},q=new URLSearchParams();if(f.tag&&f.tag!=='all')q.set('tag',f.tag);if(f.kind&&f.kind!=='all')q.set('kind',f.kind);const qs=q.toString();const r=await api(`/api/projects/${S.projectId}/assets${qs?`?${qs}`:''}`);S.assets=r.assets||[];renderAssets();renderInspector();renderPreview();}
+function skillCategories(){return['all',[...new Set((S.skills||[]).map(skill=>skill.category||'创作工作流'))]].flat();}
+function renderSkillFilters(){
+  if(!els.skillCategoryFilters)return;
+  els.skillCategoryFilters.innerHTML=skillCategories().map(category=>`<button type="button" role="tab" class="skill-category-chip ${S.skillFilter===category?'active':''}" data-skill-category="${esc(category)}" aria-selected="${S.skillFilter===category}">${esc(category==='all'?'推荐':category)}</button>`).join('');
+  if(els.skillSearchInput)els.skillSearchInput.value=S.skillQuery||'';
+  $$('[data-skill-category]',els.skillCategoryFilters).forEach(button=>button.addEventListener('click',()=>{S.skillFilter=button.dataset.skillCategory||'all';renderSkillLibrary();}));
+}
+function skillMatches(skill){
+  const query=String(S.skillQuery||'').trim().toLowerCase(),haystack=[skill.name,skill.category,skill.author,skill.description,skill.usage,...(skill.tags||[])].join(' ').toLowerCase();
+  return (S.skillFilter==='all'||(skill.category||'创作工作流')===S.skillFilter)&&(!query||haystack.includes(query));
+}
+function renderSkillDetail(skill){
+  if(!els.skillLibraryList)return;
+  els.skillDrawer?.classList.add('is-detail');
+  const tags=skill.tags||[],format=skill.rules?.format||'16:9',duration=Number(skill.rules?.durationSec||0),shots=Number(skill.rules?.shotCount||0),kind=skill.kind||'视频';
+  els.skillLibraryList.innerHTML=`<div class="skill-detail-view"><div class="skill-detail-nav"><button type="button" class="skill-detail-back" data-skill-back><span aria-hidden="true">←</span><span>返回 Skill</span></button><span>Skill 详情</span></div><div class="skill-detail-cover"><img src="${esc(skill.cover||'/welcome-assets/video-generation.png')}" alt="" draggable="false"><span class="skill-card-category">${esc(kind)}</span></div><div class="skill-detail-heading"><div><h2>${esc(skill.name)}</h2><span>v${Number(skill.version||1)} · ${esc(skill.category||'创作工作流')}</span></div><button type="button" class="skill-detail-use" data-skill-detail-use>${icon('player-play')}<span>使用</span></button></div><p class="skill-detail-description">${esc(skill.description||'')}</p><div class="skill-card-tags">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div><div class="skill-detail-meta"><span>${esc(skill.author||'LibTV Studio')}</span><span>${duration?`${duration}s · `:''}${esc(format)}${shots?` · ${shots}镜`:''}</span></div><section class="skill-detail-section"><h3>使用方式</h3><p>${esc(skill.howToUse||'选择“使用”后，Skill 会添加到 Agent，发送需求时再执行。')}</p></section><section class="skill-detail-section"><h3>固定步骤</h3><ol>${(skill.fixedSteps||[]).map(step=>`<li>${esc(step)}</li>`).join('')}</ol></section><section class="skill-detail-section"><h3>输出内容</h3><div class="skill-output-tags">${(skill.outputs||[]).map(output=>`<span>${esc(output)}</span>`).join('')}</div></section></div>`;
+  els.skillLibraryList.querySelector('[data-skill-back]')?.addEventListener('click',()=>{S.skillDetailId=null;renderSkillLibrary();});
+  els.skillLibraryList.querySelector('[data-skill-detail-use]')?.addEventListener('click',()=>useSkillFromPlaza(skill.id));
+}
+function openSkillDetail(skillId){
+  const skill=(S.skills||[]).find(item=>item.id===skillId);if(!skill)return;
+  S.skillDetailId=skill.id;renderSkillLibrary();
+}
+function renderSkillLibrary(){
+  if(!els.skillLibraryList)return;
+  const detail=(S.skills||[]).find(skill=>skill.id===S.skillDetailId);
+  if(detail){renderSkillDetail(detail);return;}
+  els.skillDrawer?.classList.remove('is-detail');
+  renderSkillFilters();
+  const skills=(S.skills||[]).filter(skillMatches);
+  if(!skills.length){els.skillLibraryList.innerHTML=`<div class="empty-state">${(S.skills||[]).length?'没有匹配的 Skill':'暂无可用 Skill'}</div>`;return;}
+  els.skillLibraryList.innerHTML=skills.map(skill=>{
+    const tags=(skill.tags||[]).slice(0,4),format=skill.rules?.format||'16:9',duration=Number(skill.rules?.durationSec||0),shots=Number(skill.rules?.shotCount||0),kind=skill.kind||'视频';
+    return `<article class="skill-card" data-skill-id="${esc(skill.id)}" role="button" tabindex="0" aria-label="查看 ${esc(skill.name)} 详情"><div class="skill-card-cover"><img src="${esc(skill.cover||'/welcome-assets/video-generation.png')}" alt="" draggable="false"><span class="skill-card-category">${esc(kind)}</span></div><div class="skill-card-body"><button type="button" class="skill-use-button" data-skill-use>${icon('player-play')}<span>使用</span></button><div class="skill-card-title-row"><div><h3>${esc(skill.name)}</h3><span>v${Number(skill.version||1)} · ${esc(skill.category||'创作工作流')}</span></div></div><p>${esc(skill.description||'')}</p><div class="skill-card-tags">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div><div class="skill-card-meta"><span>${esc(skill.author||'LibTV Studio')}</span><span>${duration?`${duration}s · `:''}${esc(format)}${shots?` · ${shots}镜`:''}</span></div></div></article>`;
+  }).join('');
+  $$('[data-skill-id]',els.skillLibraryList).forEach(card=>{card.addEventListener('click',event=>{if(event.target.closest('[data-skill-use]'))return;openSkillDetail(card.dataset.skillId);});card.addEventListener('keydown',event=>{if(!['Enter',' '].includes(event.key)||event.target!==card)return;event.preventDefault();openSkillDetail(card.dataset.skillId);});});
+  $$('[data-skill-use]',els.skillLibraryList).forEach(button=>button.addEventListener('click',event=>{event.stopPropagation();useSkillFromPlaza(button.closest('[data-skill-id]')?.dataset.skillId);}));
+}
+function useSkillFromPlaza(skillId){
+  const skill=(S.skills||[]).find(item=>item.id===skillId);if(!skill)return;
+  S.agent.skillId=skill.id;S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;hideDrawer('skillDrawer');openAgent();renderAgentPromptMenu();requestAnimationFrame(()=>els.agentPromptInput?.focus());
+}
+async function refreshSkills(){try{const data=await api('/api/skills');S.skills=data.skills||[];renderSkillLibrary();renderAgentPromptMenu();}catch(error){toast(`Skill 加载失败：${error.message}`,'error');}}
+async function refreshAssets(){if(!S.projectId)return;const f=S.assetFilter||{},q=new URLSearchParams();if(f.tag&&f.tag!=='all')q.set('tag',f.tag);if(f.kind&&f.kind!=='all')q.set('kind',f.kind);const qs=q.toString();const r=await api(`/api/projects/${S.projectId}/assets${qs?`?${qs}`:''}`);S.assets=r.assets||[];renderAssets();renderSkillLibrary();renderInspector();renderPreview();}
 function setAssetLibraryTab(tab){S.assetLibraryTab=tab==='prompts'?'prompts':'assets';$$('[data-library-tab]',els.assetLibraryTabs).forEach(button=>{const active=button.dataset.libraryTab===S.assetLibraryTab;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active));});$$('[data-library-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.libraryPanel!==S.assetLibraryTab));if(S.assetLibraryTab==='prompts')renderPromptLibrary();}
 async function savePromptLibraryPreset(card){const presetId=card.dataset.presetId,patch=Object.fromEntries($$('[data-prompt-field]',card).map(field=>[field.dataset.promptField,field.value]));const button=$('[data-prompt-save]',card);button.disabled=true;try{const updated=await api(`/api/prompt-library/${encodeURIComponent(presetId)}`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(patch)});S.promptLibrary.presets=S.promptLibrary.presets.map(preset=>preset.id===updated.id?updated:preset);setImagePresetLibrary(S.promptLibrary);renderPromptLibrary();renderCanvas();toast(`“${updated.label}”提示词已更新至 v${updated.version}`);}catch(error){button.disabled=false;toast(`提示词保存失败：${error.message}`,'error');}}
 function renderPromptLibrary(){if(!els.promptLibraryList)return;const categories=S.promptLibrary.categories||[];els.promptLibraryList.innerHTML=categories.map(category=>{const presets=(S.promptLibrary.presets||[]).filter(preset=>preset.category===category.id&&preset.enabled!==false);if(!presets.length)return'';return `<section class="prompt-library-group"><h3>${icon(category.icon)}${esc(category.label)}</h3>${presets.map(preset=>`<article class="prompt-library-card" data-preset-id="${esc(preset.id)}"><div><strong>${esc(preset.label)}</strong><span>v${Number(preset.version||1)} · ${esc(preset.aspectRatio)} · ${preset.aspectPolicy==='locked'?'预设比例':'继承上游'}</span></div><p>${esc(preset.scene||'')}</p><details><summary>查看与编辑系统提示词</summary><label>正向提示词<textarea data-prompt-field="positive">${esc(preset.positive)}</textarea></label><label>反向提示词<textarea data-prompt-field="negative">${esc(preset.negative)}</textarea></label><button type="button" data-prompt-save>保存提示词</button></details></article>`).join('')}</section>`;}).join('')||'<div class="empty-state">暂无图片预设</div>';$$('[data-prompt-save]',els.promptLibraryList).forEach(button=>button.addEventListener('click',()=>savePromptLibraryPreset(button.closest('[data-preset-id]'))));}
@@ -1149,7 +1193,7 @@ function collapseExpandedNodeComposers(){let changed=false;for(const n of S.work
 function restoreModalFocus(modal){const target=modalReturnFocus.get(modal);modalReturnFocus.delete(modal);restoreInteractionFocus(target);}
 function closeModalElement(modal){if(!modal||modal.classList.contains('hidden'))return;if(modal===els.textOutputModal){modalReturnFocus.delete(modal);return closeTextOutputPage();}if(modal===els.assetPromptModal){modalReturnFocus.delete(modal);return closeAssetPrompt();}if(modal===els.mediaLightbox){modalReturnFocus.delete(modal);return closeMediaLightbox();}if(modal===els.previewFullscreenModal){closeFullscreenPreview();restoreModalFocus(modal);return;}modal.classList.add('hidden');restoreModalFocus(modal);}
 function closeOtherModals(except=null){[els.textOutputModal,els.assetPromptModal,els.mediaLightbox,els.previewFullscreenModal,els.createProjectModal,els.deleteProjectModal,els.providerModal,els.helpModal].forEach(modal=>{if(modal!==except)closeModalElement(modal);});}
-function preparePrimarySurface(){closeControlDropdowns();hideMenus();collapseExpandedNodeComposers();hideDrawer('assetDrawer');hideDrawer('inspectorDrawer');setTimelineOpen(false);}
+function preparePrimarySurface(){closeControlDropdowns();hideMenus();collapseExpandedNodeComposers();hideDrawer('assetDrawer');hideDrawer('skillDrawer');hideDrawer('inspectorDrawer');setTimelineOpen(false);}
 function prepareModalOpen(modal){const returnFocus=document.activeElement;preparePrimarySurface();closeOtherModals(modal);if(modal)modalReturnFocus.set(modal,returnFocus);}
 function closeTopLayerOnEscape(){
   if(!els.agentOverlay?.classList.contains('hidden')){closeAgent();return true;}
@@ -1224,7 +1268,7 @@ function showCanvasContextMenu(x,y,{nodeId=null,edgeId=null,world=null}={}){
   menuPosition(els.nodeContextMenu,x,y);
 }
 function setTool(tool){S.tool=tool;els.canvas.classList.toggle('tool-pan',tool==='pan');els.canvas.classList.toggle('tool-connect',tool==='connect');$$('[data-tool]',els.mouseTools).forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));}
-function showDrawer(id){hideDrawer(id==='assetDrawer'?'inspectorDrawer':'assetDrawer');setTimelineOpen(false);document.getElementById(id)?.classList.remove('hidden-drawer');}
+function showDrawer(id){for(const drawer of ['assetDrawer','skillDrawer','inspectorDrawer'])if(drawer!==id)hideDrawer(drawer);setTimelineOpen(false);document.getElementById(id)?.classList.remove('hidden-drawer');}
 function hideDrawer(id){document.getElementById(id)?.classList.add('hidden-drawer');if(id==='assetDrawer')S.assetPick=null;}
 function setTimelineOpen(open){if(open)preparePrimarySurface();els.timelineShell?.classList.toggle('collapsed',!open);if(open)revealTimelineContent();}
 const PROVIDER_FIELDS=[
@@ -1265,6 +1309,7 @@ const AGENT_PROMPT_COMMANDS=[
   {name:'设计角色',desc:'补齐角色动机、关系和外在特征',insert:'帮我设计核心角色与人物关系'},
   {name:'润色表达',desc:'让现有创意更清晰、更有感染力',insert:'帮我润色这段创意表达'},
 ];
+function agentSkillItems(){return(S.skills||[]).map(skill=>({name:skill.name,desc:`Skill · ${skill.category||'创作工作流'} · ${skill.description||''}`,insert:`/${skill.name}`,skillId:skill.id}));}
 function agentPromptToken(value){const match=/(^|\s)([@/])([\w\u4e00-\u9fff-]*)$/.exec(String(value||''));return match?{kind:match[2],query:match[3].toLowerCase(),start:match.index+match[1].length}:null;}
 function agentModelIconName(model){const provider=String(model?.providerId||'').toLowerCase(),modelId=String(model?.modelId||'').toLowerCase();if(provider==='deepseek'||modelId.includes('deepseek'))return'deepseek';if(provider==='bailian'||modelId.includes('qwen'))return'qwen';return'model';}
 function agentModelIcon(model){const name=agentModelIconName(model),generic=name==='model'?' agent-model-icon-generic':'';return`<img class="agent-model-icon${generic}" src="/model-icons/${name}.svg" alt="" aria-hidden="true">`;}
@@ -1275,14 +1320,47 @@ function syncAgentPromptMenuLayout(){
 function agentPromptMenuRows(){
   const value=els.agentPromptInput?.value||'',token=agentPromptToken(value),kind=S.agent.sourceMenuOpen?'@':token?.kind;
   if(!kind)return{token,rows:[]};
-  const query=S.agent.sourceMenuOpen?'':token?.query||'',source=kind==='@',items=source?AGENT_PROMPT_SOURCES:AGENT_PROMPT_COMMANDS;
+  const query=S.agent.sourceMenuOpen?'':token?.query||'',source=kind==='@',items=source?[...AGENT_PROMPT_SOURCES,...agentSkillItems()]:[...AGENT_PROMPT_COMMANDS,...agentSkillItems()];
   return{token,rows:items.filter(item=>!query||`${item.name}${item.desc}`.toLowerCase().includes(query))};
+}
+function renderAgentSkillChip(){
+  if(!els.agentSkillChip)return;
+  const skill=(S.skills||[]).find(item=>item.id===S.agent.skillId);
+  els.agentSkillChip.classList.toggle('hidden',!skill);
+  if(!skill){els.agentSkillChip.innerHTML='';return;}
+  els.agentSkillChip.innerHTML=`<span>${icon('sparkles-2')}<strong>${esc(skill.name)}</strong><small>${esc(skill.category||'Skill')}</small></span><button type="button" data-agent-skill-clear title="取消 Skill" aria-label="取消 Skill">${icon('x')}</button>`;
+}
+function agentAttachmentMediaMarkup(asset,className=''){
+  const source=esc(asset?.publicUrl||''),label=esc(asset?.filename||'参考文件');
+  if(asset?.kind==='image')return`<img class="${className}" src="${source}" alt="${label}" draggable="false">`;
+  if(asset?.kind==='video')return`<video class="${className}" src="${source}" muted playsinline preload="metadata" aria-label="${label}"></video>`;
+  return`<span class="${className} audio">${icon('volume')}</span>`;
+}
+function agentMessageAttachmentsMarkup(attachments){
+  const items=Array.isArray(attachments)?attachments:[];
+  if(!items.length)return'';
+  return`<div class="agent-message-attachments">${items.map(asset=>`<span class="agent-message-attachment" title="${esc(asset.filename||'参考文件')}"><span class="agent-message-attachment-media">${agentAttachmentMediaMarkup(asset)}</span><span>${esc(asset.filename||'参考文件')}</span></span>`).join('')}</div>`;
+}
+function renderAgentAttachmentPreview(){
+  if(!els.agentAttachmentPreview)return;
+  const attachments=S.agent.attachments||[];
+  els.agentAttachmentPreview.classList.toggle('hidden',!attachments.length);
+  els.agentAttachmentPreview.innerHTML=attachments.map(asset=>{
+    const previewable=['image','video'].includes(asset.kind),label=asset.kind==='video'?'预览视频':'预览图片';
+    return `<div class="agent-attachment-preview-item" data-agent-attachment="${esc(asset.id)}"${previewable?` role="button" tabindex="0" aria-label="${label}"`:''}><span class="agent-attachment-media">${agentAttachmentMediaMarkup(asset)}</span><button type="button" class="agent-attachment-remove" data-agent-attachment-remove="${esc(asset.id)}" aria-label="移除 ${esc(asset.filename||'参考文件')}" title="移除参考文件">${icon('x')}</button></div>`;
+  }).join('');
+  $$('[data-agent-attachment][role="button"]',els.agentAttachmentPreview).forEach(item=>{
+    const open=()=>openMediaLightbox(findAsset(item.dataset.agentAttachment)||(S.agent.attachments||[]).find(asset=>asset.id===item.dataset.agentAttachment));
+    item.addEventListener('click',event=>{if(event.target.closest('[data-agent-attachment-remove]'))return;open();});
+    item.addEventListener('keydown',event=>{if(!['Enter',' '].includes(event.key))return;event.preventDefault();open();});
+  });
 }
 function renderAgentPromptMenu(){
   if(!els.agentPromptSourceMenu)return;
+  renderAgentSkillChip();
+  renderAgentAttachmentPreview();
   const {token,rows}=agentPromptMenuRows(),visible=rows.length>0&&(S.agent.sourceMenuOpen||token);
   els.agentPromptSourceMenu.classList.toggle('hidden',!visible);
-  els.agentPromptPlusBtn?.setAttribute('aria-expanded',String(Boolean(S.agent.sourceMenuOpen)));
   syncAgentPromptMenuLayout();
   if(!visible)return;
   S.agent.promptMenuIndex=Math.min(Number(S.agent.promptMenuIndex||0),rows.length-1);
@@ -1290,10 +1368,12 @@ function renderAgentPromptMenu(){
 }
 function applyAgentPromptChoice(index){
   const {token,rows}=agentPromptMenuRows(),item=rows[Number(index)];if(!item||!els.agentPromptInput)return;
-  const value=els.agentPromptInput.value,prefix=token?value.slice(0,token.start):value.trimEnd(),next=`${prefix}${item.insert} `;
-  els.agentPromptInput.value=next;S.agent.sourceMenuOpen=false;S.agent.promptMenuIndex=0;renderAgentPromptMenu();autoResizeAgentPrompt();els.agentPromptInput.focus();
+  const value=els.agentPromptInput.value,prefix=token?value.slice(0,token.start):value.trimEnd();
+  if(item.skillId){S.agent.skillId=item.skillId;els.agentPromptInput.value=prefix.trimEnd();}
+  else els.agentPromptInput.value=`${prefix}${item.insert} `;
+  S.agent.sourceMenuOpen=false;S.agent.promptMenuIndex=0;renderAgentPromptMenu();autoResizeAgentPrompt();els.agentPromptInput.focus();
 }
-function autoResizeAgentPrompt(){const input=els.agentPromptInput;if(!input)return;input.style.height='0px';const contentHeight=input.scrollHeight;input.style.height=`${Math.min(Math.max(contentHeight,28),100)}px`;input.style.overflowY=contentHeight>100?'auto':'hidden';els.agentPromptForm?.querySelector('.agent-prompt-composer')?.classList.toggle('is-expanded',contentHeight>28||input.value.includes('\n'));}
+function autoResizeAgentPrompt(){const input=els.agentPromptInput;if(!input)return;input.style.height='0px';const contentHeight=input.scrollHeight;input.style.height=`${Math.min(Math.max(contentHeight,75),100)}px`;input.style.overflowY=contentHeight>100?'auto':'hidden';els.agentPromptForm?.querySelector('.agent-prompt-composer')?.classList.toggle('is-expanded',contentHeight>75||input.value.includes('\n'));}
 function renderAgentModelSelect(){
   if(!els.agentModelSelect)return;
   const selected=agentModelKey();S.agent.modelKey=selected;const options=agentModels().map(model=>({value:`${model.providerId}::${model.modelId}`,label:model.displayName||`${model.providerId} · ${model.modelId}`,model})),current=options.find(item=>item.value===selected)||options[0],open=Boolean(S.agent.modelMenuOpen);
@@ -1313,8 +1393,8 @@ function agentCardMarkup(card){
 function agentMessageMarkup(message){
   const assistant=message.role==='assistant';
   const thinking=message.thinking&&!message.text;
-  const header=assistant?`<div class="agent-message-meta"><span class="agent-avatar" aria-hidden="true">✦</span><span>Agent</span><span class="agent-message-role">创意伙伴</span></div>`:`<div class="agent-message-meta agent-message-meta-user"><span>你</span></div>`;
-  return `<article class="agent-message ${assistant?'agent-message-assistant':'agent-message-user'} ${message.thinking?'is-thinking':''}">${header}<div class="agent-message-body">${thinking?'<div class="agent-thinking-state"><span class="agent-thinking-mark">✦</span><span class="agent-thinking"><i></i><i></i><i></i>正在整理创意…</span></div>':agentMessageText(message.text)}${assistant&&(message.cards||[]).length?`<div class="agent-card-list">${message.cards.map(agentCardMarkup).join('')}</div>`:''}</div></article>`;
+  const skill=(S.skills||[]).find(item=>item.id===message.skillRun?.skillId),header=assistant?`<div class="agent-message-meta"><span class="agent-avatar" aria-hidden="true">✦</span><span>Agent</span><span class="agent-message-role">${skill?`已执行 · ${esc(skill.name)}`:'创意伙伴'}</span></div>`:`<div class="agent-message-meta agent-message-meta-user"><span>你</span></div>`;
+  return `<article class="agent-message ${assistant?'agent-message-assistant':'agent-message-user'} ${message.thinking?'is-thinking':''}">${header}<div class="agent-message-body">${thinking?'<div class="agent-thinking-state"><span class="agent-thinking-mark">✦</span><span class="agent-thinking"><i></i><i></i><i></i>正在整理创意…</span></div>':agentMessageAttachmentsMarkup(message.attachments)+agentMessageText(message.text)}${skill?`<div class="agent-skill-run-summary">${icon('sparkles-2')}<span>${esc(skill.name)}</span><small>已创建并开始运行画布工作流</small></div>`:''}${assistant&&(message.cards||[]).length?`<div class="agent-card-list">${message.cards.map(agentCardMarkup).join('')}</div>`:''}</div></article>`;
 }
 function renderAgentHistory(){
   if(!els.agentHistoryMenu)return;
@@ -1327,9 +1407,10 @@ function renderAgentMessages(){
   els.agentMessages.innerHTML=messages.length?messages.map(agentMessageMarkup).join(''):els.agentEmptyState?.outerHTML||'';
   els.agentMessages.scrollTop=els.agentMessages.scrollHeight;
   if(els.agentSendBtn)els.agentSendBtn.disabled=Boolean(S.agent.busy);
+  renderAgentAttachmentPreview();
   renderAgentModelSelect();
 }
-function setAgentStatus(message=''){if(els.agentStatus)els.agentStatus.textContent=message;}
+function setAgentStatus(message=''){const value=String(message);if(els.agentStatus)els.agentStatus.textContent=value.startsWith('已添加 ')||value==='请选择要上传的文件…'?'':value;}
 let agentRecognition=null;
 function renderAgentDictation(){if(!els.agentDictationBtn)return;const active=Boolean(S.agent.dictating);els.agentDictationBtn.setAttribute('aria-pressed',String(active));els.agentDictationBtn.title=active?'停止语音输入':'语音输入';els.agentDictationBtn.innerHTML=active?'<span class="agent-dictation-bars"><i></i><i></i><i></i></span>':icon('microphone');els.agentDictationBtn.classList.toggle('is-active',active);}
 function toggleAgentDictation(){
@@ -1344,25 +1425,37 @@ function toggleAgentDictation(){
 }
 async function loadAgentConversation(conversationId){
   const conversation=await api(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(conversationId)}`);
-  S.agent.conversationId=conversation.id;S.agent.messages=conversation.messages||[];renderAgentHistory();renderAgentMessages();
+  S.agent.conversationId=conversation.id;S.agent.messages=conversation.messages||[];S.agent.skillId='';S.agent.attachments=[];renderAgentHistory();renderAgentMessages();renderAgentPromptMenu();
 }
 async function loadAgentConversations(projectId){
-  S.agent={...S.agent,conversations:[],conversationId:'',messages:[],busy:false,error:''};
+  S.agent={...S.agent,conversations:[],conversationId:'',messages:[],skillId:'',attachments:[],busy:false,error:'',uploadFromPrompt:false};
   try{const data=await api(`/api/projects/${encodeURIComponent(projectId)}/creative-agent/conversations`);S.agent.conversations=data.conversations||[];const preferred=S.agent.conversations.find(item=>item.id===S.agent.conversationId)||S.agent.conversations[0];if(preferred)await loadAgentConversation(preferred.id);else{renderAgentHistory();renderAgentMessages();}}catch(error){setAgentStatus(`创意会话暂时不可用：${error.message}`);renderAgentMessages();}
 }
 async function ensureAgentConversation(){if(S.agent.conversationId)return S.agent.conversationId;const conversation=await api(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations`,{method:'POST'});S.agent.conversationId=conversation.id;S.agent.conversations=[conversation,...(S.agent.conversations||[])];S.agent.messages=[];renderAgentHistory();return conversation.id;}
 function parseAgentSseChunk(state,chunk,onEvent){state.buffer+=chunk;let split;while((split=state.buffer.indexOf('\n\n'))>=0){const block=state.buffer.slice(0,split);state.buffer=state.buffer.slice(split+2);let event='message',data='';for(const line of block.split(/\r?\n/)){if(line.startsWith('event:'))event=line.slice(6).trim();else if(line.startsWith('data:'))data+=line.slice(5).trim();}if(data){try{onEvent(event,JSON.parse(data));}catch{}}}}
+async function appendSkillVideosToTimeline(skillRun){
+  const ids=new Set(Array.isArray(skillRun?.videoNodeIds)?skillRun.videoNodeIds:[]),videos=S.workflow.nodes.filter(node=>ids.has(node.id)&&node.type==='videoGen').sort((a,b)=>(Number(a.data?.storyboardShotIndex||0)-Number(b.data?.storyboardShotIndex||0)));
+  const ready=videos.map(node=>({node,asset:nodeOutputAssets(node).map(findAsset).find(item=>item?.kind==='video')})).filter(item=>item.asset&&!S.timeline.items.some(clip=>clip.sourceNodeId===item.node.id));
+  if(!ready.length)return;
+  beginTimelineSnapshot();
+  const fps=S.timeline.fps||30;let cursor=Math.max(0,...S.timeline.items.filter(item=>item.track==='V1').map(item=>item.startFrame+item.durationInFrames));
+  for(const {node,asset} of ready){const duration=Math.max(1,Math.round((asset.durationMs||3000)/1000*fps));S.timeline.items.push({id:id(),track:'V1',startFrame:cursor,durationInFrames:duration,name:`${node.data?.storyboardShot||'镜头'} · ${asset.filename}`,kind:'video',sourceAssetId:asset.id,sourceNodeId:node.id,sourceInFrame:0,sourceOutFrame:duration,playbackRate:1,volume:1,opacity:1,fadeInFrames:0,fadeOutFrames:0,transform:{x:0,y:0,scale:1}});cursor+=duration;}
+  S.selectedClipId=null;scheduleTimelineSave();renderTimeline();renderPreview();
+}
+async function runSkillWorkflow(skillRun){if(!skillRun)return;setAgentStatus('Skill 已启用，正在按依赖顺序生成分镜、关键帧和视频…');await runAllNodes(skillRun);}
 async function sendAgentMessage(value){
   const message=String(value||'').trim();if(!message||S.agent.busy)return;
-  const modelKey=agentModelKey();const [providerId,modelId]=modelKey.split('::');if(!providerId||!modelId)return setAgentStatus('请先在“模型/API”中配置一个文本模型。');
+  const modelKey=agentModelKey();const [providerId,modelId]=modelKey.split('::');if(!S.agent.skillId&&(!providerId||!modelId))return setAgentStatus('请先在“模型/API”中配置一个文本模型。');
+  const attachments=clone(S.agent.attachments||[]),productAssetId=attachments.find(asset=>asset.kind==='image')?.id||'';
   S.agent.busy=true;S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;renderAgentPromptMenu();setAgentStatus('正在整理创意…');await ensureAgentConversation();
-  S.agent.messages=[...(S.agent.messages||[]),{id:`local-${crypto.randomUUID()}`,role:'user',text:message,createdAt:new Date().toISOString()},{id:`pending-${crypto.randomUUID()}`,role:'assistant',text:'',cards:[],thinking:true,createdAt:new Date().toISOString()}];renderAgentMessages();
+  S.agent.messages=[...(S.agent.messages||[]),{id:`local-${crypto.randomUUID()}`,role:'user',text:message,attachments,createdAt:new Date().toISOString()},{id:`pending-${crypto.randomUUID()}`,role:'assistant',text:'',cards:[],thinking:true,createdAt:new Date().toISOString()}];renderAgentMessages();
   const pending=S.agent.messages.at(-1);
   try{
-    const response=await fetch(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(S.agent.conversationId)}/messages`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,providerId,modelId})});
+    const response=await fetch(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(S.agent.conversationId)}/messages`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,providerId,modelId,...(attachments.length?{attachments}:{}),...(S.agent.skillId?{skillId:S.agent.skillId,...(productAssetId?{productAssetId}:{})}: {})})});
     if(!response.ok){const body=await response.json().catch(()=>({}));throw new Error(body.message||body.error||`${response.status} ${response.statusText}`);}
-    const reader=response.body?.getReader();if(!reader)throw new Error('Agent 没有返回可读取的响应');const decoder=new TextDecoder(),state={buffer:''};let doneMessage=null;const handle=(event,data)=>{if(event==='thinking')setAgentStatus(data.message||'正在整理创意…');if(event==='delta'){pending.text=String(data.text||'');pending.thinking=false;renderAgentMessages();}if(event==='cards'){pending.cards=Array.isArray(data.cards)?data.cards:[];renderAgentMessages();}if(event==='done'){doneMessage=data.message;Object.assign(pending,doneMessage,{thinking:false});renderAgentMessages();}};
-    while(true){const {done,value:chunk}=await reader.read();if(done)break;parseAgentSseChunk(state,decoder.decode(chunk,{stream:true}),handle);}parseAgentSseChunk(state,decoder.decode(),handle);if(doneMessage)S.agent.messages[S.agent.messages.length-1]=doneMessage;S.agent.conversations=[{id:S.agent.conversationId,title:message.slice(0,48),updatedAt:new Date().toISOString()},...(S.agent.conversations||[]).filter(item=>item.id!==S.agent.conversationId)];renderAgentHistory();
+    const reader=response.body?.getReader();if(!reader)throw new Error('Agent 没有返回可读取的响应');const decoder=new TextDecoder(),state={buffer:''};let doneMessage=null,doneWorkflow=null,doneSkillRun=null;const handle=(event,data)=>{if(event==='thinking')setAgentStatus(data.message||'正在整理创意…');if(event==='delta'){pending.text=String(data.text||'');pending.thinking=false;renderAgentMessages();}if(event==='cards'){pending.cards=Array.isArray(data.cards)?data.cards:[];renderAgentMessages();}if(event==='done'){doneMessage=data.message;doneWorkflow=data.workflow||null;doneSkillRun=data.skillRun||data.message?.skillRun||null;Object.assign(pending,doneMessage,{thinking:false});renderAgentMessages();}};
+    while(true){const {done,value:chunk}=await reader.read();if(done)break;parseAgentSseChunk(state,decoder.decode(chunk,{stream:true}),handle);}parseAgentSseChunk(state,decoder.decode(),handle);if(doneMessage){S.agent.messages[S.agent.messages.length-1]=doneMessage;S.agent.attachments=[];renderAgentPromptMenu();}S.agent.conversations=[{id:S.agent.conversationId,title:doneSkillRun?.skillId?((S.skills||[]).find(skill=>skill.id===doneSkillRun.skillId)?.name||message.slice(0,48)):message.slice(0,48),updatedAt:new Date().toISOString()},...(S.agent.conversations||[]).filter(item=>item.id!==S.agent.conversationId)];renderAgentHistory();
+    if(doneWorkflow){S.workflow={version:Number(doneWorkflow.version||2),nodes:doneWorkflow.nodes||[],edges:doneWorkflow.edges||[]};S.workflowBase=clone(S.workflow);S.homeMode=false;S.selectedNodeId=S.selectedEdgeId=null;S.selectedNodeIds=[];renderAll();if(doneSkillRun?.autoRun)await runSkillWorkflow(doneSkillRun);S.agent.skillId='';renderAgentPromptMenu();}
   }catch(error){pending.thinking=false;pending.text=`这次没有完成：${error.message}`;pending.cards=[];renderAgentMessages();setAgentStatus('请求失败，可以重新发送。');}finally{S.agent.busy=false;if(!S.agent.error)setAgentStatus('');}
 }
 async function toggleAgentFavorite(cardId){const card=(S.agent.messages||[]).flatMap(message=>message.cards||[]).find(item=>item.id===cardId);if(!card)return;try{const result=await api(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(S.agent.conversationId)}/cards/${encodeURIComponent(cardId)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({favorite:!card.favorite})});card.favorite=result.favorite;renderAgentMessages();}catch(error){setAgentStatus(`收藏失败：${error.message}`);}}
@@ -1372,14 +1465,14 @@ function setAgentWidth(width){const value=Math.round(Math.max(380,Math.min(agent
 async function openAgent(){if(!S.projectId)return toast('请先新建或打开一个画布','error');preparePrimarySurface();els.agentOverlay.classList.remove('hidden');document.body.classList.add('agent-open');setAgentWidth(Number(localStorage.getItem('libtv.agentWidth'))||Math.min(560,Math.max(380,window.innerWidth*.42)));renderAgentHistory();renderAgentMessages();fitAgentViewport();}
 function closeAgent(){els.agentHistoryMenu?.classList.add('hidden');els.agentOverlay.classList.add('hidden');document.body.classList.remove('agent-open');document.body.style.removeProperty('--agent-width');fitAgentViewport();els.agentBtn?.focus();}
 function toggleAgent(){if(els.agentOverlay?.classList.contains('hidden'))openAgent();else closeAgent();}
-async function newAgentConversation(){try{const conversation=await api(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations`,{method:'POST'});S.agent.conversations=[conversation,...(S.agent.conversations||[])];S.agent.conversationId=conversation.id;S.agent.messages=[];els.agentHistoryMenu?.classList.add('hidden');renderAgentHistory();renderAgentMessages();els.agentPromptInput?.focus();}catch(error){setAgentStatus(`新建会话失败：${error.message}`);}}
+async function newAgentConversation(){try{const conversation=await api(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations`,{method:'POST'});S.agent.conversations=[conversation,...(S.agent.conversations||[])];S.agent.conversationId=conversation.id;S.agent.messages=[];S.agent.skillId='';S.agent.attachments=[];S.agent.uploadFromPrompt=false;els.agentHistoryMenu?.classList.add('hidden');renderAgentHistory();renderAgentMessages();renderAgentPromptMenu();els.agentPromptInput?.focus();}catch(error){setAgentStatus(`新建会话失败：${error.message}`);}}
 function bindAgentWindow(){
   let drag=null;
   els.agentNewConversationBtn?.addEventListener('click',newAgentConversation);
   els.agentHistoryBtn?.addEventListener('click',()=>{renderAgentHistory();els.agentHistoryMenu.classList.toggle('hidden');});
   els.agentHistoryMenu?.addEventListener('click',async event=>{const button=event.target.closest('[data-agent-conversation]');if(!button)return;try{await loadAgentConversation(button.dataset.agentConversation);els.agentHistoryMenu.classList.add('hidden');}catch(error){setAgentStatus(`打开会话失败：${error.message}`);}});
   els.agentMessages?.addEventListener('click',event=>{const copy=event.target.closest('[data-agent-copy]'),favorite=event.target.closest('[data-agent-favorite]'),prompt=event.target.closest('[data-agent-prompt]');if(copy){copyTextValue(copy.dataset.agentCopy||'','卡片已复制');return;}if(favorite){toggleAgentFavorite(favorite.dataset.agentFavorite);return;}if(prompt){els.agentPromptInput.value=prompt.dataset.agentPrompt||'';autoResizeAgentPrompt();els.agentPromptInput.focus();}});
-  els.agentPromptForm?.addEventListener('click',event=>{const plus=event.target.closest('#agentPromptPlusBtn'),choice=event.target.closest('[data-agent-prompt-choice]');if(plus){event.stopPropagation();S.agent.sourceMenuOpen=!S.agent.sourceMenuOpen;S.agent.modelMenuOpen=false;S.agent.promptMenuIndex=0;renderAgentModelSelect();renderAgentPromptMenu();els.agentPromptInput?.focus();return;}if(choice){event.preventDefault();applyAgentPromptChoice(choice.dataset.agentPromptChoice);}});
+  els.agentPromptForm?.addEventListener('click',event=>{const plus=event.target.closest('#agentPromptPlusBtn'),choice=event.target.closest('[data-agent-prompt-choice]'),clearSkill=event.target.closest('[data-agent-skill-clear]'),removeAttachment=event.target.closest('[data-agent-attachment-remove]');if(plus){event.preventDefault();event.stopPropagation();S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;S.agent.promptMenuIndex=0;S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=true;setAgentStatus('请选择要上传的文件…');renderAgentModelSelect();renderAgentPromptMenu();els.fileInput?.click();return;}if(removeAttachment){event.preventDefault();event.stopPropagation();const id=removeAttachment.dataset.agentAttachmentRemove;S.agent.attachments=(S.agent.attachments||[]).filter(asset=>asset.id!==id);renderAgentPromptMenu();setAgentStatus(S.agent.attachments.length?`已添加 ${S.agent.attachments.length} 个参考文件，可在发送前移除`:'');return;}if(choice){event.preventDefault();applyAgentPromptChoice(choice.dataset.agentPromptChoice);return;}if(clearSkill){event.preventDefault();S.agent.skillId='';renderAgentPromptMenu();els.agentPromptInput?.focus();}});
   els.agentPromptForm?.addEventListener('submit',event=>{event.preventDefault();const value=els.agentPromptInput.value;els.agentPromptInput.value='';S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;renderAgentPromptMenu();autoResizeAgentPrompt();sendAgentMessage(value);});
   els.agentPromptInput?.addEventListener('input',()=>{S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;S.agent.promptMenuIndex=0;renderAgentPromptMenu();autoResizeAgentPrompt();});
   els.agentPromptInput?.addEventListener('keydown',event=>{const {rows}=agentPromptMenuRows();if((S.agent.sourceMenuOpen||agentPromptToken(els.agentPromptInput.value))&&rows.length&&(event.key==='ArrowDown'||event.key==='ArrowUp')){event.preventDefault();S.agent.promptMenuIndex=(Number(S.agent.promptMenuIndex||0)+(event.key==='ArrowDown'?1:rows.length-1))%rows.length;renderAgentPromptMenu();return;}if((S.agent.sourceMenuOpen||agentPromptToken(els.agentPromptInput.value))&&rows.length&&event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();applyAgentPromptChoice(S.agent.promptMenuIndex||0);return;}if(event.key==='Escape'&&(S.agent.sourceMenuOpen||S.agent.modelMenuOpen||agentPromptToken(els.agentPromptInput.value))){event.preventDefault();S.agent.sourceMenuOpen=false;S.agent.modelMenuOpen=false;renderAgentModelSelect();renderAgentPromptMenu();return;}if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();els.agentPromptForm.requestSubmit();}});
@@ -1506,8 +1599,8 @@ $$('[data-welcome-action]').forEach(button=>button.addEventListener('click',()=>
 els.addImageBtn?.addEventListener('click',()=>addImage());els.addVideoBtn?.addEventListener('click',()=>addVideo());
 els.addNodeBtn?.addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect();showNodeMenu(r.left,r.top-420,findOpenNodePosition());});
 $$('[data-tool]',els.mouseTools).forEach(b=>b.addEventListener('click',()=>setTool(S.tool===b.dataset.tool?'select':b.dataset.tool)));
-els.uploadBtn.addEventListener('click',()=>{preparePrimarySurface();S.uploadTargetNodeId=null;els.fileInput.click();});els.fileInput.addEventListener('change',async()=>{const targetNodeId=S.uploadTargetNodeId;S.uploadTargetNodeId=null;await uploadFiles([...els.fileInput.files],{targetNodeId});els.fileInput.value='';});els.fileInput.addEventListener('cancel',()=>{S.uploadTargetNodeId=null;});els.refreshAssetsBtn.addEventListener('click',refreshAssets);els.exportBtn.addEventListener('click',()=>{preparePrimarySurface();exportTimeline();});
-els.assetDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();showDrawer('assetDrawer');});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
+els.uploadBtn.addEventListener('click',()=>{preparePrimarySurface();S.uploadTargetNodeId=null;els.fileInput.click();});els.fileInput.addEventListener('change',async()=>{const targetNodeId=S.uploadTargetNodeId,fromAgent=Boolean(S.agent.uploadFromPrompt);S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=false;const uploaded=await uploadFiles([...els.fileInput.files],{targetNodeId});if(fromAgent){if(uploaded.length){const existing=new Set((S.agent.attachments||[]).map(asset=>asset.id));S.agent.attachments=[...(S.agent.attachments||[]),...uploaded.filter(asset=>!existing.has(asset.id))];renderAgentPromptMenu();setAgentStatus(`已添加 ${uploaded.length} 个参考文件，可在发送前移除`);}else setAgentStatus('上传未完成');}els.fileInput.value='';});els.fileInput.addEventListener('cancel',()=>{S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=false;setAgentStatus((S.agent.attachments||[]).length?`已添加 ${(S.agent.attachments||[]).length} 个参考文件，可在发送前移除`:'' );});els.refreshAssetsBtn.addEventListener('click',refreshAssets);els.exportBtn.addEventListener('click',()=>{preparePrimarySurface();exportTimeline();});
+els.assetDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();showDrawer('assetDrawer');});els.skillDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();S.skillDetailId=null;showDrawer('skillDrawer');renderSkillLibrary();});els.refreshSkillsBtn?.addEventListener('click',refreshSkills);els.skillSearchInput?.addEventListener('input',()=>{S.skillQuery=els.skillSearchInput.value;renderSkillLibrary();});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
 $$('[data-close-drawer]').forEach(b=>b.addEventListener('click',()=>hideDrawer(b.dataset.closeDrawer)));
 els.providerSettingsBtn?.addEventListener('click',openProviderSettings);els.providerModalClose?.addEventListener('click',()=>closeModalElement(els.providerModal));els.providerSaveBtn?.addEventListener('click',saveProviderSettings);els.providerModal?.addEventListener('pointerdown',e=>{if(e.target===els.providerModal)closeModalElement(els.providerModal);});
 els.helpBtn?.addEventListener('click',()=>{prepareModalOpen(els.helpModal);els.helpModal.classList.remove('hidden');requestAnimationFrame(()=>els.helpModalClose?.focus());});els.helpModalClose?.addEventListener('click',()=>closeModalElement(els.helpModal));els.helpModal?.addEventListener('pointerdown',e=>{if(e.target===els.helpModal)closeModalElement(els.helpModal);});

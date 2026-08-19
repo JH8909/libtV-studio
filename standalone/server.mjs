@@ -10,6 +10,7 @@ import net from 'node:net';
 import { buildStandaloneCreativeContext } from './creative-context.mjs';
 import { buildCreativeAgentSystemPrompt, createCreativeAgentConversation, parseCreativeAgentReply } from './creative-agent.mjs';
 import { imagePresetLibrarySnapshot, normalizeImagePreset } from './public/image-presets.js';
+import { buildSkillWorkflow, listSkills, skillById } from './skill-catalog.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 for (const envFile of [join(ROOT,'.env'), join(dirname(ROOT),'.env')]) { try { if (existsSync(envFile) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envFile); } catch (error) { console.warn(`Could not load ${envFile}:`, error.message); } }
@@ -559,7 +560,22 @@ function creativeAgentContext(project) {
 }
 
 function creativeAgentMessageView(message) {
-  return { id: message.id, role: message.role, text: message.text || '', cards: message.cards || [], createdAt: message.createdAt, error: message.error || '' };
+  return { id: message.id, role: message.role, text: message.text || '', cards: message.cards || [], attachments: message.attachments || [], createdAt: message.createdAt, error: message.error || '', ...(message.skillRun ? { skillRun: message.skillRun } : {}) };
+}
+
+function creativeAgentAttachments(project, rawAttachments) {
+  const requested = Array.isArray(rawAttachments) ? rawAttachments : [], seen = new Set();
+  return requested.map((item) => state.assets[String(item?.id || item?.assetId || '')]).filter((asset) => {
+    if (!asset || asset.projectId !== project.id || seen.has(asset.id)) return false;
+    seen.add(asset.id);
+    return true;
+  }).map((asset) => ({ id: asset.id, filename: asset.filename, kind: asset.kind, publicUrl: asset.publicUrl }));
+}
+
+function creativeAgentHistoryContent(message) {
+  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+  const referenceText = attachments.length ? `[参考素材：${attachments.map((asset) => asset.filename || asset.kind || '文件').join('、')}]` : '';
+  return [message.text || '', referenceText].filter(Boolean).join('\n\n');
 }
 
 function creativeAgentConversationView(conversation) {
@@ -582,18 +598,72 @@ async function createCreativeAgentConversationForProject(projectId) {
   return conversation;
 }
 
+function applySkillToProject(project, body = {}) {
+  const skillId = String(body.skillId || '').trim();
+  const skill = skillById(skillId);
+  if (!skill) throw Object.assign(new Error('skill_not_found'), { status: 404 });
+  const selectedAsset = String(body.productAssetId || '').trim() || projectAssets(project.id, { kind: 'image' })[0]?.id;
+  if (!selectedAsset) throw Object.assign(new Error('product_image_required'), { status: 400, message: '请先在素材库上传一张产品图片。' });
+  const asset = state.assets[selectedAsset];
+  if (!asset || asset.projectId !== project.id || asset.kind !== 'image') throw Object.assign(new Error('invalid_product_image'), { status: 400, message: 'Skill 需要当前画布中的图片素材作为产品参考。' });
+  const result = buildSkillWorkflow({
+    skill,
+    existingWorkflow: project.workflow,
+    productAssetId: selectedAsset,
+    sellingPoints: body.sellingPoints || body.message,
+    brandName: body.brandName,
+    durationSec: body.durationSec,
+    aspectRatio: body.aspectRatio,
+  });
+  const nextVersion = Number(project.workflowRevision || project.workflow?.version || 1) + 1;
+  project.workflow = { version: nextVersion, nodes: result.nodes, edges: result.edges };
+  project.workflowRevision = nextVersion;
+  project.updatedAt = now();
+  return { skill, result, workflow: project.workflow };
+}
+
 async function sendCreativeAgentMessage(project, conversation, body, signal) {
   const message = String(body.message || '').trim();
   if (!message) throw Object.assign(new Error('message is required'), { status: 400 });
+  const attachments = creativeAgentAttachments(project, body.attachments);
+  if (body.skillId) {
+    const skillBody = { ...body };
+    if (!skillBody.productAssetId) skillBody.productAssetId = attachments.find((asset) => asset.kind === 'image')?.id || '';
+    const applied = applySkillToProject(project, skillBody);
+    const assistantMessage = {
+      id: randomUUID(),
+      role: 'assistant',
+      text: `已启用「${applied.skill.name}」Skill。已绑定产品图并创建创意锚点、五镜头分镜、关键帧、首帧视频、旁白方案和BGM方案节点；接下来按依赖顺序生成并把成功镜头加入 Timeline。`,
+      cards: [],
+      skillRun: {
+        id: randomUUID(),
+        skillId: applied.skill.id,
+        skillVersion: applied.skill.version,
+        createdNodeIds: applied.result.createdNodeIds,
+        videoNodeIds: applied.result.videoNodeIds,
+        audioPlanNodeIds: applied.result.audioPlanNodeIds,
+        input: applied.result.input,
+        autoRun: applied.skill.execution?.autoRun === true,
+      },
+      createdAt: now(),
+    };
+    conversation.messages ||= [];
+    conversation.messages.push({ id: randomUUID(), role: 'user', text: message.slice(0, 12_000), cards: [], attachments, skillId: applied.skill.id, createdAt: now() });
+    conversation.messages.push(assistantMessage);
+    conversation.updatedAt = now();
+    if (conversation.messages.filter((item) => item.role === 'user').length === 1) conversation.title = applied.skill.name;
+    await saveDb();
+    return { message: creativeAgentMessageView(assistantMessage), workflow: project.workflow, skillRun: assistantMessage.skillRun, conversation };
+  }
   const providerId = String(body.providerId || '').trim();
   const modelId = String(body.modelId || '').trim();
-  const userMessage = { id: randomUUID(), role: 'user', text: message.slice(0, 12_000), cards: [], createdAt: now() };
+  const userMessage = { id: randomUUID(), role: 'user', text: message.slice(0, 12_000), cards: [], attachments, createdAt: now() };
   conversation.messages ||= [];
   conversation.messages.push(userMessage);
   conversation.updatedAt = now();
   if (conversation.messages.filter((item) => item.role === 'user').length === 1) conversation.title = message.slice(0, 48);
   await saveDb();
-  const history = conversation.messages.slice(-24).map((item) => ({ role: item.role, content: item.text || '' }));
+  const history = conversation.messages.slice(-24).map((item) => ({ role: item.role, content: creativeAgentHistoryContent(item) }));
   const system = buildCreativeAgentSystemPrompt(creativeAgentContext(project));
   const raw = await completeCreativeAgent(providerId, modelId, [{ role: 'system', content: system }, ...history], signal);
   const reply = parseCreativeAgentReply(raw);
@@ -953,6 +1023,20 @@ async function handleApi(req, res, url) {
     return json(res,200,{ok:true,settings,models:await listModels(),configured:{agnes:Boolean(AGNES_API_KEY),apimart:Boolean(APIMART_API_KEY),deepseek:Boolean(DEEPSEEK_API_KEY),bailian:Boolean(BAILIAN_API_KEY)},agnesModels,...apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
+  if (p === '/api/skills' && method === 'GET') return json(res, 200, { skills: listSkills() });
+  let skillMatch = p.match(/^\/api\/projects\/([^/]+)\/skills\/([^/]+)\/apply$/);
+  if (skillMatch && method === 'POST') {
+    const project = projectOr404(safeDecode(skillMatch[1]));
+    if (!project) return notFound(res);
+    const body = await readJson(req);
+    const result = applySkillToProject(project, { ...body, skillId: safeDecode(skillMatch[2]) });
+    await saveDb();
+    return json(res, 201, {
+      skill: listSkills().find((skill) => skill.id === result.skill.id),
+      workflow: result.workflow,
+      skillRun: { skillId: result.skill.id, skillVersion: result.skill.version, createdNodeIds: result.result.createdNodeIds, videoNodeIds: result.result.videoNodeIds, audioPlanNodeIds: result.result.audioPlanNodeIds, input: result.result.input, autoRun: result.skill.execution?.autoRun === true },
+    });
+  }
   let creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations$/);
   if (creativeMatch && method === 'GET') {
     const projectId = safeDecode(creativeMatch[1]);
@@ -985,7 +1069,7 @@ async function handleApi(req, res, url) {
       const result = await sendCreativeAgentMessage(project, conversation, body, controller.signal);
       sendEvent('delta', { text: result.message.text });
       sendEvent('cards', { cards: result.message.cards });
-      sendEvent('done', { conversationId: conversation.id, message: result.message });
+      sendEvent('done', { conversationId: conversation.id, message: result.message, ...(result.workflow ? { workflow: result.workflow } : {}), ...(result.skillRun ? { skillRun: result.skillRun } : {}) });
     } catch (error) {
       if (!closed) sendEvent('error', { error: sanitizeProviderMessage(error?.message || error), retryable: ![400, 404, 422].includes(Number(error?.status)) });
     } finally {

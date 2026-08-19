@@ -19,6 +19,7 @@
       <div class="top-actions">
         <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
         <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
+        <button id="skillDrawerBtn" class="top-chip" title="技能广场" aria-label="技能"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i><span>技能</span></button>
         <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
         <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
         <button id="agentBtn" class="top-chip" aria-label="Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span></button>
@@ -78,6 +79,12 @@
         <div id="promptLibraryList" class="prompt-library-list hidden" data-library-panel="prompts"></div>
       </aside>
 
+      <aside id="skillDrawer" class="floating-drawer right-drawer skill-drawer hidden-drawer" aria-label="技能广场">
+        <div class="drawer-header"><strong>技能广场</strong><div><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="Skill 分类"></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="搜索 Skill" aria-label="搜索 Skill"></label></div>
+        <div id="skillLibraryList" class="skill-library-list"></div>
+      </aside>
+
       <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
         <div class="drawer-header"><strong>属性</strong><button data-close-drawer="inspectorDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
         <div id="previewStage" class="preview-stage"></div>
@@ -133,10 +140,12 @@
       <form id="agentPromptForm" class="agent-prompt-form" data-promptbar>
         <div class="agent-prompt-anchor">
           <div id="agentPromptSourceMenu" class="agent-prompt-source-menu hidden" role="menu"></div>
+          <div id="agentAttachmentPreview" class="agent-attachment-preview hidden" aria-label="已添加的参考文件"></div>
           <div class="agent-prompt-composer">
+            <div id="agentSkillChip" class="agent-skill-chip hidden"></div>
             <textarea id="agentPromptInput" rows="1" placeholder="写下一个想法…" aria-label="创意输入"></textarea>
             <div class="agent-prompt-controls">
-              <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="添加创作上下文" aria-expanded="false" title="添加创作上下文"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+              <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="上传文件" title="上传文件"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button>
               <div id="agentModelSelect" class="agent-model-select"></div>
               <button id="agentDictationBtn" class="agent-prompt-control" type="button" aria-label="语音输入" title="语音输入"><i class="ui-icon" style="--icon:url('/vendor/icons/microphone.svg')"></i></button>
               <button id="agentSendBtn" class="agent-send-btn" type="submit" aria-label="发送创意"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i></button>
