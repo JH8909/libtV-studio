@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LibTV Studio</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260818-unified-tooltip" />
+  <link rel="stylesheet" href="/styles.css?v=20260819-video-controls" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -17,12 +17,20 @@
         <span id="saveState" class="save-state" data-state="saved" role="status" aria-live="polite"><i class="save-state-dot" aria-hidden="true"></i><span>已保存</span></span>
       </div>
       <div class="top-actions">
-        <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
-        <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
-        <button id="skillDrawerBtn" class="top-chip" title="技能广场" aria-label="技能"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i><span>技能</span></button>
-        <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
-        <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
-        <button id="agentBtn" class="top-chip" aria-label="Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span></button>
+        <div class="top-action-group" aria-label="资料">
+          <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
+          <button id="skillDrawerBtn" class="top-chip" title="技能广场" aria-label="技能" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i><span>技能</span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="成片">
+          <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
+          <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="模型与创意">
+          <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
+          <button id="agentBtn" class="top-chip" aria-label="Agent" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span><i class="top-chip-dot hidden" aria-hidden="true"></i></button>
+        </div>
       </div>
     </header>
 
@@ -117,22 +125,43 @@
   <section id="agentOverlay" class="agent-overlay hidden" aria-label="创意 Agent">
     <div id="agentResizer" class="agent-resizer" role="separator" aria-orientation="vertical" aria-label="调整 Agent 面板宽度" tabindex="0"></div>
     <div class="agent-panel">
-      <header class="agent-panel-header">
-        <div class="agent-panel-actions">
-          <button id="agentHistoryBtn" class="agent-window-btn" type="button" title="查看项目会话"><i class="ui-icon" style="--icon:url('/vendor/icons/history.svg')"></i><span>历史</span></button>
-          <button id="agentNewConversationBtn" class="agent-window-btn" type="button" title="新建创意对话"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i><span>新会话</span></button>
+      <header class="drawer-header agent-panel-header">
+        <strong id="agentConversationTitle">创意对话</strong>
+        <div>
+          <button id="agentFavoritesBtn" class="icon-btn" type="button" title="收藏夹" aria-label="收藏夹" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/star.svg')"></i></button>
+          <button id="agentHistoryBtn" class="icon-btn" type="button" title="历史" aria-label="历史"><i class="ui-icon" style="--icon:url('/vendor/icons/history.svg')"></i></button>
+          <button id="agentNewConversationBtn" class="icon-btn" type="button" title="新会话" aria-label="新会话"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="agentCloseBtn" class="icon-btn" type="button" title="关闭" aria-label="关闭 Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
         </div>
       </header>
       <div id="agentHistoryMenu" class="agent-history-menu hidden" role="menu"></div>
       <div id="agentMessages" class="agent-messages" aria-live="polite">
         <div id="agentEmptyState" class="agent-empty-state">
-          <span class="agent-empty-eyebrow">Creative session</span>
-          <h2>你想把什么想法变得更清晰？</h2>
-          <p>从主题、角色、风格或镜头方向开始，Agent 只提供创意建议，不会修改画布。</p>
-          <div class="agent-recommendations">
-            <button type="button" data-agent-prompt="帮我发散三个完全不同的创意方向"><span class="agent-recommendation-icon">✦</span><span><strong>发散方向</strong><small>从一个模糊想法找到三条路</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
-            <button type="button" data-agent-prompt="帮我设计这个项目的视觉风格和色彩基调"><span class="agent-recommendation-icon">◌</span><span><strong>建立风格</strong><small>确定画面气质和视觉语言</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
-            <button type="button" data-agent-prompt="帮我把这个想法拆成几个有画面感的场景"><span class="agent-recommendation-icon">↗</span><span><strong>拆解场景</strong><small>把概念变成可讨论的画面</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
+          <div class="agent-empty-hero" aria-hidden="true">
+            <div class="agent-empty-glow"></div>
+            <div class="agent-empty-mark"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i></div>
+          </div>
+          <div class="agent-empty-copy">
+            <h2>把模糊想法聊清楚</h2>
+            <p>从主题、角色、风格或镜头方向开始。对话只给建议；使用技能才会改画布。</p>
+          </div>
+          <div class="agent-starters">
+            <span class="agent-starters-label">快速开始</span>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我发散三个完全不同的创意方向" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>发散方向</strong><small>从一个模糊想法找到三条路</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我设计这个项目的视觉风格和色彩基调" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/palette.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>建立风格</strong><small>确定画面气质和视觉语言</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我把这个想法拆成几个有画面感的场景" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/layout-grid.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>拆解场景</strong><small>把概念变成可讨论的画面</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -242,6 +271,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/app.js?v=20260818-unified-tooltip"></script>
+  <script type="module" src="/app.js?v=20260819-video-controls"></script>
 </body>
 </html>

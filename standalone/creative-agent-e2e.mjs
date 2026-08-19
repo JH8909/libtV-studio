@@ -69,6 +69,14 @@ try {
   await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}/cards/${card.id}`, { method: 'PATCH', ...jsonBody({ favorite: true }) });
   const reloaded = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}`);
   if (reloaded.messages.at(-1)?.cards?.[0]?.favorite !== true) throw new Error('favorite was not persisted');
+  const renamed = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}`, { method: 'PATCH', ...jsonBody({ title: '夜行主题会话' }) });
+  if (renamed.title !== '夜行主题会话') throw new Error('conversation rename failed');
+  const listed = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations`);
+  if (!listed.conversations.some((item) => item.id === created.id && item.title === '夜行主题会话')) throw new Error('renamed conversation missing from list');
+  const extra = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations`, { method: 'POST' });
+  await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${extra.id}`, { method: 'DELETE' });
+  const afterDelete = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations`);
+  if (afterDelete.conversations.some((item) => item.id === extra.id)) throw new Error('conversation delete failed');
   const afterWorkflow = await jsonRequest(`/api/projects/${project.id}/workflow`);
   const afterJobs = await jsonRequest(`/api/projects/${project.id}/generations`);
   if (JSON.stringify(beforeWorkflow) !== JSON.stringify(afterWorkflow)) throw new Error('creative agent changed workflow');
@@ -78,7 +86,8 @@ try {
   const source = await readFile(join(ROOT, 'public', 'app.js'), 'utf8');
   const html = await readFile(join(ROOT, 'public', 'index.html'), 'utf8');
   if (/harness|DeepSeek Harness|harnessFrame|harnessPort|3002/i.test(`${source}\n${html}`)) throw new Error('legacy Harness runtime reference remains in Standalone UI');
-  console.log(JSON.stringify({ ok: true, directApi: true, persistedConversation: true, persistedFavorite: true, canvasUnchanged: true, generationJobsUnchanged: true }, null, 2));
+  if (!html.includes('对话只给建议；使用技能才会改画布') || !html.includes('id="agentCloseBtn"') || !source.includes("event==='error'") || !source.includes('renameAgentConversation')) throw new Error('agent UX polish markers missing');
+  console.log(JSON.stringify({ ok: true, directApi: true, persistedConversation: true, persistedFavorite: true, renamedConversation: true, deletedConversation: true, canvasUnchanged: true, generationJobsUnchanged: true }, null, 2));
 } finally {
   child.kill('SIGTERM');
   fake.close();

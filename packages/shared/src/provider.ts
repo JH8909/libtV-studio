@@ -59,6 +59,7 @@ export interface ProviderTaskResult {
   status: ProviderJobState;
   progress?: number;
   outputs?: ProviderOutput[];
+  outputText?: string;
   error?: string;
   raw?: unknown;
 }
