@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="3500" viewBox="0 0 1600 3500">
+  <rect width="1600" height="3500" fill="#F4F6F8"/>
+  <style>
+    .title{font:700 34px Arial,"Microsoft YaHei",sans-serif;fill:#fff}
+    .h2{font:700 24px Arial,"Microsoft YaHei",sans-serif;fill:#111827}
+    .h2w{font:700 24px Arial,"Microsoft YaHei",sans-serif;fill:#fff}
+    .h3{font:700 16px Arial,"Microsoft YaHei",sans-serif;fill:#111827}
+    .body{font:14px Arial,"Microsoft YaHei",sans-serif;fill:#374151}
+    .small{font:12px Arial,"Microsoft YaHei",sans-serif;fill:#6B7280}
+    .smallw{font:12px Arial,"Microsoft YaHei",sans-serif;fill:#CBD5E1}
+    .p1{font:700 15px Arial,"Microsoft YaHei",sans-serif;fill:#C2410C}
+    .pm{font:700 16px Arial,"Microsoft YaHei",sans-serif;fill:#DBEAFE}
+  </style>
+
+  <!-- Header -->
+  <rect x="40" y="40" width="1520" height="260" rx="20" fill="#111827"/>
+  <text x="72" y="92" class="title">LibTV Studio 产品审计</text>
+  <text x="72" y="124" class="smallw">真实用户完整走查｜资深 PM + UX + QA｜基于实际操作与截图证据｜2026-08-20</text>
+  <rect x="72" y="158" width="260" height="86" rx="12" fill="#1F2937"/><text x="90" y="184" class="smallw">总体结论</text><text x="90" y="214" class="h3" fill="#F9FAFB">核心链路可用，但可靠性不足</text>
+  <rect x="350" y="158" width="170" height="86" rx="12" fill="#7F1D1D"/><text x="368" y="184" class="smallw">P0</text><text x="368" y="220" class="title">0</text>
+  <rect x="538" y="158" width="170" height="86" rx="12" fill="#9A3412"/><text x="556" y="184" class="smallw">P1</text><text x="556" y="220" class="title">5</text>
+  <rect x="726" y="158" width="170" height="86" rx="12" fill="#A16207"/><text x="744" y="184" class="smallw">P2</text><text x="744" y="220" class="title">4</text>
+  <rect x="914" y="158" width="170" height="86" rx="12" fill="#374151"/><text x="932" y="184" class="smallw">P3</text><text x="932" y="220" class="title">3</text>
+  <rect x="1102" y="158" width="426" height="86" rx="12" fill="#1F2937"/><text x="1120" y="184" class="smallw">审计范围</text><text x="1120" y="208" class="smallw">新建画布 → 文本 → 分镜 → 图片/视频</text><text x="1120" y="228" class="smallw">→ 资产/提示词 → Skill → 时间线 → 导出</text>
+
+  <!-- Journey -->
+  <rect x="40" y="324" width="1520" height="438" rx="20" fill="#fff"/>
+  <text x="72" y="370" class="h2">真实用户旅程：10 个步骤</text>
+  <text x="72" y="398" class="small">主路径能走通；阻塞主要集中在生成状态、依赖失败恢复、时间线空态与导出边界。</text>
+  <g font-family="Arial,Microsoft YaHei,sans-serif">
+    <g fill="#ECFDF5"><rect x="72" y="426" width="136" height="104" rx="12"/><rect x="998" y="426" width="136" height="104" rx="12"/></g>
+    <g fill="#FEF3C7"><rect x="218" y="426" width="136" height="104" rx="12"/><rect x="510" y="426" width="136" height="104" rx="12"/><rect x="1150" y="426" width="136" height="104" rx="12"/><rect x="1296" y="426" width="136" height="104" rx="12"/></g>
+    <g fill="#FEE2E2"><rect x="364" y="426" width="136" height="104" rx="12"/><rect x="656" y="426" width="136" height="104" rx="12"/><rect x="804" y="426" width="136" height="104" rx="12"/><rect x="1442" y="426" width="96" height="104" rx="12"/></g>
+    <g class="small"><text x="88" y="452" fill="#047857">01</text><text x="88" y="478" fill="#065F46" font-weight="700">打开/新建</text><text x="88" y="500" fill="#047857">快速进入空白画布</text>
+    <text x="234" y="452" fill="#B45309">02</text><text x="234" y="478" fill="#92400E" font-weight="700">首次放置文本</text><text x="234" y="500" fill="#B45309">默认 25% 缩放</text>
+    <text x="380" y="452" fill="#B91C1C">03</text><text x="380" y="478" fill="#991B1B" font-weight="700">文本生成</text><text x="380" y="500" fill="#B91C1C">状态表现不一致</text>
+    <text x="526" y="452" fill="#B45309">04</text><text x="526" y="478" fill="#92400E" font-weight="700">脚本/分镜</text><text x="526" y="500" fill="#B45309">全屏表格可用</text>
+    <text x="672" y="452" fill="#B91C1C">05</text><text x="672" y="478" fill="#991B1B" font-weight="700">图片生成</text><text x="672" y="500" fill="#B91C1C">&gt;1 分钟无超时</text>
+    <text x="820" y="452" fill="#B91C1C">06</text><text x="820" y="478" fill="#991B1B" font-weight="700">视频依赖</text><text x="820" y="500" fill="#B91C1C">失败恢复弱</text>
+    <text x="1014" y="452" fill="#047857">07</text><text x="1014" y="478" fill="#065F46" font-weight="700">资产/提示词</text><text x="1014" y="500" fill="#047857">空态可理解</text>
+    <text x="1166" y="452" fill="#B45309">08</text><text x="1166" y="478" fill="#92400E" font-weight="700">Agent Skill</text><text x="1166" y="500" fill="#B45309">陈旧校验</text>
+    <text x="1312" y="452" fill="#B45309">09</text><text x="1312" y="478" fill="#92400E" font-weight="700">时间线</text><text x="1312" y="500" fill="#B45309">空态缺 CTA</text>
+    <text x="1458" y="452" fill="#B91C1C">10</text><text x="1458" y="478" fill="#991B1B" font-weight="700">导出</text><text x="1458" y="500" fill="#B91C1C">空时间线</text></g>
+  </g>
+  <rect x="72" y="560" width="470" height="160" rx="12" fill="#F0FDF4"/><text x="90" y="588" class="h3" fill="#166534">做得好的地方</text><text x="90" y="615" class="body" fill="#166534">• 空白画布快速开始  • 文本→图片/视频分镜直观</text><text x="90" y="638" class="body" fill="#166534">• 图片依赖可自动触发  • 取消后可重新生成</text><text x="90" y="661" class="body" fill="#166534">• 资产库 / 提示词库 / 快捷键帮助完整</text>
+  <rect x="560" y="560" width="470" height="160" rx="12" fill="#FFF7ED"/><text x="578" y="588" class="h3" fill="#9A3412">主要风险面</text><text x="578" y="615" class="body" fill="#9A3412">生成任务缺少统一生命周期；上游失败时下游状态</text><text x="578" y="638" class="body" fill="#9A3412">与恢复动作不稳定；空状态允许走到不可完成的导出。</text>
+  <rect x="1048" y="560" width="480" height="160" rx="12" fill="#EFF6FF"/><text x="1066" y="588" class="h3" fill="#1D4ED8">审计方法</text><text x="1066" y="615" class="body" fill="#1E40AF">首次使用视角，逐步点击、输入、等待、取消、重试、切换面板、</text><text x="1066" y="638" class="body" fill="#1E40AF">触发失败与空态；所有结论对应截图证据。</text>
+
+  <!-- P1 -->
+  <rect x="40" y="786" width="1520" height="1180" rx="20" fill="#FFF7ED"/>
+  <text x="72" y="832" class="h2" fill="#7C2D12">P1｜应优先修复的 5 个问题</text>
+  <text x="72" y="860" class="small" fill="#9A3412">影响核心创作链路的可靠性、可恢复性或用户对系统状态的判断。</text>
+  <g>
+    <rect x="72" y="888" width="470" height="300" rx="14" fill="#fff"/><text x="94" y="920" class="p1">P1-01｜生成状态机不一致</text><text x="94" y="950" class="body">证据：文本生成期间出现“生成中”与仍可继续操作</text><text x="94" y="972" class="body">的矛盾表现；等待后结果与状态不一致。</text><text x="94" y="1010" class="body" fill="#7C2D12">风险：无法判断成功、重复提交，信任损耗。</text><text x="94" y="1050" class="body" fill="#166534">建议：统一 queued / running / success / failed /</text><text x="94" y="1072" class="body" fill="#166534">cancelled；每个状态只允许一组动作。</text>
+    <rect x="566" y="888" width="470" height="300" rx="14" fill="#fff"/><text x="588" y="920" class="p1">P1-02｜图片生成无超时与失败</text><text x="588" y="950" class="body">证据：图片节点持续超过 1 分钟；取消后才恢复，</text><text x="588" y="972" class="body">没有明确超时、预计等待或错误原因。</text><text x="588" y="1010" class="body" fill="#7C2D12">风险：等待被误认为卡死，无法决定继续或换参数。</text><text x="588" y="1050" class="body" fill="#166534">建议：超时阈值 + 阶段进度 + 保留参数重试 + 反馈。</text>
+    <rect x="1060" y="888" width="468" height="300" rx="14" fill="#fff"/><text x="1082" y="920" class="p1">P1-03｜上游失败后的依赖恢复弱</text><text x="1082" y="950" class="body">证据：图片失败后视频自动停止；不同观察时点出现</text><text x="1082" y="972" class="body">“已失败”和“仍生成中”的冲突状态。</text><text x="1082" y="1010" class="body" fill="#7C2D12">风险：不知道先修哪个节点，缺一键重试链路。</text><text x="1082" y="1050" class="body" fill="#166534">建议：错误沿依赖图传播；修复上游并恢复下游。</text>
+    <rect x="72" y="1212" width="470" height="300" rx="14" fill="#fff"/><text x="94" y="1244" class="p1">P1-04｜空时间线仍允许导出</text><text x="94" y="1274" class="body">证据：时间线为空仍可点击导出；随后出现技术化</text><text x="94" y="1296" class="body">英文错误，未在入口处阻止。</text><text x="94" y="1334" class="body" fill="#7C2D12">风险：多走一步才知道不能导出，下一步不清晰。</text><text x="94" y="1374" class="body" fill="#166534">建议：空时间线禁用导出并说明条件；中文可行动提示。</text>
+    <rect x="566" y="1212" width="470" height="300" rx="14" fill="#fff"/><text x="588" y="1244" class="p1">P1-05｜Agent Skill 存在陈旧校验</text><text x="588" y="1274" class="body">证据：Skill 已排队/已创建节点后，仍显示“缺少必填</text><text x="588" y="1296" class="body">输入”；状态与结果不一致。</text><text x="588" y="1334" class="body" fill="#7C2D12">风险：认为操作没有生效，重复点击或放弃。</text><text x="588" y="1374" class="body" fill="#166534">建议：成功后立即清空旧校验；展示队列/运行/结果。</text>
+    <rect x="1060" y="1212" width="468" height="300" rx="14" fill="#FFEDD5"/><text x="1082" y="1244" class="p1" fill="#9A3412">共同根因</text><text x="1082" y="1274" class="body" fill="#7C2D12">任务系统、依赖系统、前端反馈三者没有共享同一份</text><text x="1082" y="1296" class="body" fill="#7C2D12">可见状态。</text><text x="1082" y="1334" class="body" fill="#7C2D12">优先建立“状态真相源”，收益会覆盖文本、图片、</text><text x="1082" y="1356" class="body" fill="#7C2D12">视频与 Skill 四条链路。</text>
+  </g>
+  <rect x="72" y="1542" width="1456" height="380" rx="14" fill="#7C2D12"/><text x="96" y="1578" class="h3" fill="#fff">验收标准（QA 可直接复用）</text><text x="96" y="1612" class="body" fill="#FFEDD5">1. 任一生成任务在 5 种状态下都有唯一文案、唯一主按钮、唯一结果判断。</text><text x="96" y="1640" class="body" fill="#FFEDD5">2. 上游失败后，下游不会显示“生成中”；恢复上游后可明确重试下游。</text><text x="96" y="1668" class="body" fill="#FFEDD5">3. 空时间线导出按钮不可用，辅助文案说明“至少添加一个可导出片段”。</text><text x="96" y="1696" class="body" fill="#FFEDD5">4. Skill 提交成功后，旧必填错误立即消失；刷新后状态仍一致。</text><text x="96" y="1724" class="body" fill="#FFEDD5">5. 断网、超时、取消、重复点击均有可恢复路径。</text>
+
+  <!-- P2/P3 -->
+  <rect x="40" y="1990" width="1520" height="500" rx="20" fill="#fff"/>
+  <text x="72" y="2036" class="h2">P2 / P3｜可用性与表达问题</text>
+  <rect x="72" y="2064" width="710" height="250" rx="14" fill="#FFFBEB"/><text x="94" y="2098" class="h3" fill="#92400E">P2（4）</text><text x="94" y="2130" class="body" fill="#78350F">• 首次画布默认约 25% 缩放，节点和下一步不易发现</text><text x="94" y="2158" class="body" fill="#78350F">• 脚本全屏表格可用，但横向内容远超视口，滚动提示弱</text><text x="94" y="2186" class="body" fill="#78350F">• 时间线空态缺少“添加片段 / 从分镜导入”CTA</text><text x="94" y="2214" class="body" fill="#78350F">• Skill“使用”直接跳 Agent，缺少执行前说明与预期结果</text>
+  <rect x="802" y="2064" width="726" height="250" rx="14" fill="#F3F4F6"/><text x="824" y="2098" class="h3" fill="#374151">P3（3）</text><text x="824" y="2130" class="body" fill="#4B5563">• 中等宽度下顶部导航图标化，缺少文字/Tooltip 辅助</text><text x="824" y="2158" class="body" fill="#4B5563">• 模型/API 缺少“当前生效模型”和“测试连接”反馈</text><text x="824" y="2186" class="body" fill="#4B5563">• “尝试”建议的点击区域与目的不够清晰</text>
+  <rect x="72" y="2340" width="1456" height="110" rx="14" fill="#F0FDF4"/><text x="94" y="2374" class="h3" fill="#166534">正向观察</text><text x="94" y="2402" class="body" fill="#166534">空白画布能快速开始；节点化的文本→图片→视频概念易理解；资产与提示词库具备复用价值；快捷键帮助降低学习成本。</text><text x="94" y="2428" class="body" fill="#166534">判断：产品不需要大改交互范式，更需要把状态、依赖与空态做成可信赖的产品基础设施。</text>
+
+  <!-- PM top 5 -->
+  <rect x="40" y="2520" width="1520" height="520" rx="20" fill="#111827"/>
+  <text x="72" y="2566" class="h2w">如果下个版本只允许改 5 件事</text><text x="72" y="2596" class="smallw">按对核心任务完成率、用户信任与失败恢复的综合收益排序。</text>
+  <g>
+    <rect x="72" y="2630" width="270" height="330" rx="14" fill="#1E3A8A"/><text x="94" y="2670" class="title">01</text><text x="94" y="2704" class="pm">统一生成状态机</text><text x="94" y="2740" class="smallw">覆盖文本、图片、视频、Skill；</text><text x="94" y="2764" class="smallw">状态、主按钮、结果入口一致。</text>
+    <rect x="358" y="2630" width="270" height="330" rx="14" fill="#1E3A8A"/><text x="380" y="2670" class="title">02</text><text x="380" y="2704" class="pm">依赖失败与一键恢复</text><text x="380" y="2740" class="smallw">明确上游/下游关系；提供</text><text x="380" y="2764" class="smallw">修复顺序、重试与继续运行。</text>
+    <rect x="644" y="2630" width="270" height="330" rx="14" fill="#1E3A8A"/><text x="666" y="2670" class="title">03</text><text x="666" y="2704" class="pm">时间线空态与导出边界</text><text x="666" y="2740" class="smallw">禁用空导出；下一步变成</text><text x="666" y="2764" class="smallw">“添加片段/从分镜导入”。</text>
+    <rect x="930" y="2630" width="270" height="330" rx="14" fill="#1E3A8A"/><text x="952" y="2670" class="title">04</text><text x="952" y="2704" class="pm">首次使用画布引导</text><text x="952" y="2740" class="smallw">首次进入自动适配缩放，突出</text><text x="952" y="2764" class="smallw">“添加文本节点 → 生成”。</text>
+    <rect x="1216" y="2630" width="312" height="330" rx="14" fill="#1E3A8A"/><text x="1238" y="2670" class="title">05</text><text x="1238" y="2704" class="pm">Skill 执行反馈与校验修复</text><text x="1238" y="2740" class="smallw">提交成功即清掉旧错误；展示</text><text x="1238" y="2764" class="smallw">队列、运行、完成/失败与结果。</text>
+  </g>
+
+  <!-- Evidence -->
+  <rect x="40" y="3070" width="1520" height="390" rx="20" fill="#fff"/>
+  <text x="72" y="3116" class="h2">关键证据截图｜按流程顺序</text><text x="72" y="3144" class="small">完整截图目录：audit-evidence/2026-08-20；下方放置支撑主要结论的代表性证据。</text>
+  <g>
+    <rect x="72" y="3170" width="230" height="250" rx="10" fill="#EEF2F7"/><image x="82" y="3180" width="210" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/03-empty-canvas.png"/><text x="82" y="3404" class="small">01 新建/空白画布</text>
+    <rect x="316" y="3170" width="230" height="250" rx="10" fill="#EEF2F7"/><image x="326" y="3180" width="210" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/08-text-generating-wait.png"/><text x="326" y="3404" class="small">02 文本生成状态</text>
+    <rect x="560" y="3170" width="230" height="250" rx="10" fill="#EEF2F7"/><image x="570" y="3180" width="210" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/13-image-generating.png"/><text x="570" y="3404" class="small">03 图片生成/等待</text>
+    <rect x="804" y="3170" width="230" height="250" rx="10" fill="#EEF2F7"/><image x="814" y="3180" width="210" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/17c-upstream-failure-immediate.png"/><text x="814" y="3404" class="small">04 上游失败/停止</text>
+    <rect x="1048" y="3170" width="230" height="250" rx="10" fill="#EEF2F7"/><image x="1058" y="3180" width="210" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/21-agent-skill-queued.png"/><text x="1058" y="3404" class="small">05 Skill 状态</text>
+    <rect x="1292" y="3170" width="236" height="250" rx="10" fill="#EEF2F7"/><image x="1302" y="3180" width="216" height="195" preserveAspectRatio="xMidYMid meet" xlink:href="file:///E:/codex/libtv-studio-complete-v1.3/audit-evidence/2026-08-20/24b-export-error-immediate.png"/><text x="1302" y="3404" class="small">06 时间线/导出</text>
+  </g>
+</svg>

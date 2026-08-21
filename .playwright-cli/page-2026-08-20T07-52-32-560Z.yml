@@ -1,0 +1,63 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - banner [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - button "打开画布列表" [ref=f5e5] [cursor=pointer]
+        - generic "当前项目" [ref=f5e7]:
+          - group "当前画布" [ref=f5e752]:
+            - generic "Text与预设审计临时画布" [ref=f5e753] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f5e8] [cursor=pointer]
+        - status [ref=f5e10]:
+          - generic [ref=f5e12]: 已保存
+      - generic [ref=f5e13]:
+        - generic "资料" [ref=f5e14]:
+          - button "素材" [ref=f5e15] [cursor=pointer]
+          - button "技能" [ref=f5e18] [cursor=pointer]
+        - generic "成片" [ref=f5e22]:
+          - button "时间线" [ref=f5e23] [cursor=pointer]
+          - button "导出" [ref=f5e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f5e30]:
+          - button "模型/API" [ref=f5e31] [cursor=pointer]
+          - button "Agent" [ref=f5e34] [cursor=pointer]
+    - main [ref=f5e37]:
+      - generic [ref=f5e38]:
+        - application "无限画布" [ref=f5e39]:
+          - generic [ref=f5e44]:
+            - generic:
+              - strong [ref=f5e789]: 文本
+              - generic:
+                - region "收起输入区" [ref=f5e790] [cursor=pointer]:
+                  - generic [ref=f5e794]:
+                    - generic [ref=f5e795]: 尝试：
+                    - strong [ref=f5e796]: 分镜脚本
+                    - strong [ref=f5e798]: 提示词扩写
+                - generic [ref=f5e800]:
+                  - group [ref=f5e802]:
+                    - generic "分镜脚本" [active] [ref=f5e803]
+                    - generic [ref=f5e819]:
+                      - button "分镜脚本" [ref=f5e820] [cursor=pointer]
+                      - button "视频脚本" [ref=f5e823] [cursor=pointer]
+                      - button "图片提示词" [ref=f5e826] [cursor=pointer]
+                      - button "强 Hook 九宫格" [ref=f5e829] [cursor=pointer]
+                      - button "九宫格成片" [ref=f5e832] [cursor=pointer]
+                      - button "改写/润色" [ref=f5e835] [cursor=pointer]
+                  - textbox "描述希望生成的文本内容，留空则读取上游文本" [ref=f5e807]
+                  - generic [ref=f5e808]:
+                    - group "模型" [ref=f5e811]:
+                      - generic "Agnes" [ref=f5e812] [cursor=pointer]
+                    - button "生成" [ref=f5e817] [cursor=pointer]
+        - generic [ref=f5e45]:
+          - button "添加节点" [ref=f5e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f5e49]:
+            - button "抓手" [ref=f5e50] [cursor=pointer]
+          - button "撤销" [ref=f5e53] [cursor=pointer]
+          - button "重做" [disabled] [ref=f5e55]
+          - button "运行全部" [ref=f5e58] [cursor=pointer]
+          - button "适配画布" [ref=f5e60] [cursor=pointer]
+          - button "缩小" [ref=f5e62] [cursor=pointer]
+          - generic [ref=f5e64]: 90%
+          - button "放大" [ref=f5e65] [cursor=pointer]
+          - button "快捷键" [ref=f5e67] [cursor=pointer]
+  - status
+  - tooltip: 展开 / 收起输入区

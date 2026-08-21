@@ -1,0 +1,277 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - button "打开画布列表" [ref=e5] [cursor=pointer]
+        - generic "当前项目" [ref=e7]:
+          - group "当前画布" [ref=e275]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=e276] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=e12] [cursor=pointer]
+        - status [ref=e14]:
+          - generic [ref=e16]: 已保存
+      - generic [ref=e17]:
+        - generic "资料" [ref=e18]:
+          - button "素材" [ref=e19] [cursor=pointer]
+          - button "技能" [ref=e22] [cursor=pointer]
+        - generic "成片" [ref=e26]:
+          - button "时间线" [ref=e27] [cursor=pointer]
+          - button "导出" [ref=e30] [cursor=pointer]
+        - generic "模型与创意" [ref=e34]:
+          - button "模型/API" [ref=e35] [cursor=pointer]
+          - button "Agent" [ref=e38] [cursor=pointer]
+    - main [ref=e41]:
+      - generic [ref=e42]:
+        - application "无限画布" [ref=e43]:
+          - generic [ref=e47]:
+            - generic:
+              - strong [ref=e376]: 文本
+              - region "展开输入区" [ref=e377] [cursor=pointer]:
+                - generic [ref=e381]:
+                  - generic [ref=e382]: 尝试：
+                  - strong [ref=e383]: 分镜脚本
+                  - strong [ref=e385]: 提示词扩写
+        - generic [ref=e119]:
+          - button "添加节点" [ref=e120] [cursor=pointer]
+          - generic "鼠标操作" [ref=e123]:
+            - button "抓手" [ref=e124] [cursor=pointer]
+          - button "撤销" [ref=e127] [cursor=pointer]
+          - button "重做" [disabled] [ref=e129]
+          - button "运行全部" [ref=e132] [cursor=pointer]
+          - button "适配画布" [ref=e134] [cursor=pointer]
+          - button "缩小" [ref=e136] [cursor=pointer]
+          - generic [ref=e138]: 75%
+          - button "放大" [ref=e139] [cursor=pointer]
+          - button "快捷键" [ref=e141] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+        - generic: 暂无素材
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类":
+            - tab "推荐" [selected]
+            - tab "专业影视"
+            - tab "商业广告"
+          - generic:
+            - searchbox "搜索技能"
+        - generic:
+          - button "查看 影视打斗特效skill 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "影视打斗特效skill" [level=3]
+              - paragraph: 一句话生成角色人物影视特效支持文字参考图/视频
+              - paragraph: 专业影视 · 15 秒 · 9:16 / 16:9 · 1 镜
+          - button "查看 批量UGC带货 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "批量UGC带货" [level=3]
+              - paragraph: 真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 1 镜
+          - button "查看 电影质感画面专业生成 详情":
+            - generic: 图片
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "电影质感画面专业生成" [level=3]
+              - paragraph: 一句大白话就能生成超质感电影级多风格图片
+              - paragraph: 专业影视 · 16:9 · 1 镜
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 1 镜
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 5 镜
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic:
+          - heading "textGen" [level=3]
+          - generic:
+            - term: Node ID
+            - definition: 464dbbad-a173-441e-96e2-668ec3ecc410
+            - term: Position
+            - definition: "-250, 0"
+            - term: Inputs
+            - definition: "0"
+            - term: Outputs
+            - definition: "0"
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 1 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic:
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销" [disabled]
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - dialog "脚本全文" [ref=e387]:
+    - generic [ref=e388]:
+      - generic [ref=e389]:
+        - strong [ref=e391]: 分镜脚本
+        - generic [ref=e393]:
+          - button "连续性分析" [pressed] [ref=e409] [cursor=pointer]:
+            - generic [ref=e447]: 隐藏连续性
+          - button "生成分镜节点" [active] [ref=e412] [cursor=pointer]
+          - button "编辑脚本" [ref=e415] [cursor=pointer]:
+            - generic [ref=e417]: 编辑
+          - button "复制脚本全文" [ref=e397] [cursor=pointer]:
+            - generic [ref=e399]: 复制全文
+          - button "关闭" [ref=e400] [cursor=pointer]
+      - generic [ref=e418]:
+        - generic [ref=e467]:
+          - generic [ref=e468]:
+            - generic [ref=e469]:
+              - strong [ref=e470]: 剧情连续性
+              - generic [ref=e471]: 1 个镜头 · 总时长 3s · 需修正
+            - generic [ref=e472]: 需修正
+          - generic [ref=e473]:
+            - generic [ref=e474]:
+              - text: 角色
+              - paragraph [ref=e475]: —
+            - generic [ref=e476]:
+              - text: 场景
+              - paragraph [ref=e477]: —
+            - generic [ref=e478]:
+              - text: 道具
+              - paragraph [ref=e479]: —
+          - generic [ref=e480]: 镜 1 缺少画面动作
+          - paragraph [ref=e483]: 连续性锚点会自动写入后续图片与视频节点提示词；修正红色问题后才能建立镜头节点。
+        - article [ref=e484]:
+          - heading "短片脚本" [level=1] [ref=e486]
+          - generic [ref=e487]:
+            - navigation "脚本章节" [ref=e488]:
+              - button "正式分镜" [ref=e489] [cursor=pointer]
+            - generic [ref=e491]:
+              - heading "正式分镜" [level=2] [ref=e492]
+              - table [ref=e494]:
+                - rowgroup [ref=e495]:
+                  - row [ref=e496]:
+                    - columnheader "镜号" [ref=e497]
+                    - columnheader "阶段/景别" [ref=e498]
+                    - columnheader "画面描述" [ref=e499]
+                    - columnheader "文案/旁白" [ref=e500]
+                    - columnheader "时长" [ref=e501]
+                    - columnheader "音效/音乐" [ref=e502]
+                - rowgroup [ref=e503]:
+                  - row [ref=e504]:
+                    - cell "1" [ref=e505]
+                    - cell "0- | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声" [ref=e506]
+                    - cell "—" [ref=e507]
+                    - cell "—" [ref=e508]
+                    - cell "3s" [ref=e509]
+                    - cell "—" [ref=e510]
+  - status:
+    - generic: 分镜脚本还有必须修正的问题，请先处理连续性报告中的红色提示
+  - tooltip: 取消任务

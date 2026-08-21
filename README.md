@@ -25,7 +25,7 @@ start-local.cmd
 
 Open `http://127.0.0.1:3000`.
 
-**文档**：[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) · [TESTING.md](./TESTING.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [CHANGELOG.md](./CHANGELOG.md)
+**文档**：[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) · [TESTING.md](./TESTING.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [PROJECT_GAP_AUDIT.md](./PROJECT_GAP_AUDIT.md) · [CHANGELOG.md](./CHANGELOG.md)
 
 ## v2.0 creative Agent
 
@@ -33,8 +33,10 @@ The top-right **Agent** button opens a project-persistent creative conversation:
 - Explore ideas, themes, visual directions, characters, scenes and shot concepts.
 - Continue the conversation to compare and polish creative directions.
 - Copy or favorite creative cards without changing the project.
-- The Agent is read-only: it never modifies the Canvas, starts paid generation, changes the Timeline or exports media.
+- 普通创意对话保持只读；只有用户选择并确认 Skill 后，Agent 才会写入 Canvas，并按 SkillRun 的固定步骤触发生成与 Timeline 编排。
 - Configured text models are called through the local server; credentials and project history remain local.
+
+SkillRun 状态会持久化到项目数据中，并可从 Agent 的历史菜单回看。刷新页面或重新打开画布后，已开始且未进入人工确认点的 Skill 会恢复未完成步骤；手动确认模式会停在分镜和关键帧确认点，失败节点可单独重试。
 
 Agent model output is strictly validated into read-only creative cards by the local server. Models never return executable patches, tool calls or arbitrary node objects.
 

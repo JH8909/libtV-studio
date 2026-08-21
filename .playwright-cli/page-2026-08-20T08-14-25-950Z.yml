@@ -1,0 +1,40 @@
+- generic [active] [ref=f9e1]:
+  - generic [ref=f9e2]:
+    - banner [ref=f9e3]:
+      - generic [ref=f9e4]:
+        - button "打开画布列表" [ref=f9e5] [cursor=pointer]
+        - generic "当前项目" [ref=f9e7]
+        - button "新建画布" [ref=f9e8] [cursor=pointer]
+        - status [ref=f9e10]:
+          - generic [ref=f9e12]: 已保存
+      - generic [ref=f9e13]:
+        - generic "资料" [ref=f9e14]:
+          - button "素材" [ref=f9e15] [cursor=pointer]
+          - button "技能" [ref=f9e18] [cursor=pointer]
+        - generic "成片" [ref=f9e22]:
+          - button "时间线" [ref=f9e23] [cursor=pointer]
+          - button "导出" [ref=f9e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f9e30]:
+          - button "模型/API" [ref=f9e31] [cursor=pointer]
+          - button "Agent" [ref=f9e34] [cursor=pointer]
+    - main [ref=f9e37]:
+      - generic [ref=f9e38]:
+        - application "无限画布" [ref=f9e39]:
+          - alert [ref=f9e40]:
+            - strong [ref=f9e41]: 工作区暂时无法加载
+            - generic [ref=f9e42]: 正在重新连接本地服务…
+            - button "加载中…" [disabled] [ref=f9e43]
+        - generic [ref=f9e45]:
+          - button "添加节点" [ref=f9e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f9e49]:
+            - button "抓手" [ref=f9e50] [cursor=pointer]
+          - button "撤销" [ref=f9e53] [cursor=pointer]
+          - button "重做" [ref=f9e55] [cursor=pointer]
+          - button "运行全部" [ref=f9e58] [cursor=pointer]
+          - button "适配画布" [ref=f9e60] [cursor=pointer]
+          - button "缩小" [ref=f9e62] [cursor=pointer]
+          - generic [ref=f9e64]: 100%
+          - button "放大" [ref=f9e65] [cursor=pointer]
+          - button "快捷键" [ref=f9e67] [cursor=pointer]
+  - status
+  - tooltip

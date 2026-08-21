@@ -132,8 +132,33 @@ function emptyDb() {
     jobs: {},
     assets: {},
     creativeAgent: { conversations: {} },
+    skillRuns: {},
     promptLibrary: imagePresetLibrarySnapshot(),
   };
+}
+
+export const ASSET_CATEGORY_OPTIONS = Object.freeze([
+  { id: "character", label: "角色" },
+  { id: "scene", label: "场景" },
+  { id: "prop", label: "道具" },
+  { id: "style", label: "风格" },
+  { id: "sound", label: "音效" },
+]);
+const ASSET_CATEGORY_IDS = new Set(ASSET_CATEGORY_OPTIONS.map((item) => item.id));
+
+export function normalizeAssetCategory(value, { kind = "", tags = [], metadata = {} } = {}) {
+  const explicit = String(value || metadata?.category || "").trim().toLowerCase();
+  if (ASSET_CATEGORY_IDS.has(explicit)) return explicit;
+  const hints = [explicit, ...(Array.isArray(tags) ? tags : []), metadata?.role, metadata?.assetType]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (/character|role|person|人物|角色/.test(hints)) return "character";
+  if (/scene|environment|location|场景|环境|地点/.test(hints)) return "scene";
+  if (/prop|object|product|道具|物品|产品/.test(hints)) return "prop";
+  if (/style|mood|visual|风格|视觉|色彩/.test(hints)) return "style";
+  if (kind === "audio" || /sound|sfx|audio|音效|声音/.test(hints)) return "sound";
+  return "";
 }
 
 export let state = emptyDb();
@@ -144,12 +169,20 @@ if (existsSync(DB_FILE)) {
     state = emptyDb();
   }
 }
-state.version = 4;
+state.version = 5;
 state.projects ||= {};
 state.jobs ||= {};
 state.assets ||= {};
 state.creativeAgent ||= { conversations: {} };
 state.creativeAgent.conversations ||= {};
+state.skillRuns ||= {};
+for (const asset of Object.values(state.assets)) {
+  asset.metadata ||= {};
+  asset.tags ||= computeInitialTags({ kind: asset.kind, metadata: asset.metadata, source: asset.metadata.source || "upload" });
+  asset.category = normalizeAssetCategory(asset.category, asset);
+  if (asset.library === undefined) asset.library = asset.metadata.source === "upload" || asset.tags.includes("uploaded");
+  if (asset.material === undefined) asset.material = true;
+}
 if (!Array.isArray(state.promptLibrary?.presets) || !state.promptLibrary.presets.length) {
   state.promptLibrary = imagePresetLibrarySnapshot();
 }
@@ -235,7 +268,7 @@ export function computeInitialTags({ kind, metadata, source }) {
   return [...new Set(tags)];
 }
 
-export function addAsset({ projectId, kind, filename, mime, localPath, metadata = {}, source = "upload" }) {
+export function addAsset({ projectId, kind, filename, mime, localPath, metadata = {}, source = "upload", category = "", library = source === "upload" }) {
   const id = randomUUID();
   const rel = basename(localPath);
   const tags = computeInitialTags({ kind, metadata, source });
@@ -243,6 +276,9 @@ export function addAsset({ projectId, kind, filename, mime, localPath, metadata 
     id,
     projectId,
     kind,
+    library: Boolean(library),
+    material: true,
+    category: normalizeAssetCategory(category, { kind, tags, metadata }),
     filename,
     mime,
     localPath: rel,
@@ -263,24 +299,24 @@ export function projectOr404(id) {
   return state.projects[id];
 }
 
-export function projectAssets(projectId, { tag, kind } = {}) {
+export function projectAssets(projectId, { tag, kind, category, q } = {}) {
   const all = Object.values(state.assets)
     .filter((a) => a.projectId === projectId)
-    .map((a) =>
-      a.tags
-        ? a
-        : {
-            ...a,
-            tags: computeInitialTags({
-              kind: a.kind,
-              metadata: a.metadata,
-              source: a.metadata?.source || "upload",
-            }),
-          },
-    );
+    .map((a) => ({
+      ...a,
+      library: Boolean(a.library),
+      material: a.material !== false,
+      tags: a.tags || computeInitialTags({ kind: a.kind, metadata: a.metadata, source: a.metadata?.source || "upload" }),
+      category: normalizeAssetCategory(a.category, a),
+    }));
   let filtered = all;
   if (tag) filtered = filtered.filter((a) => a.tags.includes(tag));
   if (kind) filtered = filtered.filter((a) => a.kind === kind);
+  if (category) filtered = filtered.filter((a) => a.category === category);
+  if (q) {
+    const query = String(q).trim().toLowerCase();
+    if (query) filtered = filtered.filter((a) => [a.filename, a.category, a.metadata?.prompt, ...(a.tags || [])].filter(Boolean).join(" ").toLowerCase().includes(query));
+  }
   return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -707,6 +743,7 @@ export async function extractFrameAsset(project, jobId, asset, frameIndex, fps, 
     localPath: target,
     metadata: { sourceAssetId: asset.id, frameIndex: frame, source: "keyframe", label },
     source: "keyframe",
+    category: asset.category || "",
   });
 }
 

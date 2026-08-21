@@ -21,6 +21,8 @@
     "test:creative-agent": "node standalone/creative-agent-e2e.mjs",
     "test:agent-playwright": "node standalone/agent-playwright-e2e.mjs",
     "test:playwright": "node standalone/agent-playwright-e2e.mjs",
+    "test:skill-run": "node standalone/skill-run-e2e.mjs",
+    "test:standalone-loop": "node standalone/skill-run-e2e.mjs && node standalone/design-system-e2e.mjs && node standalone/agent-playwright-e2e.mjs",
     "test:keyboard": "node standalone/keyboard-shortcuts-e2e.mjs",
     "test:canvas": "node standalone/canvas-interactions-e2e.mjs",
     "test:image-presets": "node standalone/image-presets-e2e.mjs",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@lobehub/icons-static-svg": "^1.92.0",
     "@types/node": "^24.10.1",
+    "playwright": "^1.62.1",
     "tsx": "^4.23.1",
     "typescript": "~6.0.2"
   },

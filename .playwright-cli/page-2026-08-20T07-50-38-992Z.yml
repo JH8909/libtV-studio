@@ -1,0 +1,79 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - banner [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - button "打开画布列表" [ref=f5e5] [cursor=pointer]
+        - generic "当前项目" [ref=f5e7]:
+          - group "当前画布" [ref=f5e69]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f5e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [active] [ref=f5e8] [cursor=pointer]
+        - status [ref=f5e10]:
+          - generic [ref=f5e12]: 已保存
+      - generic [ref=f5e13]:
+        - generic "资料" [ref=f5e14]:
+          - button "素材" [ref=f5e15] [cursor=pointer]
+          - button "技能" [ref=f5e18] [cursor=pointer]
+        - generic "成片" [ref=f5e22]:
+          - button "时间线" [ref=f5e23] [cursor=pointer]
+          - button "导出" [ref=f5e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f5e30]:
+          - button "模型/API" [ref=f5e31] [cursor=pointer]
+          - button "Agent" [ref=f5e34] [cursor=pointer]
+    - main [ref=f5e37]:
+      - generic [ref=f5e38]:
+        - application "无限画布" [ref=f5e39]:
+          - img:
+            - generic [ref=f5e73] [cursor=pointer]
+          - generic [ref=f5e44]:
+            - generic:
+              - strong [ref=f5e699]: 文本
+              - generic:
+                - region "展开输入区" [ref=f5e700]:
+                  - textbox "文本结果" [ref=f5e701]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f5e702]:
+                  - button "完整查看脚本" [ref=f5e703] [cursor=pointer]
+                  - button "复制文本结果" [ref=f5e705] [cursor=pointer]
+            - generic:
+              - strong [ref=f5e710]: 图片
+              - region "展开输入区" [ref=f5e711] [cursor=pointer]:
+                - img "当前生成图片" [ref=f5e713]
+            - generic:
+              - strong [ref=f5e717]: 图片
+              - region "展开输入区" [ref=f5e718] [cursor=pointer]:
+                - img "参考图片预览" [ref=f5e720]
+            - generic:
+              - strong [ref=f5e726]: 视频
+              - region "展开输入区" [ref=f5e727] [cursor=pointer]:
+                - generic [ref=f5e729]:
+                  - generic "当前生成视频" [ref=f5e730]
+                  - button "播放" [ref=f5e731]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+        - generic [ref=f5e45]:
+          - button "添加节点" [ref=f5e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f5e49]:
+            - button "抓手" [ref=f5e50] [cursor=pointer]
+          - button "撤销" [ref=f5e53] [cursor=pointer]
+          - button "重做" [disabled] [ref=f5e55]
+          - button "运行全部" [ref=f5e58] [cursor=pointer]
+          - button "适配画布" [ref=f5e60] [cursor=pointer]
+          - button "缩小" [ref=f5e62] [cursor=pointer]
+          - generic [ref=f5e64]: 90%
+          - button "放大" [ref=f5e65] [cursor=pointer]
+          - button "快捷键" [ref=f5e67] [cursor=pointer]
+  - dialog [ref=f5e742]:
+    - generic [ref=f5e743]:
+      - strong [ref=f5e745]: 新建画布
+      - generic [ref=f5e746]:
+        - generic [ref=f5e747]: 画布名称
+        - textbox "画布名称" [ref=f5e748]: 未命名画布 5
+      - generic [ref=f5e749]:
+        - button "取消" [ref=f5e750] [cursor=pointer]
+        - button "创建画布" [ref=f5e751] [cursor=pointer]
+  - status
+  - tooltip "新建画布"

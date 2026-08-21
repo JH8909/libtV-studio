@@ -16,10 +16,17 @@ import { buildStandaloneCreativeContext } from "./creative-context.mjs";
 import {
   buildCreativeAgentSystemPrompt,
   createCreativeAgentConversation,
+  inferCreativeAgentQuestions,
   parseCreativeAgentReply,
 } from "./creative-agent.mjs";
 import { normalizeImagePreset } from "./public/image-presets.js";
 import { buildSkillWorkflow, importLiblibSkill, listSkills, skillById } from "./skill-catalog.mjs";
+import {
+  createSkillRunRecord,
+  publicSkillRun,
+  syncSkillRunProgress,
+  tagWorkflowNodesWithSkillRun,
+} from "./skill-run.mjs";
 import { cleanFilename, contentTypeOnly, kindFromMime, mimeFromExt } from "./lib/media.mjs";
 import { createProviderHttp } from "./providers/http.mjs";
 import {
@@ -37,6 +44,8 @@ import {
   saveDb,
   now,
   addAsset,
+  ASSET_CATEGORY_OPTIONS,
+  normalizeAssetCategory,
   projectOr404,
   projectAssets,
   projectJobs,
@@ -172,12 +181,34 @@ function creativeAgentMessageView(message) {
     id: message.id,
     role: message.role,
     text: message.text || "",
-    cards: message.cards || [],
+    questions: message.questions || [],
+    followUps: message.followUps || [],
+    sources: message.sources || [],
+    feedback: message.feedback || "",
     attachments: message.attachments || [],
     createdAt: message.createdAt,
     error: message.error || "",
     ...(message.skillRun ? { skillRun: message.skillRun } : {}),
   };
+}
+function creativeAgentSources(attachments) {
+  return (attachments || []).map((asset) => ({
+    id: asset.id,
+    type: "asset",
+    title: asset.filename || "参考素材",
+    label: asset.filename || "参考素材",
+    href: asset.publicUrl || "",
+    kind: asset.kind || "file",
+    category: asset.category || "",
+  }));
+}
+function legacyCreativeAgentCardText(cards) {
+  return (Array.isArray(cards) ? cards : []).map((card) => [
+    card?.title,
+    card?.summary,
+    card?.body,
+    ...(Array.isArray(card?.bullets) ? card.bullets.map((item) => `- ${item}`) : []),
+  ].filter(Boolean).join("\n")).filter(Boolean).join("\n\n");
 }
 function creativeAgentAttachments(project, rawAttachments) {
   const requested = Array.isArray(rawAttachments) ? rawAttachments : [];
@@ -189,7 +220,7 @@ function creativeAgentAttachments(project, rawAttachments) {
       seen.add(asset.id);
       return true;
     })
-    .map((asset) => ({ id: asset.id, filename: asset.filename, kind: asset.kind, publicUrl: asset.publicUrl }));
+    .map((asset) => ({ id: asset.id, filename: asset.filename, kind: asset.kind, category: asset.category || "", publicUrl: asset.publicUrl }));
 }
 function creativeAgentHistoryContent(message) {
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
@@ -202,11 +233,19 @@ function creativeAgentConversationView(conversation) {
   return {
     ...conversation,
     messages: (conversation.messages || []).map((message) => {
-      if (message.role !== "assistant" || (message.cards || []).length) return creativeAgentMessageView(message);
-      const parsed = parseCreativeAgentReply(message.text || "");
-      return parsed.cards.length
-        ? { ...creativeAgentMessageView(message), text: parsed.text, cards: parsed.cards }
-        : creativeAgentMessageView(message);
+      const view = creativeAgentMessageView(message);
+      const rawText = String(message.text || '').trim();
+      if (message.role === "assistant" && /^(?:\{|```)/.test(rawText) && /["']text["']\s*:/.test(rawText)) {
+        const parsed = parseCreativeAgentReply(rawText);
+        if (parsed.text && parsed.text !== rawText) {
+          view.text = parsed.text;
+          if (!view.questions.length) view.questions = parsed.questions;
+          if (!view.followUps.length) view.followUps = parsed.followUps;
+        }
+      }
+      const legacyText = legacyCreativeAgentCardText(message.cards);
+      if (legacyText) view.text = [view.text, legacyText].filter(Boolean).join("\n\n");
+      return view;
     }),
   };
 }
@@ -222,20 +261,22 @@ function applySkillToProject(project, body = {}) {
   const skillId = String(body.skillId || "").trim();
   const skill = skillById(skillId);
   if (!skill) throw Object.assign(new Error("skill_not_found"), { status: 404 });
+  const confirmMode = body.confirmMode === "manual" ? "manual" : "auto";
   let result;
-  const genericMediaWorkflow = ["cinematic-vfx", "generic-video", "generic-image"].includes(skill.execution?.workflow);
+  const genericMediaWorkflow = ["cinematic-vfx", "generic-video", "generic-image", "generic-plan"].includes(skill.execution?.workflow)
+    || skill.execution?.adapter === "single-plan";
   if (genericMediaWorkflow) {
     const requestedReference =
       String(body.referenceAssetId || body.productAssetId || "").trim() ||
       (Array.isArray(body.attachments)
-        ? body.attachments.find((item) => ["image", "video"].includes(String(item?.kind || "")))?.id || ""
+        ? body.attachments.find((item) => ["image", "video", "audio"].includes(String(item?.kind || "")))?.id || ""
         : "");
     const reference = requestedReference ? state.assets[requestedReference] : null;
-    const allowedReferenceKinds = skill.execution?.workflow === "generic-image" ? ["image"] : ["image", "video"];
+    const allowedReferenceKinds = skill.execution?.workflow === "generic-image" ? ["image"] : ["image", "video", "audio"];
     if (requestedReference && (!reference || reference.projectId !== project.id || !allowedReferenceKinds.includes(reference.kind))) {
       throw Object.assign(new Error("invalid_reference_asset"), {
         status: 400,
-        message: skill.execution?.workflow === "generic-image" ? "图片 Skill 的参考素材必须是当前画布中的图片。" : "参考素材必须是当前画布中的图片或视频。",
+        message: skill.execution?.workflow === "generic-image" ? "图片 Skill 的参考素材必须是当前画布中的图片。" : "参考素材必须是当前画布中的图片、视频或音频。",
       });
     }
     result = buildSkillWorkflow({
@@ -249,11 +290,14 @@ function applySkillToProject(project, body = {}) {
     });
   } else {
     const selectedAsset =
-      String(body.productAssetId || "").trim() || projectAssets(project.id, { kind: "image" })[0]?.id;
+      String(body.productAssetId || "").trim() ||
+      (Array.isArray(body.attachments) ? body.attachments.find((item) => item?.kind === "image")?.id || "" : "") ||
+      projectAssets(project.id, { kind: "image" })[0]?.id;
     if (!selectedAsset) {
       throw Object.assign(new Error("product_image_required"), {
         status: 400,
-        message: "请先在素材库上传一张产品图片。",
+        message: "缺少必填输入：产品图片",
+        missingFields: ["产品图片"],
       });
     }
     const asset = state.assets[selectedAsset];
@@ -261,23 +305,36 @@ function applySkillToProject(project, body = {}) {
       throw Object.assign(new Error("invalid_product_image"), {
         status: 400,
         message: "Skill 需要当前画布中的图片素材作为产品参考。",
+        missingFields: ["产品图片"],
+      });
+    }
+    const sellingPoints = String(body.sellingPoints || body.message || "").trim();
+    if (!sellingPoints) {
+      throw Object.assign(new Error("selling_points_required"), {
+        status: 400,
+        message: "缺少必填输入：产品卖点",
+        missingFields: ["产品卖点"],
       });
     }
     result = buildSkillWorkflow({
       skill,
       existingWorkflow: project.workflow,
       productAssetId: selectedAsset,
-      sellingPoints: body.sellingPoints || body.message,
+      sellingPoints,
       brandName: body.brandName,
       durationSec: body.durationSec,
       aspectRatio: body.aspectRatio,
     });
   }
+  const skillRun = createSkillRunRecord({ projectId: project.id, skill, result, confirmMode });
+  const created = new Set(result.createdNodeIds || []);
+  tagWorkflowNodesWithSkillRun((result.nodes || []).filter((node) => created.has(node.id)), skillRun.runId);
+  state.skillRuns[skillRun.runId] = skillRun;
   const nextVersion = Number(project.workflowRevision || project.workflow?.version || 1) + 1;
   project.workflow = { version: nextVersion, nodes: result.nodes, edges: result.edges };
   project.workflowRevision = nextVersion;
   project.updatedAt = now();
-  return { skill, result, workflow: project.workflow };
+  return { skill, result, workflow: project.workflow, skillRun };
 }
 async function completeCreativeAgent(providerId, modelId, messages, signal) {
   const models = await listModels();
@@ -308,7 +365,7 @@ async function completeCreativeAgent(providerId, modelId, messages, signal) {
   if (!apiKey) throw Object.assign(new Error(`${label} API key is not configured`), { status: 422 });
   const body = { model: modelId, stream: false, messages, temperature: 0.75 };
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
-  const timeoutMs = Math.max(1_000, Number(process.env.CREATIVE_AGENT_TIMEOUT_MS || 60_000));
+  const timeoutMs = Math.max(1_000, Number(process.env.CREATIVE_AGENT_TIMEOUT_MS || 180_000));
   const combinedSignal = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(timeoutMs)]);
   let response;
   try {
@@ -340,30 +397,24 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
   if (body.skillId) {
     const skillBody = { ...body };
     if (!skillBody.productAssetId) skillBody.productAssetId = attachments.find((asset) => asset.kind === "image")?.id || "";
-    if (!skillBody.referenceAssetId) skillBody.referenceAssetId = attachments.find((asset) => ["image", "video"].includes(asset.kind))?.id || "";
+    if (!skillBody.referenceAssetId) skillBody.referenceAssetId = attachments.find((asset) => ["image", "video", "audio"].includes(asset.kind))?.id || "";
     const applied = applySkillToProject(project, skillBody);
     const workflowType = applied.skill.execution?.workflow;
     const isVfx = workflowType === "cinematic-vfx";
-    const isGenericMedia = ["cinematic-vfx", "generic-video", "generic-image"].includes(workflowType);
+    const isGenericMedia = ["cinematic-vfx", "generic-video", "generic-image", "generic-plan"].includes(workflowType)
+      || applied.skill.execution?.adapter === "single-plan";
+    const skillRunView = publicSkillRun(applied.skillRun);
     const assistantMessage = {
       id: randomUUID(),
       role: "assistant",
       text: isVfx
         ? `已启用「${applied.skill.name}」Skill。已创建动作拆解方案和影视特效视频节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动加入 Timeline。`
         : isGenericMedia
-          ? `已启用「${applied.skill.name}」Skill。已创建生成计划和${workflowType === "generic-image" ? "图片" : "视频"}节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动保留到画布${workflowType === "generic-video" ? "并加入 Timeline" : ""}。`
+          ? `已启用「${applied.skill.name}」Skill。已创建生成计划和${workflowType === "generic-image" ? "图片" : workflowType === "generic-plan" ? "方案" : "视频"}节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动保留到画布${workflowType === "generic-video" ? "并加入 Timeline" : ""}。`
         : `已启用「${applied.skill.name}」Skill。已绑定产品图并创建创意锚点、五镜头分镜、关键帧、首帧视频、旁白方案和BGM方案节点；接下来按依赖顺序生成并把成功镜头加入 Timeline。`,
-      cards: [],
-      skillRun: {
-        id: randomUUID(),
-        skillId: applied.skill.id,
-        skillVersion: applied.skill.version,
-        createdNodeIds: applied.result.createdNodeIds,
-        videoNodeIds: applied.result.videoNodeIds,
-        audioPlanNodeIds: applied.result.audioPlanNodeIds,
-        input: applied.result.input,
-        autoRun: applied.skill.execution?.autoRun === true,
-      },
+      followUps: [],
+      sources: creativeAgentSources(attachments),
+      skillRun: skillRunView,
       createdAt: now(),
     };
     conversation.messages ||= [];
@@ -371,9 +422,9 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
       id: randomUUID(),
       role: "user",
       text: message.slice(0, 12_000),
-      cards: [],
       attachments,
       skillId: applied.skill.id,
+      skillVersion: applied.skill.version,
       createdAt: now(),
     });
     conversation.messages.push(assistantMessage);
@@ -383,7 +434,7 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
     return {
       message: creativeAgentMessageView(assistantMessage),
       workflow: project.workflow,
-      skillRun: assistantMessage.skillRun,
+      skillRun: skillRunView,
       conversation,
     };
   }
@@ -393,7 +444,6 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
     id: randomUUID(),
     role: "user",
     text: message.slice(0, 12_000),
-    cards: [],
     attachments,
     createdAt: now(),
   };
@@ -406,7 +456,21 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
   const system = buildCreativeAgentSystemPrompt(creativeAgentContext(project));
   const raw = await completeCreativeAgent(providerId, modelId, [{ role: "system", content: system }, ...history], signal);
   const reply = parseCreativeAgentReply(raw);
-  const assistantMessage = { id: randomUUID(), role: "assistant", text: reply.text, cards: reply.cards, createdAt: now() };
+  const clarificationQuestions = inferCreativeAgentQuestions(message, conversation.messages);
+  if (clarificationQuestions.length) {
+    reply.text = "为了让脚本更贴合你的目标，我先确认几个信息。";
+    reply.questions = clarificationQuestions;
+    reply.followUps = [];
+  }
+  const assistantMessage = {
+    id: randomUUID(),
+    role: "assistant",
+    text: reply.text,
+    questions: reply.questions,
+    followUps: reply.followUps,
+    sources: creativeAgentSources(attachments),
+    createdAt: now(),
+  };
   conversation.messages.push(assistantMessage);
   conversation.updatedAt = now();
   await saveDb();
@@ -461,6 +525,27 @@ async function createExport(project) {
   } finally { rmSync(work,{recursive:true,force:true}); }
 }
 
+async function removeAssetCompletely(project, asset) {
+  const removedNodeIds = new Set((project.workflow?.nodes || []).filter(node => ['asset','upload'].includes(node.type) && node.data?.assetId === asset.id).map(node => node.id));
+  project.workflow.nodes = (project.workflow?.nodes || []).filter(node => !removedNodeIds.has(node.id));
+  project.workflow.edges = (project.workflow?.edges || []).filter(edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target));
+  for (const node of project.workflow.nodes) {
+    const data = node.data ?? {};
+    data.outputAssetIds = (data.outputAssetIds || []).filter(id => id !== asset.id);
+    data.variantAssetIds = (data.variantAssetIds || []).filter(id => id !== asset.id);
+    data.presetReferences = (data.presetReferences || []).filter(ref => ref.assetId !== asset.id);
+    if (['imageGen','videoGen'].includes(node.type) && data.status === 'succeeded' && !data.outputAssetIds.length) { data.status = 'idle'; data.progress = 0; }
+    node.data = data;
+  }
+  project.timeline.items = (project.timeline?.items || []).filter(item => item.sourceAssetId !== asset.id);
+  for (const job of Object.values(state.jobs)) if (job.projectId === project.id) job.outputAssetIds = (job.outputAssetIds || []).filter(id => id !== asset.id);
+  delete state.assets[asset.id];
+  await fsp.rm(join(ASSETS_DIR, basename(asset.localPath)), { force: true });
+  project.updatedAt = now();
+  await saveDb();
+  return { ok: true, deleted: true, workflow: project.workflow, timeline: project.timeline };
+}
+
 async function handleApi(req, res, url) {
   const method = req.method || 'GET'; const p = url.pathname;
   if (p.startsWith('/internal/')) return notFound(res);
@@ -504,8 +589,135 @@ async function handleApi(req, res, url) {
     return json(res, 201, {
       skill: listSkills().find((skill) => skill.id === result.skill.id),
       workflow: result.workflow,
-      skillRun: { skillId: result.skill.id, skillVersion: result.skill.version, createdNodeIds: result.result.createdNodeIds, videoNodeIds: result.result.videoNodeIds, audioPlanNodeIds: result.result.audioPlanNodeIds, input: result.result.input, autoRun: result.skill.execution?.autoRun === true },
+      skillRun: publicSkillRun(result.skillRun),
     });
+  }
+  let skillRunMatch = p.match(/^\/api\/projects\/([^/]+)\/skill-runs$/);
+  if (skillRunMatch && method === "GET") {
+    const projectId = safeDecode(skillRunMatch[1]);
+    const project = projectOr404(projectId);
+    if (!project) return notFound(res);
+    const runs = Object.values(state.skillRuns || {})
+      .filter((run) => run.projectId === projectId)
+      .map((run) => syncSkillRunProgress(run, project.workflow))
+      .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
+      .map(publicSkillRun);
+    return json(res, 200, { skillRuns: runs });
+  }
+  skillRunMatch = p.match(/^\/api\/projects\/([^/]+)\/skill-runs\/([^/]+)$/);
+  if (skillRunMatch && method === "GET") {
+    const projectId = safeDecode(skillRunMatch[1]);
+    const run = state.skillRuns?.[safeDecode(skillRunMatch[2])];
+    if (!projectOr404(projectId) || !run || run.projectId !== projectId) return notFound(res);
+    syncSkillRunProgress(run, projectOr404(projectId).workflow);
+    return json(res, 200, publicSkillRun(run));
+  }
+  if (skillRunMatch && method === "PATCH") {
+    const projectId = safeDecode(skillRunMatch[1]);
+    const project = projectOr404(projectId);
+    const run = state.skillRuns?.[safeDecode(skillRunMatch[2])];
+    if (!project || !run || run.projectId !== projectId) return notFound(res);
+    const body = await readJson(req);
+    if (Object.hasOwn(body, "pauseAt")) run.pauseAt = body.pauseAt || null;
+    if (Object.hasOwn(body, "status")) run.status = String(body.status || run.status);
+    if (Object.hasOwn(body, "error")) run.error = body.error == null ? null : String(body.error);
+    if (Array.isArray(body.steps)) {
+      for (const patch of body.steps) {
+        const step = (run.steps || []).find((item) => item.id === patch.id);
+        if (!step) continue;
+        if (patch.status) step.status = patch.status;
+        if (Object.hasOwn(patch, "error")) step.error = patch.error;
+        if (Array.isArray(patch.nodeIds)) step.nodeIds = patch.nodeIds;
+      }
+    }
+    if (Array.isArray(body.assetIds)) run.assetIds = [...new Set(body.assetIds.map(String))];
+    syncSkillRunProgress(run, project.workflow);
+    await saveDb();
+    return json(res, 200, publicSkillRun(run));
+  }
+  skillRunMatch = p.match(/^\/api\/projects\/([^/]+)\/skill-runs\/([^/]+)\/cancel$/);
+  if (skillRunMatch && method === "POST") {
+    const projectId = safeDecode(skillRunMatch[1]);
+    const project = projectOr404(projectId);
+    const run = state.skillRuns?.[safeDecode(skillRunMatch[2])];
+    if (!project || !run || run.projectId !== projectId) return notFound(res);
+    if (["succeeded", "failed", "canceled"].includes(run.status)) return json(res, 409, { error: "skill_run_not_active", message: "该 SkillRun 已结束，不能停止。" });
+    const nodeIds = new Set(run.createdNodeIds || []);
+    for (const job of Object.values(state.jobs || {})) {
+      if (job.projectId !== projectId || !nodeIds.has(job.sourceNodeId) || ["succeeded", "failed", "canceled"].includes(job.status)) continue;
+      job.status = "canceled";
+      job.phase = "canceled";
+      job.nextAttemptAt = null;
+      job.error = job.providerTaskId ? "已停止本地等待；厂商任务可能继续运行。" : "用户取消";
+      job.updatedAt = now();
+      jobControllers.get(job.id)?.abort();
+    }
+    for (const node of project.workflow?.nodes || []) {
+      if (!nodeIds.has(node.id) || !["imageGen", "videoGen", "textGen"].includes(node.type)) continue;
+      if (!["succeeded", "failed", "canceled"].includes(node.data?.status)) {
+        node.data.status = "canceled";
+        node.data.jobId = "";
+        node.data.phase = "canceled";
+      }
+    }
+    run.pauseAt = null;
+    run.status = "canceled";
+    run.error = "用户取消";
+    for (const step of run.steps || []) {
+      if (step.status !== "succeeded") {
+        step.status = "canceled";
+        step.error = "步骤已取消";
+      }
+    }
+    project.updatedAt = now();
+    await saveDb();
+    return json(res, 200, publicSkillRun(run));
+  }
+  skillRunMatch = p.match(/^\/api\/projects\/([^/]+)\/skill-runs\/([^/]+)\/retry$/);
+  if (skillRunMatch && method === "POST") {
+    const projectId = safeDecode(skillRunMatch[1]);
+    const project = projectOr404(projectId);
+    const run = state.skillRuns?.[safeDecode(skillRunMatch[2])];
+    if (!project || !run || run.projectId !== projectId) return notFound(res);
+    const body = await readJson(req);
+    const shotId = String(body.shotId || "").trim();
+    const stepId = String(body.stepId || "").trim();
+    const nodeIds = [];
+    for (const node of project.workflow?.nodes || []) {
+      if (node.data?.skillRunId !== run.runId) continue;
+      if (shotId && node.data?.shotId !== shotId && node.data?.storyboardShot !== shotId) continue;
+      if (stepId && node.data?.stepId !== stepId) continue;
+      if (!shotId && !stepId) continue;
+      if (!["imageGen", "videoGen", "textGen"].includes(node.type)) continue;
+      node.data.status = "idle";
+      node.data.error = "";
+      node.data.jobId = "";
+      node.data.progress = 0;
+      nodeIds.push(node.id);
+    }
+    if (!nodeIds.length) {
+      throw Object.assign(new Error("retry_target_not_found"), {
+        status: 400,
+        message: "找不到可重试的镜头或步骤节点。",
+      });
+    }
+    run.pauseAt = null;
+    run.status = "processing";
+    run.error = null;
+    for (const step of run.steps || []) {
+      if (stepId && step.id === stepId) {
+        step.status = "queued";
+        step.error = null;
+      }
+      if (shotId && (step.shotIds || []).includes(shotId)) {
+        step.status = "queued";
+        step.error = null;
+      }
+    }
+    syncSkillRunProgress(run, project.workflow);
+    project.updatedAt = now();
+    await saveDb();
+    return json(res, 200, { skillRun: publicSkillRun(run), nodeIds });
   }
   let creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations$/);
   if (creativeMatch && method === 'GET') {
@@ -556,31 +768,30 @@ async function handleApi(req, res, url) {
       sendEvent('thinking', { message: '正在整理创意…' });
       const result = await sendCreativeAgentMessage(project, conversation, body, controller.signal);
       sendEvent('delta', { text: result.message.text });
-      sendEvent('cards', { cards: result.message.cards });
       sendEvent('done', { conversationId: conversation.id, message: result.message, ...(result.workflow ? { workflow: result.workflow } : {}), ...(result.skillRun ? { skillRun: result.skillRun } : {}) });
     } catch (error) {
-      if (!closed) sendEvent('error', { error: sanitizeProviderMessage(error?.message || error), retryable: ![400, 404, 422].includes(Number(error?.status)) });
+      if (!closed) sendEvent('error', { error: sanitizeProviderMessage(error?.message || error), retryable: ![400, 404, 422].includes(Number(error?.status)), ...(Array.isArray(error?.missingFields) ? { missingFields: error.missingFields } : {}) });
     } finally {
       if (!closed) res.end();
     }
     return;
   }
-  creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations\/([^/]+)\/cards\/([^/]+)$/);
+  creativeMatch = p.match(/^\/api\/projects\/([^/]+)\/creative-agent\/conversations\/([^/]+)\/messages\/([^/]+)$/);
   if (creativeMatch && method === 'PATCH') {
     const conversation = creativeAgentConversation(safeDecode(creativeMatch[1]), safeDecode(creativeMatch[2]));
     if (!conversation) return notFound(res);
     const body = await readJson(req);
-    const card = (conversation.messages || []).flatMap((message) => message.cards || []).find((item) => item.id === safeDecode(creativeMatch[3]));
-    if (!card) return notFound(res);
-    card.favorite = body.favorite === true;
+    const message = (conversation.messages || []).find((item) => item.id === safeDecode(creativeMatch[3]));
+    if (!message || message.role !== 'assistant') return notFound(res);
+    if (Object.hasOwn(body, 'feedback')) message.feedback = ['up', 'down'].includes(body.feedback) ? body.feedback : '';
     conversation.updatedAt = now();
     await saveDb();
-    return json(res, 200, card);
+    return json(res, 200, creativeAgentMessageView(message));
   }
   if (p === '/api/projects' && method === 'GET') return json(res, 200, { projects: Object.values(state.projects).sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)) });
   if (p === '/api/projects' && method === 'POST') {
     const body = await readJson(req); const id = randomUUID(); const ts = now();
-    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 2, nodes: [], edges: [] }, workflowRevision:1, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, timelineUpdatedAt:ts, createdAt: ts, updatedAt: ts };
+    const project = { id, name: String(body.name || 'Untitled Project').slice(0,120), settings: {}, workflow: { version: 1, nodes: [], edges: [] }, workflowRevision:1, timeline: { fps: 30, width: 1280, height: 720, items: [], tracks: { C1:{muted:false,hidden:false}, V2:{muted:false,hidden:false}, V1:{muted:false,hidden:false}, A1:{muted:false,hidden:false}, A2:{muted:false,hidden:false} } }, timelineUpdatedAt:ts, createdAt: ts, updatedAt: ts };
     state.projects[id] = project; await saveDb(); return json(res, 201, project);
   }
   let m = p.match(/^\/api\/projects\/([^/]+)$/);
@@ -658,19 +869,13 @@ async function handleApi(req, res, url) {
     const job=await enqueueGeneration(jobRequest,{requestId:body.requestId,sourceKey});return json(res,202,job);
   }
   m = p.match(/^\/api\/projects\/([^/]+)\/assets$/);
-  if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); const tag=url.searchParams.get('tag'),kind=url.searchParams.get('kind'); return json(res,200,{ assets: projectAssets(m[1],{tag,kind}) }); }
+  if (m && method === 'GET') { if (!projectOr404(m[1])) return notFound(res); const tag=url.searchParams.get('tag'),kind=url.searchParams.get('kind'),category=url.searchParams.get('category'),q=url.searchParams.get('q'); return json(res,200,{ assets: projectAssets(m[1],{tag,kind,category,q}), categories: ASSET_CATEGORY_OPTIONS }); }
   m = p.match(/^\/api\/projects\/([^/]+)\/assets\/([^/]+)$/);
   if (m && method === 'DELETE') {
     const pr = projectOr404(m[1]); if (!pr) return notFound(res);
     const asset = state.assets[m[2]]; if (!asset || asset.projectId !== pr.id) return notFound(res);
-    const removedNodeIds = new Set((pr.workflow?.nodes || []).filter(node => ['asset','upload'].includes(node.type) && node.data?.assetId === asset.id).map(node => node.id));
-    pr.workflow.nodes = (pr.workflow?.nodes || []).filter(node => !removedNodeIds.has(node.id));
-    pr.workflow.edges = (pr.workflow?.edges || []).filter(edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target));
-    for (const node of pr.workflow.nodes) { const data=node.data??={};data.outputAssetIds=(data.outputAssetIds||[]).filter(id=>id!==asset.id);data.variantAssetIds=(data.variantAssetIds||[]).filter(id=>id!==asset.id);data.presetReferences=(data.presetReferences||[]).filter(ref=>ref.assetId!==asset.id);if(['imageGen','videoGen'].includes(node.type)&&data.status==='succeeded'&&!data.outputAssetIds.length){data.status='idle';data.progress=0;} }
-    pr.timeline.items = (pr.timeline?.items || []).filter(item => item.sourceAssetId !== asset.id);
-    for (const job of Object.values(state.jobs)) if (job.projectId === pr.id) job.outputAssetIds=(job.outputAssetIds||[]).filter(id=>id!==asset.id);
-    delete state.assets[asset.id]; await fsp.rm(join(ASSETS_DIR,basename(asset.localPath)),{force:true}); pr.updatedAt=now(); await saveDb();
-    return json(res,200,{ok:true,workflow:pr.workflow,timeline:pr.timeline});
+    const result = await removeAssetCompletely(pr, asset);
+    return json(res,200,result);
   }
   if (m && method === 'PATCH') {
     const pr = projectOr404(m[1]); if (!pr) return notFound(res);
@@ -680,6 +885,20 @@ async function handleApi(req, res, url) {
     const remove = Array.isArray(body.remove) ? body.remove.map(String) : [];
     const current = Array.isArray(asset.tags) ? asset.tags : [];
     asset.tags = [...new Set([...current.filter(t => !remove.includes(t)), ...add])];
+    if (body.category !== undefined) {
+      const category = normalizeAssetCategory(body.category, asset);
+      if (body.category && !category) return json(res, 400, { error: 'invalid_asset_category', categories: ASSET_CATEGORY_OPTIONS });
+      asset.category = category;
+    }
+    asset.library = asset.library === true;
+    asset.material = asset.material !== false;
+    if (body.library !== undefined) asset.library = Boolean(body.library);
+    if (body.material !== undefined) asset.material = Boolean(body.material);
+    if (asset.material !== true && asset.library !== true) {
+      const result = await removeAssetCompletely(pr, asset);
+      return json(res,200,result);
+    }
+    asset.material = asset.material !== false;
     asset.updatedAt = now();
     await saveDb();
     return json(res,200,asset);
@@ -693,7 +912,7 @@ async function handleApi(req, res, url) {
     let size = 0; const out = createWriteStream(target, { flags: 'wx' });
     try { for await (const chunk of req) { size += chunk.length; if (size > MAX_UPLOAD_BYTES) throw Object.assign(new Error('upload exceeds MAX_UPLOAD_BYTES'), { status: 413 }); if (!out.write(chunk)) await new Promise(r => out.once('drain', r)); } await new Promise((r,j) => out.end(e => e ? j(e) : r())); }
     catch (e) { out.destroy(); await fsp.rm(target,{force:true}); throw e; }
-    const mime = contentTypeOnly(req.headers['content-type'] || '') || mimeFromExt(original); const kind = kindFromMime(mime, original); const asset = addAsset({ projectId: pr.id, kind, filename: original, mime, localPath: target, metadata: { size, ...(await mediaMetadata(target)) }, source: 'upload' }); await saveDb(); return json(res,201,asset);
+    const mime = contentTypeOnly(req.headers['content-type'] || '') || mimeFromExt(original); const kind = kindFromMime(mime, original); const category = safeDecode(req.headers['x-asset-category'] || ''); const asset = addAsset({ projectId: pr.id, kind, filename: original, mime, localPath: target, metadata: { size, ...(await mediaMetadata(target)) }, source: 'upload', category }); await saveDb(); return json(res,201,asset);
   }
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/export$/);
   if (m && method === 'POST') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const asset = await createExport(pr); return json(res,201,asset); }
@@ -742,7 +961,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/' || url.pathname === '/index.html') return serveFile(req, res, join(PUBLIC,'index.html'));
     const rel = normalize(url.pathname).replace(/^[/\\]+/, ''); if (rel.includes('..')) return notFound(res); const file = join(PUBLIC, rel); if (file.startsWith(PUBLIC)) return serveFile(req,res,file); return notFound(res);
   } catch (error) {
-    const status = error?.status || 500; console.error(error); return json(res,status,{ error: error?.code || (status >= 500 ? 'internal_error' : error.message), message: error.message });
+    const status = error?.status || 500; console.error(error); return json(res,status,{ error: error?.code || (status >= 500 ? 'internal_error' : error.message), message: error.message, ...(Array.isArray(error?.missingFields) ? { missingFields: error.missingFields } : {}) });
   }
 });
 

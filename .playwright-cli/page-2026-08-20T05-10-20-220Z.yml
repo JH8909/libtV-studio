@@ -1,0 +1,321 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - button "打开画布列表" [ref=e5] [cursor=pointer]
+        - generic "当前项目" [ref=e7]:
+          - group "当前画布" [ref=e275]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=e276] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=e12] [cursor=pointer]
+        - status [ref=e14]:
+          - generic [ref=e16]: 已保存
+      - generic [ref=e17]:
+        - generic "资料" [ref=e18]:
+          - button "素材" [ref=e19] [cursor=pointer]
+          - button "技能" [ref=e22] [cursor=pointer]
+        - generic "成片" [ref=e26]:
+          - button "时间线" [ref=e27] [cursor=pointer]
+          - button "导出" [ref=e30] [cursor=pointer]
+        - generic "模型与创意" [ref=e34]:
+          - button "模型/API" [ref=e35] [cursor=pointer]
+          - button "Agent" [ref=e38] [cursor=pointer]
+    - main [ref=e41]:
+      - generic [ref=e42]:
+        - application "无限画布" [ref=e43]:
+          - img:
+            - generic [ref=e965] [cursor=pointer]
+          - generic [ref=e47]:
+            - generic:
+              - strong [ref=e1108]: 文本
+              - generic:
+                - region "展开输入区" [ref=e1109]:
+                  - textbox "文本结果" [ref=e1110]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=e1111]:
+                  - button "完整查看脚本" [ref=e1112] [cursor=pointer]
+                  - button "复制文本结果" [ref=e1114] [cursor=pointer]
+            - generic:
+              - strong [ref=e1119]: 图片
+              - generic:
+                - region "收起输入区" [ref=e1120] [cursor=pointer]:
+                  - img "当前生成图片" [ref=e1122]
+                - generic [ref=e1123]:
+                  - generic [ref=e1124]:
+                    - button "添加参考素材" [ref=e1125] [cursor=pointer]:
+                      - generic [ref=e1127]: 参考
+                    - group [ref=e1128]:
+                      - generic "文生图" [ref=e1129]
+                  - textbox "描述希望生成的画面内容，@引用素材" [ref=e1133]: 电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。
+                  - generic [ref=e1134]:
+                    - generic [ref=e1135]:
+                      - group "模型" [ref=e1137]:
+                        - generic "Agnes Img 2.1" [ref=e1138] [cursor=pointer]
+                      - group [ref=e1142]:
+                        - generic "16:9 · 1K · 1张" [ref=e1143] [cursor=pointer]
+                    - button "重新生成" [ref=e1148] [cursor=pointer]
+            - generic:
+              - strong [ref=e1153]: 图片
+              - region "展开输入区" [ref=e1154] [cursor=pointer]:
+                - img "参考图片预览" [ref=e1156]
+            - generic:
+              - strong [ref=e1338]: 视频
+              - generic:
+                - region "收起输入区" [ref=e1339] [cursor=pointer]:
+                  - generic [ref=e1343]:
+                    - generic [ref=e1344]: 尝试：
+                    - strong [ref=e1345]: 文生视频
+                    - strong [ref=e1347]: 首帧视频
+                - generic [ref=e1349]:
+                  - generic [ref=e1350]:
+                    - button "添加参考素材" [ref=e1351] [cursor=pointer]:
+                      - generic [ref=e1353]: 参考
+                    - group [ref=e1354]:
+                      - generic "文生视频" [ref=e1355]
+                  - textbox "描述镜头、动作、运镜和音效，@引用素材" [ref=e1359]
+                  - generic [ref=e1360]:
+                    - generic [ref=e1361]:
+                      - group "模型" [ref=e1363]:
+                        - generic "Seedance 2.0 mini" [ref=e1364] [cursor=pointer]
+                      - group [ref=e1368]:
+                        - generic "4s · 16:9 · 720p" [active] [ref=e1369] [cursor=pointer]
+                        - generic [ref=e1381]:
+                          - generic [ref=e1382]:
+                            - generic [ref=e1383]: 时长
+                            - generic [ref=e1384]:
+                              - button "4s" [ref=e1385] [cursor=pointer]
+                              - button "5s" [ref=e1387] [cursor=pointer]
+                              - button "6s" [ref=e1389] [cursor=pointer]
+                              - button "8s" [ref=e1391] [cursor=pointer]
+                              - button "10s" [ref=e1393] [cursor=pointer]
+                              - button "12s" [ref=e1395] [cursor=pointer]
+                              - button "15s" [ref=e1397] [cursor=pointer]
+                          - generic [ref=e1399]:
+                            - generic [ref=e1400]: 比例
+                            - generic [ref=e1401]:
+                              - button "16:9" [ref=e1402] [cursor=pointer]
+                              - button "9:16" [ref=e1404] [cursor=pointer]
+                              - button "1:1" [ref=e1406] [cursor=pointer]
+                              - button "4:3" [ref=e1408] [cursor=pointer]
+                              - button "3:4" [ref=e1410] [cursor=pointer]
+                              - button "21:9" [ref=e1412] [cursor=pointer]
+                              - button "adaptive" [ref=e1414] [cursor=pointer]
+                          - generic [ref=e1416]:
+                            - generic [ref=e1417]: 分辨率
+                            - generic [ref=e1418]:
+                              - button "480p" [ref=e1419] [cursor=pointer]
+                              - button "720p" [ref=e1421] [cursor=pointer]
+                              - button "1080p" [ref=e1423] [cursor=pointer]
+                              - button "4k" [ref=e1425] [cursor=pointer]
+                          - generic [ref=e1427]:
+                            - generic [ref=e1428]: 声音
+                            - generic [ref=e1429]:
+                              - button "环境音" [ref=e1430] [cursor=pointer]
+                              - button "静音" [ref=e1432] [cursor=pointer]
+                              - button "音乐" [ref=e1434] [cursor=pointer]
+                              - button "口播" [ref=e1436] [cursor=pointer]
+                              - button "完整" [ref=e1438] [cursor=pointer]
+                      - group [ref=e1373]:
+                        - generic "参考类型" [ref=e1374] [cursor=pointer]
+                    - button "生成" [ref=e1379] [cursor=pointer]
+        - generic [ref=e119]:
+          - button "添加节点" [ref=e120] [cursor=pointer]
+          - generic "鼠标操作" [ref=e123]:
+            - button "抓手" [ref=e124] [cursor=pointer]
+          - button "撤销" [ref=e127] [cursor=pointer]
+          - button "重做" [disabled] [ref=e129]
+          - button "运行全部" [ref=e132] [cursor=pointer]
+          - button "适配画布" [ref=e134] [cursor=pointer]
+          - button "缩小" [ref=e136] [cursor=pointer]
+          - generic [ref=e138]: 75%
+          - button "放大" [ref=e139] [cursor=pointer]
+          - button "快捷键" [ref=e141] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+        - generic:
+          - generic: 今天
+          - button "图片 · 电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。"
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类":
+            - tab "推荐" [selected]
+            - tab "专业影视"
+            - tab "商业广告"
+          - generic:
+            - searchbox "搜索技能"
+        - generic:
+          - button "查看 影视打斗特效skill 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "影视打斗特效skill" [level=3]
+              - paragraph: 一句话生成角色人物影视特效支持文字参考图/视频
+              - paragraph: 专业影视 · 15 秒 · 9:16 / 16:9 · 1 镜
+          - button "查看 批量UGC带货 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "批量UGC带货" [level=3]
+              - paragraph: 真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 1 镜
+          - button "查看 电影质感画面专业生成 详情":
+            - generic: 图片
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "电影质感画面专业生成" [level=3]
+              - paragraph: 一句大白话就能生成超质感电影级多风格图片
+              - paragraph: 专业影视 · 16:9 · 1 镜
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 1 镜
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 5 镜
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic:
+          - heading "videoGen" [level=3]
+          - generic:
+            - term: Node ID
+            - definition: 5621c29b-abf3-4953-aaf2-df1fcd50e346
+            - term: Position
+            - definition: "-60, 480"
+            - term: Inputs
+            - definition: "0"
+            - term: Outputs
+            - definition: "0"
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 2 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic:
+          - generic:
+            - generic:
+              - strong: agnes-image-2.1-flash
+              - generic: 已完成
+            - generic: image.generate
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销"
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+          - generic:
+            - generic:
+              - generic: 25238b351d1e42d5b0e3cc64a6c5fbee.png
+              - generic: 3.0s · ×1.00
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - status
+  - tooltip "视频参数"

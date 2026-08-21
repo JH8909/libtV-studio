@@ -110,6 +110,16 @@ function importedPromptTemplates(kind) {
     videoPlanPrompt: '请拆解以下图片生成需求：{{INSTRUCTION}}。输出主体、场景、构图、风格、光线、参考素材使用方式和负面约束。',
     imagePrompt: '图片生成指令：{{INSTRUCTION}}。保持主体身份、结构、材质和风格稳定，画面清晰，避免随机新增主体、变形、文字和水印。画幅 {{ASPECT_RATIO}}。',
   };
+  if (kind === '音频') return {
+    videoPlanSystem: '你是声音导演。把用户的音频需求拆成旁白、音乐、音效、节奏和情绪约束，输出简洁可执行的声音方案。',
+    videoPlanPrompt: '请拆解以下音频生成需求：{{INSTRUCTION}}。输出声音角色、节奏、乐器或音色、进入与收束位置、与画面关系。',
+    videoPrompt: '音频制作指令：{{INSTRUCTION}}。保持风格统一，时长约 {{DURATION_SEC}} 秒。',
+  };
+  if (kind === '文本') return {
+    videoPlanSystem: '你是创意文案导演。把用户需求整理成可执行的文案方案，输出结构清晰、可直接用于后续制作的文本。',
+    videoPlanPrompt: '请拆解以下文本创作需求：{{INSTRUCTION}}。输出主题、结构、语气、关键信息点和交付格式。',
+    videoPrompt: '文本创作指令：{{INSTRUCTION}}。',
+  };
   return {
     videoPlanSystem: '你是视频导演和提示词工程师。把用户一句话拆成主体、动作、场景、镜头、风格、情绪和连续性约束，输出简洁可执行的生成计划。不要新增未指定的主体或剧情。',
     videoPlanPrompt: '请拆解以下视频生成需求：{{INSTRUCTION}}。输出主体、动作链、场景与光线、镜头运动、风格与情绪、连续性约束和负面约束。',
@@ -128,9 +138,16 @@ function normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, exist
   const examples = importedExamples(remote, snapshot);
   const tags = (Array.isArray(remote?.tags) ? remote.tags.map((tag) => tag?.tagLabel || tag?.name || tag).filter(Boolean) : []);
   const description = safeText(remote?.description || `${remote?.name || 'Liblib Skill'} 创作预设。`, 280);
-  const instruction = kind === '图片' ? '输入主体、场景、风格和构图需求。' : '输入主体、动作、场景和风格需求。';
+  const instruction = kind === '图片'
+    ? '输入主体、场景、风格和构图需求。'
+    : kind === '音频'
+      ? '输入旁白、音乐或音效需求。'
+      : kind === '文本'
+        ? '输入文案主题、语气和结构需求。'
+        : '输入主体、动作、场景和风格需求。';
   const id = existing?.id || `liblib-skill-${templateUuid.slice(0, 12)}`;
-  const genericWorkflow = kind === '图片' ? 'generic-image' : 'generic-video';
+  const genericWorkflow = kind === '图片' ? 'generic-image' : kind === '音频' || kind === '文本' ? 'generic-plan' : 'generic-video';
+  const howKind = kind === '图片' ? '输入图片需求' : kind === '音频' ? '输入音频需求' : kind === '文本' ? '输入文本需求' : '输入视频需求';
   return {
     id,
     version: Number(existing?.version || 1),
@@ -143,23 +160,27 @@ function normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, exist
     description,
     cardSummary: importedCardSummary(remote),
     usage: String(remote?.useScenario || ''),
-    howToUse: `在 Agent 中选择该 Skill，${kind === '图片' ? '输入图片需求' : '输入视频需求'}，按需添加参考素材；发送后执行工作流。`,
+    howToUse: `在 Agent 中选择该 Skill，${howKind}，按需添加参考素材；发送后执行工作流。`,
     tags: [...new Set([...tags, 'LiblibTV'])].slice(0, 8),
     source: { provider: 'LiblibTV', templateUuid, skillUuid: remote?.skillUuid || '', skillKey: remote?.skillKey || '', inputType: String(remote?.inputType || ''), outputContent: String(remote?.outputContent || ''), url: shareUrl, importedAt: new Date().toISOString() },
     inputs: [
       { id: 'instruction', label: '创作描述', type: 'text', required: true, placeholder: instruction || '输入你的创作描述' },
-      { id: 'referenceAsset', label: '参考素材', type: 'asset', required: false, accept: kind === '图片' ? ['image'] : ['image', 'video'] },
-      ...(kind === '视频' ? [{ id: 'durationSec', label: '目标时长', type: 'select', required: true, default: duration.duration, options: duration.options }] : []),
-      { id: 'aspectRatio', label: '画幅', type: 'select', required: true, default: format.default, options: format.options },
+      { id: 'referenceAsset', label: '参考素材', type: 'asset', required: false, accept: kind === '图片' ? ['image'] : kind === '音频' ? ['audio', 'image', 'video'] : ['image', 'video'] },
+      ...(kind === '视频' || kind === '音频' ? [{ id: 'durationSec', label: '目标时长', type: 'select', required: true, default: duration.duration, options: duration.options }] : []),
+      ...(kind === '文本' ? [] : [{ id: 'aspectRatio', label: '画幅', type: 'select', required: true, default: format.default, options: format.options }]),
     ],
     outputs: [String(remote?.outputContent || `${kind}生成结果`).trim(), '自动加入画布的生成节点', ...(kind === '视频' ? ['自动加入 Timeline 的视频成片草稿'] : [])],
     fixedSteps: kind === '图片'
       ? ['提取主体、场景、构图、风格和光线约束', '有参考素材时锁定主体身份与视觉连续性', '按目标画幅生成图片节点', '保留结果并回到画布继续创作']
-      : ['提取主体、动作、场景、镜头、风格和情绪约束', '有参考图或视频时锁定主体与动作连续性', '按目标画幅与时长生成视频节点', '将成功的视频结果自动加入 Timeline'],
-    rules: { format: format.format, ...(kind === '视频' ? { durationSec: duration.duration, durationOptions: duration.options, shotDurationSec: duration.duration } : {}), shotCount: 1, continuity: '保持主体身份、服装、材质、场景和光线连续。', safety: '禁止随机新增主体、变脸、换装、肢体变形、穿模、无指令切镜和画面文字。' },
+      : kind === '音频'
+        ? ['提取旁白、音乐、音效和节奏约束', '生成可执行的声音方案节点', '保留结果并回到画布继续混音']
+        : kind === '文本'
+          ? ['提取主题、结构与语气', '生成可执行文案方案', '保留结果并回到画布继续创作']
+          : ['提取主体、动作、场景、镜头、风格和情绪约束', '有参考图或视频时锁定主体与动作连续性', '按目标画幅与时长生成视频节点', '将成功的视频结果自动加入 Timeline'],
+    rules: { format: format.format, ...(kind === '视频' || kind === '音频' ? { durationSec: duration.duration, durationOptions: duration.options, shotDurationSec: duration.duration } : {}), shotCount: 1, continuity: '保持主体身份、服装、材质、场景和光线连续。', safety: '禁止随机新增主体、变脸、换装、肢体变形、穿模、无指令切镜和画面文字。' },
     promptTemplates: importedPromptTemplates(kind),
     examples,
-    execution: { workflow: genericWorkflow, adapter: kind === '图片' ? 'single-image' : 'single-video', requiresExplicitSelection: true, autoRun: true, generateKeyframes: false, generateShotVideos: kind === '视频', appendVideosToTimeline: kind === '视频', audioMode: 'full' },
+    execution: { workflow: genericWorkflow, adapter: kind === '图片' ? 'single-image' : kind === '音频' || kind === '文本' ? 'single-plan' : 'single-video', requiresExplicitSelection: true, autoRun: true, generateKeyframes: false, generateShotVideos: kind === '视频', appendVideosToTimeline: kind === '视频', audioMode: 'full' },
   };
 }
 
@@ -178,7 +199,7 @@ export async function importLiblibSkill(input) {
   const remote = payload?.data?.skill || payload?.data?.template || payload?.skill;
   if (!remote?.name) throw importError('liblib_skill_invalid', 'Liblib 返回的数据中没有可导入的 Skill。', 422);
   const kind = importedKind(remote);
-  if (!['图片', '视频'].includes(kind)) throw importError('unsupported_liblib_kind', '当前只支持图片和视频类型 Skill 导入。', 422);
+  if (!['图片', '视频', '音频', '文本'].includes(kind)) throw importError('unsupported_liblib_kind', '当前只支持文本、图片、视频和音频类型 Skill 导入。', 422);
   const snapshot = parseSnapshotData(remote.snapshotData);
   const existing = SKILLS.find((skill) => skill.source?.templateUuid === templateUuid);
   const generated = normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, existing);
@@ -209,7 +230,18 @@ function positionForExistingWorkflow(workflow) {
   return { x: Math.ceil((maxX + 80) / 10) * 10, y: 0 };
 }
 
+function stepIdForStage(workflowStage) {
+  const value = String(workflowStage || '');
+  if (value === 'creative-anchor' || value === 'vfx-plan' || value === 'image-plan') return 'anchor';
+  if (value === 'storyboard') return 'storyboard';
+  if (value === 'skill-keyframe' || value === 'skill-image') return 'keyframes';
+  if (value === 'skill-video') return 'videos';
+  if (value === 'voiceover-plan' || value === 'music-plan') return 'audio';
+  return '';
+}
+
 function makeTextNode({ id, title, preset, prompt, system, position, skillId, workflowStage, extra = {} }) {
+  const stepId = stepIdForStage(workflowStage);
   return {
     id,
     type: 'textGen',
@@ -226,6 +258,7 @@ function makeTextNode({ id, title, preset, prompt, system, position, skillId, wo
       params: { temperature: 0.55 },
       skillId,
       workflowStage,
+      ...(stepId ? { stepId } : {}),
       ...extra,
     },
   };
@@ -247,6 +280,8 @@ function makeImageNode({ id, prompt, position, skillId, shot, sourceId, aspectRa
       actionId: productAssetId ? 'image.edit' : 'image.generate',
       skillId,
       workflowStage: 'skill-keyframe',
+      stepId: 'keyframes',
+      shotId: shot,
       storyboardShot: shot,
       storyboardShotIndex: Number(shot.slice(1)) - 1,
       storyboardDurationSec: 3,
@@ -274,6 +309,8 @@ function makeVideoNode({ id, prompt, position, skillId, shot, sourceId, aspectRa
       actionId: 'video.image_to_video',
       skillId,
       workflowStage: 'skill-video',
+      stepId: 'videos',
+      shotId: shot,
       storyboardShot: shot,
       storyboardShotIndex: Number(shot.slice(1)) - 1,
       storyboardDurationSec: 3,
@@ -337,6 +374,8 @@ function buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, 
       actionId: capability,
       skillId: skill.id,
       workflowStage: 'skill-video',
+      stepId: 'videos',
+      shotId: 'S1',
       storyboardShot: 'S1',
       storyboardShotIndex: 0,
       storyboardDurationSec: requestedDuration,
@@ -349,7 +388,7 @@ function buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, 
 
   if (reference) {
     const assetId = `skill-vfx-asset-${randomUUID()}`;
-    nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material' } });
+    nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material', stepId: 'anchor' } });
     addEdge(assetId, videoId, referenceAsset === 'image' ? 'first-frame' : 'reference-video');
   }
 
@@ -405,6 +444,8 @@ function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, 
       actionId: capability,
       skillId: skill.id,
       workflowStage: 'skill-image',
+      stepId: 'keyframes',
+      shotId: 'S1',
       storyboardShot: 'S1',
       storyboardShotIndex: 0,
       storyboardStatus: 'approved',
@@ -413,7 +454,7 @@ function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, 
   });
   if (reference) {
     const assetId = `skill-image-asset-${randomUUID()}`;
-    nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material' } });
+    nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material', stepId: 'anchor' } });
     edges.push({ id: `e-${randomUUID()}`, source: assetId, target: imageId, role: 'reference-image' });
   }
   const currentNodes = Array.isArray(existingWorkflow?.nodes) ? existingWorkflow.nodes : [];
@@ -431,8 +472,44 @@ function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, 
   };
 }
 
+function buildPlanOnlyWorkflow({ skill, existingWorkflow, instruction, durationSec, aspectRatio }) {
+  const creativeInstruction = safeText(instruction, 4000);
+  if (!creativeInstruction) throw Object.assign(new Error('instruction_required'), { status: 400, message: '请先填写创作描述。' });
+  const ratio = String(aspectRatio || skill.inputs?.find((input) => input.id === 'aspectRatio')?.default || '16:9');
+  const requestedDuration = Math.max(1, Number(durationSec || skill.rules?.durationSec || 15));
+  const base = positionForExistingWorkflow(existingWorkflow);
+  const tokens = { INSTRUCTION: creativeInstruction, DURATION_SEC: requestedDuration, ASPECT_RATIO: ratio };
+  const planId = `skill-plan-${randomUUID()}`;
+  const nodes = [makeTextNode({
+    id: planId,
+    title: `${skill.name} · 制作方案`,
+    preset: 'rewrite',
+    prompt: replaceTokens(skill.promptTemplates.videoPlanPrompt || skill.promptTemplates.voiceoverPrompt || '{{INSTRUCTION}}', tokens),
+    system: skill.promptTemplates.videoPlanSystem || skill.promptTemplates.voiceoverSystem || '你是创意制作导演，输出可执行方案。',
+    position: { x: base.x, y: base.y },
+    skillId: skill.id,
+    workflowStage: 'vfx-plan',
+  })];
+  const currentNodes = Array.isArray(existingWorkflow?.nodes) ? existingWorkflow.nodes : [];
+  const currentEdges = Array.isArray(existingWorkflow?.edges) ? existingWorkflow.edges : [];
+  return {
+    skillId: skill.id,
+    skillVersion: skill.version,
+    mode: 'production',
+    nodes: [...currentNodes, ...nodes],
+    edges: [...currentEdges],
+    createdNodeIds: nodes.map((node) => node.id),
+    videoNodeIds: [],
+    audioPlanNodeIds: [planId],
+    input: { instruction: creativeInstruction, durationSec: requestedDuration, aspectRatio: ratio },
+  };
+}
+
 export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, sellingPoints, brandName, durationSec, aspectRatio, referenceAssetId, referenceKind, instruction }) {
   if (!skill) throw Object.assign(new Error('skill_not_found'), { status: 404 });
+  if (skill.execution?.adapter === 'single-plan' || skill.execution?.workflow === 'generic-plan') {
+    return buildPlanOnlyWorkflow({ skill, existingWorkflow, instruction: instruction || sellingPoints, durationSec, aspectRatio });
+  }
   if (skill.execution?.workflow === 'cinematic-vfx' || skill.execution?.workflow === 'generic-video') {
     return buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, referenceKind, instruction: instruction || sellingPoints, durationSec, aspectRatio });
   }
@@ -441,8 +518,8 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
   }
   const product = safeText(productAssetId, 160);
   const points = safeText(sellingPoints, 2000);
-  if (!product) throw Object.assign(new Error('product_image_required'), { status: 400 });
-  if (!points) throw Object.assign(new Error('selling_points_required'), { status: 400 });
+  if (!product) throw Object.assign(new Error('product_image_required'), { status: 400, message: '缺少必填输入：产品图片', missingFields: ['产品图片'] });
+  if (!points) throw Object.assign(new Error('selling_points_required'), { status: 400, message: '缺少必填输入：产品卖点', missingFields: ['产品卖点'] });
   const ratio = String(aspectRatio || skill.inputs.find((input) => input.id === 'aspectRatio')?.default || '16:9');
   const duration = Number(durationSec || skill.rules.durationSec || 15);
   const brand = safeText(brandName, 120) || '品牌产品';
@@ -459,7 +536,7 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
   const addEdge = (source, target, role) => edges.push({ id: `e-${randomUUID()}`, source, target, ...(role ? { role } : {}) });
 
   const assetId = `skill-asset-${randomUUID()}`;
-  nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: product, skillId: skill.id, workflowStage: 'product-reference' } });
+  nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: product, skillId: skill.id, workflowStage: 'product-reference', stepId: 'anchor' } });
 
   const anchorId = `skill-anchor-${randomUUID()}`;
   nodes.push(makeTextNode({

@@ -1,0 +1,203 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - banner [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - button "打开画布列表" [ref=f5e5] [cursor=pointer]
+        - generic "当前项目" [ref=f5e7]:
+          - group "当前画布" [ref=f5e69]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f5e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f5e8] [cursor=pointer]
+        - status [ref=f5e10]:
+          - generic [ref=f5e12]: 已保存
+      - generic [ref=f5e13]:
+        - generic "资料" [ref=f5e14]:
+          - button "素材" [ref=f5e15] [cursor=pointer]
+          - button "技能" [ref=f5e18] [cursor=pointer]
+        - generic "成片" [ref=f5e22]:
+          - button "时间线" [pressed] [ref=f5e23] [cursor=pointer]
+          - button "导出" [ref=f5e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f5e30]:
+          - button "模型/API" [ref=f5e31] [cursor=pointer]
+          - button "Agent" [ref=f5e34] [cursor=pointer]
+    - main [ref=f5e37]:
+      - generic [ref=f5e38]:
+        - application "无限画布" [ref=f5e39]:
+          - img:
+            - generic [ref=f5e73] [cursor=pointer]
+          - generic [ref=f5e44]:
+            - generic:
+              - strong [ref=f5e77]: 文本
+              - generic:
+                - region "展开输入区" [ref=f5e78]:
+                  - textbox "文本结果" [ref=f5e79]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f5e80]:
+                  - button "完整查看脚本" [ref=f5e81] [cursor=pointer]
+                  - button "复制文本结果" [ref=f5e83] [cursor=pointer]
+            - generic:
+              - strong [ref=f5e88]: 图片
+              - region "展开输入区" [ref=f5e89] [cursor=pointer]:
+                - img "当前生成图片" [ref=f5e91]
+            - generic:
+              - strong [ref=f5e95]: 图片
+              - region "展开输入区" [ref=f5e96] [cursor=pointer]:
+                - img "参考图片预览" [ref=f5e98]
+            - generic:
+              - strong [ref=f5e102]: 视频
+              - region "展开输入区" [ref=f5e103] [cursor=pointer]:
+                - generic [ref=f5e105]:
+                  - generic "当前生成视频" [ref=f5e106]
+                  - button "播放" [ref=f5e107]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic:
+              - strong [ref=f5e637]: 视频
+              - generic:
+                - region "收起输入区" [ref=f5e638] [cursor=pointer]:
+                  - generic [ref=f5e642]:
+                    - generic [ref=f5e643]: 尝试：
+                    - strong [ref=f5e644]: 文生视频
+                    - strong [ref=f5e646]: 首帧视频
+                - generic [ref=f5e648]:
+                  - generic [ref=f5e649]:
+                    - button "添加参考素材" [ref=f5e650] [cursor=pointer]:
+                      - generic [ref=f5e652]: 参考
+                    - group [ref=f5e653]:
+                      - generic "文生视频" [ref=f5e654]
+                  - textbox "描述镜头、动作、运镜和音效，@引用素材" [ref=f5e658]: 保存冲突回归
+                  - generic [ref=f5e659]:
+                    - generic [ref=f5e660]:
+                      - group "模型" [ref=f5e662]:
+                        - generic "Agnes v2.0" [ref=f5e663] [cursor=pointer]
+                      - group [ref=f5e667]:
+                        - generic "5s · 16:9 · 720p" [ref=f5e668] [cursor=pointer]
+                      - group [ref=f5e672]:
+                        - generic "参考类型" [ref=f5e673] [cursor=pointer]
+                    - button "生成" [ref=f5e678] [cursor=pointer]
+        - generic [ref=f5e45]:
+          - button "添加节点" [ref=f5e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f5e49]:
+            - button "抓手" [ref=f5e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f5e53]
+          - button "重做" [disabled] [ref=f5e55]
+          - button "运行全部" [ref=f5e58] [cursor=pointer]
+          - button "适配画布" [ref=f5e60] [cursor=pointer]
+          - button "缩小" [ref=f5e62] [cursor=pointer]
+          - generic [ref=f5e64]: 90%
+          - button "放大" [ref=f5e65] [cursor=pointer]
+          - button "快捷键" [ref=f5e67] [cursor=pointer]
+      - complementary "属性与生成任务" [ref=f5e229]:
+        - generic [ref=f5e230]:
+          - strong [ref=f5e231]: 属性
+          - button "关闭" [ref=f5e232] [cursor=pointer]
+        - generic [ref=f5e236]:
+          - button "播放" [ref=f5e237] [cursor=pointer]
+          - text: 0.00s
+          - button "全屏预览" [ref=f5e240] [cursor=pointer]
+        - generic [ref=f5e242]:
+          - heading "videoGen" [level=3] [ref=f5e680]
+          - generic [ref=f5e681]:
+            - term [ref=f5e682]: Node ID
+            - definition [ref=f5e683]: ded76393-afe0-4d81-955b-a14f095bfc3f
+            - term [ref=f5e684]: Position
+            - definition [ref=f5e685]: 30, 70
+            - term [ref=f5e686]: Inputs
+            - definition [ref=f5e687]: "0"
+            - term [ref=f5e688]: Outputs
+            - definition [ref=f5e689]: "0"
+        - generic [ref=f5e295]:
+          - generic [ref=f5e296]: 生成任务
+          - generic [ref=f5e297]: 0 进行中 · 0 失败 · 3 完成
+        - group "任务筛选" [ref=f5e298]:
+          - button "全部" [ref=f5e299] [cursor=pointer]
+          - button "进行中" [ref=f5e300] [cursor=pointer]
+          - button "失败" [ref=f5e301] [cursor=pointer]
+          - button "已完成" [ref=f5e302] [cursor=pointer]
+          - button "归档完成" [ref=f5e303] [cursor=pointer]
+        - generic [ref=f5e304]:
+          - generic [ref=f5e305]:
+            - generic [ref=f5e306]:
+              - strong [ref=f5e307]: agnes-video-v2.0
+              - generic [ref=f5e308]: 已完成
+            - generic [ref=f5e309]: video.generate · 100%
+            - progressbar "任务进度" [ref=f5e310]
+          - generic [ref=f5e312]:
+            - generic [ref=f5e313]:
+              - strong [ref=f5e314]: agnes-image-2.1-flash
+              - generic [ref=f5e315]: 已完成
+            - generic [ref=f5e316]: image.generate
+          - generic [ref=f5e317]:
+            - generic [ref=f5e318]:
+              - strong [ref=f5e319]: agnes-2.5-flash
+              - generic [ref=f5e320]: 已完成
+            - generic [ref=f5e321]: text.generate · 100%
+            - progressbar "任务进度" [ref=f5e322]
+    - region "时间线" [ref=f5e123]:
+      - generic [ref=f5e124]:
+        - generic [ref=f5e125]:
+          - strong [ref=f5e126]: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic [ref=f5e127]: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic [ref=f5e128]:
+          - button "撤销" [ref=f5e129] [cursor=pointer]
+          - button "重做" [disabled] [ref=f5e131]
+          - button "字幕" [ref=f5e133] [cursor=pointer]
+          - button "缩小" [ref=f5e136] [cursor=pointer]
+          - generic [ref=f5e138]: 100%
+          - button "放大" [ref=f5e139] [cursor=pointer]
+          - button "切分：请选择一个 Timeline Clip" [disabled] [ref=f5e690]:
+            - generic [ref=f5e143]: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled] [ref=f5e691]:
+            - generic [ref=f5e146]: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled] [ref=f5e692]:
+            - generic [ref=f5e149]: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled] [ref=f5e693]:
+            - generic [ref=f5e152]: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled] [ref=f5e694]:
+            - generic [ref=f5e155]: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled] [ref=f5e695]:
+            - generic [ref=f5e158]: 删除
+          - button "收起时间线" [ref=f5e159] [cursor=pointer]
+      - generic [ref=f5e161]:
+        - generic [ref=f5e566]: 0s
+        - generic [ref=f5e568]: 2s
+        - generic [ref=f5e570]: 4s
+        - generic [ref=f5e572]: 6s
+        - generic [ref=f5e574]: 8s
+        - generic [ref=f5e576]: 10s
+        - generic [ref=f5e578]: 12s
+        - generic [ref=f5e580]: 14s
+        - generic [ref=f5e582]: 16s
+        - generic [ref=f5e584]: 18s
+        - generic [ref=f5e586]: 20s
+      - generic [ref=f5e183]:
+        - generic [ref=f5e588]:
+          - generic [ref=f5e589]: C1
+          - button "静音" [ref=f5e590] [cursor=pointer]
+          - button "隐藏" [ref=f5e592] [cursor=pointer]
+        - generic [ref=f5e596]:
+          - generic [ref=f5e597]: V2
+          - button "静音" [ref=f5e598] [cursor=pointer]
+          - button "隐藏" [ref=f5e600] [cursor=pointer]
+        - generic [ref=f5e603]:
+          - generic [ref=f5e604]:
+            - generic [ref=f5e605]: V1
+            - button "静音" [ref=f5e606] [cursor=pointer]
+            - button "隐藏" [ref=f5e608] [cursor=pointer]
+          - generic [ref=f5e611]:
+            - generic [ref=f5e613]: 25238b351d1e42d5b0e3cc64a6c5fbee.png
+            - generic [ref=f5e614]: 3.0s · ×1.00
+        - generic [ref=f5e617]:
+          - generic [ref=f5e618]: A1
+          - button "静音" [ref=f5e619] [cursor=pointer]
+          - button "隐藏" [ref=f5e621] [cursor=pointer]
+        - generic [ref=f5e625]:
+          - generic [ref=f5e626]: A2
+          - button "静音" [ref=f5e627] [cursor=pointer]
+          - button "隐藏" [ref=f5e629] [cursor=pointer]
+  - status
+  - tooltip: 时间线

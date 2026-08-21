@@ -1,0 +1,61 @@
+- generic [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - banner [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - button "打开画布列表" [ref=f6e5] [cursor=pointer]
+        - generic "当前项目" [ref=f6e7]:
+          - group "当前画布" [ref=f6e69]:
+            - generic "Text与预设审计临时画布" [ref=f6e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f6e8] [cursor=pointer]
+        - status [ref=f6e10]:
+          - generic [ref=f6e12]: 已保存
+      - generic [ref=f6e13]:
+        - generic "资料" [ref=f6e14]:
+          - button "素材" [ref=f6e15] [cursor=pointer]
+          - button "技能" [ref=f6e18] [cursor=pointer]
+        - generic "成片" [ref=f6e22]:
+          - button "时间线" [ref=f6e23] [cursor=pointer]
+          - button "导出" [ref=f6e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f6e30]:
+          - button "模型/API" [ref=f6e31] [cursor=pointer]
+          - button "Agent" [ref=f6e34] [cursor=pointer]
+    - main [ref=f6e37]:
+      - generic [ref=f6e38]:
+        - application "无限画布" [ref=f6e39]:
+          - generic [ref=f6e44]:
+            - generic:
+              - strong [ref=f6e76]: 文本
+              - generic:
+                - region "展开输入区" [ref=f6e77]:
+                  - textbox "文本结果" [ref=f6e78]: "# 《审计脚本》 | 镜号 | 阶段/景别 | 画面描述 | 文案/旁白 | 时长 | 音效/音乐 | | --- | --- | --- | --- | --- | --- | | 1 | 开场 / 远景 | 玉石置于云海中，镜头缓慢推进 | — | 3s | 风声 |"
+                - generic [ref=f6e79]:
+                  - button "完整查看脚本" [ref=f6e80] [cursor=pointer]
+                  - button "复制文本结果" [ref=f6e82] [cursor=pointer]
+        - generic [ref=f6e45]:
+          - button "添加节点" [ref=f6e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f6e49]:
+            - button "抓手" [ref=f6e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f6e53]
+          - button "重做" [disabled] [ref=f6e55]
+          - button "运行全部" [ref=f6e58] [cursor=pointer]
+          - button "适配画布" [ref=f6e60] [cursor=pointer]
+          - button "缩小" [ref=f6e62] [cursor=pointer]
+          - generic [ref=f6e64]: 100%
+          - button "放大" [ref=f6e65] [cursor=pointer]
+          - button "快捷键" [ref=f6e67] [cursor=pointer]
+  - dialog "脚本全文" [ref=f6e84]:
+    - generic [ref=f6e85]:
+      - generic [ref=f6e86]:
+        - generic [ref=f6e87]:
+          - strong [ref=f6e88]: 分镜脚本
+          - generic [ref=f6e89]: 脚本结构不完整，请重新生成或编辑为标准镜头表
+        - generic [ref=f6e90]:
+          - button "编辑脚本" [active] [ref=f6e91] [cursor=pointer]:
+            - generic [ref=f6e93]: 编辑
+          - button "复制脚本全文" [ref=f6e94] [cursor=pointer]:
+            - generic [ref=f6e96]: 复制全文
+          - button "关闭" [ref=f6e97] [cursor=pointer]
+      - textbox "脚本全文" [ref=f6e99]: "# 《审计脚本》 | 镜号 | 阶段/景别 | 画面描述 | 文案/旁白 | 时长 | 音效/音乐 | | --- | --- | --- | --- | --- | --- | | 1 | 开场 / 远景 | 玉石置于云海中，镜头缓慢推进 | — | 3s | 风声 |"
+  - status
+  - tooltip: 完整查看脚本

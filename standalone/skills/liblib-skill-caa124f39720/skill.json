@@ -1,0 +1,122 @@
+{
+  "id": "liblib-skill-caa124f39720",
+  "version": 1,
+  "sourceVersion": "1.0.15",
+  "name": "新中式美学TVC",
+  "category": "商业广告",
+  "kind": "视频",
+  "cover": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/fc88a7500af42ee82e678b94aaa1a7e69fc34d26.png",
+  "author": "AI萨大法官",
+  "description": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+  "cardSummary": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+  "usage": "品牌广告",
+  "howToUse": "在 Agent 中选择该 Skill，输入视频需求，按需添加参考素材；发送后执行工作流。",
+  "tags": [
+    "商业广告",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "caa124f3972044b8925b9308e96411c0",
+    "skillUuid": "ff4bee5acb0243509e5dfec8f8b65d14",
+    "skillKey": "neo-chinese-aesthetic-tvc-beda8103d1a8414aa15aa0eb1db95a07",
+    "inputType": "导入产品图和卖点描述",
+    "outputContent": "角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片",
+    "url": "https://www.liblib.tv/skill/share?uuid=caa124f3972044b8925b9308e96411c0",
+    "importedAt": "2026-08-19T14:23:57.956Z"
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "创作描述",
+      "type": "text",
+      "required": true,
+      "placeholder": "输入主体、动作、场景和风格需求。"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image",
+        "video"
+      ]
+    },
+    {
+      "id": "durationSec",
+      "label": "目标时长",
+      "type": "select",
+      "required": true,
+      "default": 15,
+      "options": [
+        15
+      ]
+    },
+    {
+      "id": "aspectRatio",
+      "label": "画幅",
+      "type": "select",
+      "required": true,
+      "default": "16:9",
+      "options": [
+        "16:9"
+      ]
+    }
+  ],
+  "outputs": [
+    "角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片",
+    "自动加入画布的生成节点",
+    "自动加入 Timeline 的视频成片草稿"
+  ],
+  "fixedSteps": [
+    "提取主体、动作、场景、镜头、风格和情绪约束",
+    "有参考图或视频时锁定主体与动作连续性",
+    "按目标画幅与时长生成视频节点",
+    "将成功的视频结果自动加入 Timeline"
+  ],
+  "rules": {
+    "format": "16:9",
+    "durationSec": 15,
+    "durationOptions": [
+      15
+    ],
+    "shotDurationSec": 15,
+    "shotCount": 1,
+    "continuity": "保持主体身份、服装、材质、场景和光线连续。",
+    "safety": "禁止随机新增主体、变脸、换装、肢体变形、穿模、无指令切镜和画面文字。"
+  },
+  "promptTemplates": {
+    "videoPlanSystem": "你是视频导演和提示词工程师。把用户一句话拆成主体、动作、场景、镜头、风格、情绪和连续性约束，输出简洁可执行的生成计划。不要新增未指定的主体或剧情。",
+    "videoPlanPrompt": "请拆解以下视频生成需求：{{INSTRUCTION}}。输出主体、动作链、场景与光线、镜头运动、风格与情绪、连续性约束和负面约束。",
+    "videoPrompt": "视频生成指令：{{INSTRUCTION}}。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/cae03587a7a583f30eb149fd1148211a6cffb638.mp4",
+      "label": "案例 1",
+      "canvasUrl": "https://www.liblib.tv/canvas/chat-share?shareId=D1oNHHoV7t"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/05b89e3d1ee698b7f27993d48601d5efc12997b5.mp4",
+      "label": "案例 2"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/ebc97728b58142359a1de0cd2412b8f1b2e47952.mp4",
+      "label": "案例 3"
+    }
+  ],
+  "execution": {
+    "workflow": "generic-video",
+    "adapter": "single-video",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": true,
+    "appendVideosToTimeline": true,
+    "audioMode": "full"
+  }
+}

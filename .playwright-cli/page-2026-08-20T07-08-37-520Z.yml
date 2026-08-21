@@ -1,0 +1,140 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - banner [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - button "打开画布列表" [ref=f5e5] [cursor=pointer]
+        - generic "当前项目" [ref=f5e7]:
+          - group "当前画布" [ref=f5e69]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f5e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f5e8] [cursor=pointer]
+        - status [ref=f5e10]:
+          - generic [ref=f5e12]: 已保存
+      - generic [ref=f5e13]:
+        - generic "资料" [ref=f5e14]:
+          - button "素材" [ref=f5e15] [cursor=pointer]
+          - button "技能" [ref=f5e18] [cursor=pointer]
+        - generic "成片" [ref=f5e22]:
+          - button "时间线" [active] [pressed] [ref=f5e23] [cursor=pointer]
+          - button "导出" [ref=f5e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f5e30]:
+          - button "模型/API" [ref=f5e31] [cursor=pointer]
+          - button "Agent" [ref=f5e34] [cursor=pointer]
+    - main [ref=f5e37]:
+      - generic [ref=f5e38]:
+        - application "无限画布" [ref=f5e39]:
+          - img:
+            - generic [ref=f5e73] [cursor=pointer]
+          - generic [ref=f5e44]:
+            - generic:
+              - strong [ref=f5e77]: 文本
+              - generic:
+                - region "展开输入区" [ref=f5e78]:
+                  - textbox "文本结果" [ref=f5e79]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f5e80]:
+                  - button "完整查看脚本" [ref=f5e81] [cursor=pointer]
+                  - button "复制文本结果" [ref=f5e83] [cursor=pointer]
+            - generic:
+              - strong [ref=f5e88]: 图片
+              - region "展开输入区" [ref=f5e89] [cursor=pointer]:
+                - img "当前生成图片" [ref=f5e91]
+            - generic:
+              - strong [ref=f5e95]: 图片
+              - region "展开输入区" [ref=f5e96] [cursor=pointer]:
+                - img "参考图片预览" [ref=f5e98]
+            - generic:
+              - strong [ref=f5e102]: 视频
+              - region "展开输入区" [ref=f5e103] [cursor=pointer]:
+                - generic [ref=f5e105]:
+                  - generic "当前生成视频" [ref=f5e106]
+                  - button "播放" [ref=f5e107]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic:
+              - strong [ref=f5e112]: 视频
+              - region "展开输入区" [ref=f5e113] [cursor=pointer]:
+                - generic [ref=f5e117]:
+                  - generic [ref=f5e118]: 尝试：
+                  - strong [ref=f5e119]: 文生视频
+                  - strong [ref=f5e121]: 首帧视频
+        - generic [ref=f5e45]:
+          - button "添加节点" [ref=f5e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f5e49]:
+            - button "抓手" [ref=f5e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f5e53]
+          - button "重做" [disabled] [ref=f5e55]
+          - button "运行全部" [ref=f5e58] [cursor=pointer]
+          - button "适配画布" [ref=f5e60] [cursor=pointer]
+          - button "缩小" [ref=f5e62] [cursor=pointer]
+          - generic [ref=f5e64]: 90%
+          - button "放大" [ref=f5e65] [cursor=pointer]
+          - button "快捷键" [ref=f5e67] [cursor=pointer]
+    - region "时间线" [ref=f5e123]:
+      - generic [ref=f5e124]:
+        - generic [ref=f5e125]:
+          - strong [ref=f5e126]: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic [ref=f5e127]: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic [ref=f5e128]:
+          - button "撤销" [disabled] [ref=f5e129]
+          - button "重做" [disabled] [ref=f5e131]
+          - button "字幕" [ref=f5e133] [cursor=pointer]
+          - button "缩小" [ref=f5e136] [cursor=pointer]
+          - generic [ref=f5e138]: 100%
+          - button "放大" [ref=f5e139] [cursor=pointer]
+          - button "切分：请选择一个 Timeline Clip" [disabled] [ref=f5e141]:
+            - generic [ref=f5e143]: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled] [ref=f5e144]:
+            - generic [ref=f5e146]: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled] [ref=f5e147]:
+            - generic [ref=f5e149]: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled] [ref=f5e150]:
+            - generic [ref=f5e152]: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled] [ref=f5e153]:
+            - generic [ref=f5e155]: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled] [ref=f5e156]:
+            - generic [ref=f5e158]: 删除
+          - button "收起时间线" [ref=f5e159] [cursor=pointer]
+      - generic [ref=f5e161]:
+        - generic [ref=f5e162]: 0s
+        - generic [ref=f5e164]: 2s
+        - generic [ref=f5e166]: 4s
+        - generic [ref=f5e168]: 6s
+        - generic [ref=f5e170]: 8s
+        - generic [ref=f5e172]: 10s
+        - generic [ref=f5e174]: 12s
+        - generic [ref=f5e176]: 14s
+        - generic [ref=f5e178]: 16s
+        - generic [ref=f5e180]: 18s
+        - generic [ref=f5e182]: 20s
+      - generic [ref=f5e183]:
+        - generic [ref=f5e185]:
+          - generic [ref=f5e186]: C1
+          - button "静音" [ref=f5e187] [cursor=pointer]
+          - button "隐藏" [ref=f5e189] [cursor=pointer]
+        - generic [ref=f5e193]:
+          - generic [ref=f5e194]: V2
+          - button "静音" [ref=f5e195] [cursor=pointer]
+          - button "隐藏" [ref=f5e197] [cursor=pointer]
+        - generic [ref=f5e200]:
+          - generic [ref=f5e201]:
+            - generic [ref=f5e202]: V1
+            - button "静音" [ref=f5e203] [cursor=pointer]
+            - button "隐藏" [ref=f5e205] [cursor=pointer]
+          - generic [ref=f5e208]:
+            - generic [ref=f5e210]: 25238b351d1e42d5b0e3cc64a6c5fbee.png
+            - generic [ref=f5e211]: 3.0s · ×1.25
+        - generic [ref=f5e214]:
+          - generic [ref=f5e215]: A1
+          - button "静音" [ref=f5e216] [cursor=pointer]
+          - button "隐藏" [ref=f5e218] [cursor=pointer]
+        - generic [ref=f5e222]:
+          - generic [ref=f5e223]: A2
+          - button "静音" [ref=f5e224] [cursor=pointer]
+          - button "隐藏" [ref=f5e226] [cursor=pointer]
+  - status
+  - tooltip "时间线"

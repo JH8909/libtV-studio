@@ -9,6 +9,8 @@ import {
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const app = await readFile(join(ROOT, 'public', 'app.js'), 'utf8');
 const server = await readFile(join(ROOT, 'server.mjs'), 'utf8');
+const context = await readFile(join(ROOT, 'app-context.mjs'), 'utf8');
+const providerSources = (await Promise.all(['agnes.mjs', 'apimart.mjs', 'bailian.mjs'].map(name => readFile(join(ROOT, 'providers', name), 'utf8')))).join('\n');
 const index = await readFile(join(ROOT, 'public', 'index.html'), 'utf8');
 const css = await readFile(join(ROOT, 'public', 'styles.css'), 'utf8');
 const original = imagePresetLibrarySnapshot();
@@ -25,7 +27,7 @@ const checks = [
   ['preset nodes do not automatically generate', /function applyImagePreset/.test(app) && !/function applyImagePreset[\s\S]*?generateNode\(derived\.id\)/.test(app.match(/function applyImagePreset[\s\S]*?function addVideo/)?.[0] || '')],
   ['preset nodes use explicit aspect policies', /n\.data\?\.aspectPolicy==='locked'/.test(app) && /presetAspectRatio:preset\.aspectRatio/.test(app)],
   ['saved preset nodes migrate to current prompt versions and policies', /function migrateImagePresetPrompts/.test(app) && /presetVersion:preset\.version/.test(app) && /n\.data\.params\.negativePrompt!==preset\.negative/.test(app)],
-  ['progress distinguishes provider percentages from live phases', /progressMode:'phase'/.test(server) && /progressMode='provider'/.test(server) && /progressMode='stream'/.test(server) && /is-indeterminate/.test(app + css)],
+  ['progress distinguishes provider percentages from live phases', /job\.progressMode\s*\|\|\s*["']phase["']/.test(context) && /progressMode:\s*["']phase["']/.test(context) && /progressMode:\s*["']provider["']/.test(providerSources) && /progressMode:\s*["']stream["']/.test(providerSources) && /is-indeterminate/.test(app + css)],
   ['completed presets keep system validation text out of the node surface', /function imagePresetReview\(n\)\{\s*return ''/.test(app) && /\.preset-review\{display:none!important\}/.test(css)],
   ['accessibility announcements and reduced motion are supported', /aria-live="polite"/.test(index) && /prefers-reduced-motion:reduce/.test(css)],
 ];

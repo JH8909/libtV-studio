@@ -1,0 +1,109 @@
+- generic [ref=f10e1]:
+  - generic [ref=f10e2]:
+    - banner [ref=f10e3]:
+      - generic [ref=f10e4]:
+        - button "打开画布列表" [ref=f10e5] [cursor=pointer]
+        - generic "当前项目" [ref=f10e7]:
+          - group "当前画布" [ref=f10e69]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f10e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f10e8] [cursor=pointer]
+        - status [ref=f10e10]:
+          - generic [ref=f10e12]: 已保存
+      - generic [ref=f10e13]:
+        - generic "资料" [ref=f10e14]:
+          - button "素材" [ref=f10e15] [cursor=pointer]
+          - button "技能" [ref=f10e18] [cursor=pointer]
+        - generic "成片" [ref=f10e22]:
+          - button "时间线" [ref=f10e23] [cursor=pointer]
+          - button "导出" [ref=f10e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f10e30]:
+          - button "模型/API" [ref=f10e31] [cursor=pointer]
+          - button "Agent" [ref=f10e34] [cursor=pointer]
+    - main [ref=f10e37]:
+      - generic [ref=f10e38]:
+        - application "无限画布" [ref=f10e39]:
+          - img:
+            - generic:
+              - generic [ref=f10e73] [cursor=pointer]
+              - generic [ref=f10e74] [cursor=pointer]
+              - generic [ref=f10e75] [cursor=pointer]
+          - generic [ref=f10e44]:
+            - generic:
+              - generic [ref=f10e76]:
+                - strong [ref=f10e79]: 文本
+                - button "展开输入区" [ref=f10e81] [cursor=pointer]
+              - generic:
+                - region "展开输入区" [ref=f10e83]:
+                  - textbox "文本结果" [ref=f10e84]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f10e85]:
+                  - button "完整查看脚本" [ref=f10e86] [cursor=pointer]
+                  - button "复制文本结果" [ref=f10e88] [cursor=pointer]
+            - generic:
+              - generic [ref=f10e237]:
+                - strong [ref=f10e240]: 图片
+                - button "展开输入区" [ref=f10e242] [cursor=pointer]
+              - region "展开输入区" [ref=f10e244] [cursor=pointer]:
+                - img "当前生成图片" [ref=f10e246]
+            - generic:
+              - generic [ref=f10e247]:
+                - strong [ref=f10e250]: 图片
+                - button "展开输入区" [ref=f10e252] [cursor=pointer]
+              - region "展开输入区" [ref=f10e254] [cursor=pointer]:
+                - img "当前生成图片" [ref=f10e256]
+            - generic:
+              - generic [ref=f10e257]:
+                - strong [ref=f10e260]: 视频
+                - button "展开输入区" [ref=f10e262] [cursor=pointer]
+              - region "展开输入区" [ref=f10e264] [cursor=pointer]:
+                - generic [ref=f10e266]:
+                  - generic "当前生成视频" [ref=f10e267]
+                  - button "播放" [ref=f10e268]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic:
+              - generic [ref=f10e270]:
+                - strong [ref=f10e273]: 视频
+                - button "展开输入区" [ref=f10e275] [cursor=pointer]
+              - region "展开输入区" [ref=f10e277] [cursor=pointer]:
+                - generic [ref=f10e281]:
+                  - generic [ref=f10e282]: 尝试：
+                  - strong [ref=f10e283]: 文生视频
+                  - strong [ref=f10e285]: 首帧视频
+            - generic:
+              - generic [ref=f10e287]:
+                - strong [ref=f10e290]: 图片
+                - button "展开输入区" [ref=f10e292] [cursor=pointer]
+              - region "展开输入区" [ref=f10e294] [cursor=pointer]:
+                - img "当前生成图片" [ref=f10e296]
+            - generic:
+              - generic [ref=f10e297]:
+                - strong [ref=f10e300]: 图片
+                - button "展开输入区" [ref=f10e302] [cursor=pointer]
+              - region "展开输入区" [ref=f10e304] [cursor=pointer]:
+                - img "参考图片预览" [ref=f10e306]
+        - generic [ref=f10e45]:
+          - button "添加节点" [ref=f10e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f10e49]:
+            - button "抓手" [ref=f10e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f10e53]
+          - button "重做" [disabled] [ref=f10e55]
+          - button "运行全部" [ref=f10e58] [cursor=pointer]
+          - button "适配画布" [ref=f10e60] [cursor=pointer]
+          - button "缩小" [ref=f10e62] [cursor=pointer]
+          - generic [ref=f10e64]: 32%
+          - button "放大" [ref=f10e65] [cursor=pointer]
+          - button "快捷键" [ref=f10e67] [cursor=pointer]
+  - dialog [ref=f10e307]:
+    - generic [ref=f10e308]:
+      - strong [ref=f10e310]: 删除画布
+      - paragraph [ref=f10e311]: 确定删除“Text与预设审计临时画布”？画布节点、素材和时间线将一并删除，此操作无法撤销。
+      - generic [ref=f10e312]:
+        - button "取消" [active] [ref=f10e313] [cursor=pointer]
+        - button "删除画布" [ref=f10e314] [cursor=pointer]
+  - status
+  - tooltip: Playwright 全流程验收 2026-08-20
