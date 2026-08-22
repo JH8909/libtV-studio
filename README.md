@@ -23,7 +23,7 @@ Windows:
 start-local.cmd
 ```
 
-Open `http://127.0.0.1:3000`.
+Open `http://127.0.0.1:3342`.
 
 **文档**：[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) · [TESTING.md](./TESTING.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [PROJECT_GAP_AUDIT.md](./PROJECT_GAP_AUDIT.md) · [CHANGELOG.md](./CHANGELOG.md)
 

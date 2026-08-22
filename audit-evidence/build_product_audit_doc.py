@@ -8,7 +8,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 
-ROOT = Path(r"E:\codex\libtv-studio-complete-v1.3")
+ROOT = Path(r"F:\codex\libtv-studio-complete-v1.3")
 EVIDENCE_DIR = ROOT / "audit-evidence" / "2026-08-20"
 OUT = ROOT / "audit-evidence" / "LibTV-Studio-Product-Audit-2026-08-20.docx"
 

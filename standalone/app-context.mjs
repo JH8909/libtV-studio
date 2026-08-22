@@ -180,7 +180,8 @@ for (const asset of Object.values(state.assets)) {
   asset.metadata ||= {};
   asset.tags ||= computeInitialTags({ kind: asset.kind, metadata: asset.metadata, source: asset.metadata.source || "upload" });
   asset.category = normalizeAssetCategory(asset.category, asset);
-  if (asset.library === undefined) asset.library = asset.metadata.source === "upload" || asset.tags.includes("uploaded");
+  if (asset.library === undefined) asset.library = false;
+  if ((asset.metadata.source === "upload" || asset.tags.includes("uploaded")) && asset.librarySource !== "manual") asset.library = false;
   if (asset.material === undefined) asset.material = true;
 }
 if (!Array.isArray(state.promptLibrary?.presets) || !state.promptLibrary.presets.length) {
@@ -268,7 +269,7 @@ export function computeInitialTags({ kind, metadata, source }) {
   return [...new Set(tags)];
 }
 
-export function addAsset({ projectId, kind, filename, mime, localPath, metadata = {}, source = "upload", category = "", library = source === "upload" }) {
+export function addAsset({ projectId, kind, filename, mime, localPath, metadata = {}, source = "upload", category = "", library = false }) {
   const id = randomUUID();
   const rel = basename(localPath);
   const tags = computeInitialTags({ kind, metadata, source });
@@ -277,6 +278,7 @@ export function addAsset({ projectId, kind, filename, mime, localPath, metadata 
     projectId,
     kind,
     library: Boolean(library),
+    ...(library ? { librarySource: "manual" } : {}),
     material: true,
     category: normalizeAssetCategory(category, { kind, tags, metadata }),
     filename,

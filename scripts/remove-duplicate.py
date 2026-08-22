@@ -3,7 +3,7 @@
 移除重复的autoLayoutNodes函数
 """
 
-APP_JS_PATH = r'E:\codex\libtv-studio-complete-v1.3\libtv-studio-complete-v1.3\standalone\public\app.js'
+APP_JS_PATH = r'F:\codex\libtv-studio-complete-v1.3\standalone\public\app.js'
 
 with open(APP_JS_PATH, 'r', encoding='utf-8', errors='replace') as f:
     lines = f.readlines()

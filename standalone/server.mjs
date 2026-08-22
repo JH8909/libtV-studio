@@ -561,7 +561,7 @@ async function handleApi(req, res, url) {
     await saveDb(); return json(res,200,normalizeImagePreset(preset));
   }
   if (p === '/api/provider-settings' && method === 'GET') {
-    const settings=maskedProviderSettingsView(),apimartModels=await registry.availableApimartModels(),agnesModels=await availableAgnesModels();
+    const settings=maskedProviderSettingsView(),apimartModels=await registry.availableApimartModels(),agnesModels=registry.get('agnes').models();
     return json(res,200,{settings,configured:{agnes:Boolean(runtimeConfig.AGNES_API_KEY),apimart:Boolean(runtimeConfig.APIMART_API_KEY),deepseek:Boolean(runtimeConfig.DEEPSEEK_API_KEY),bailian:Boolean(runtimeConfig.BAILIAN_API_KEY)},agnesModels,...registry.apimartSettingsPayload(apimartModels)});
   }
   if (p === '/api/provider-settings' && method === 'PUT') {
@@ -892,7 +892,11 @@ async function handleApi(req, res, url) {
     }
     asset.library = asset.library === true;
     asset.material = asset.material !== false;
-    if (body.library !== undefined) asset.library = Boolean(body.library);
+    if (body.library !== undefined) {
+      asset.library = Boolean(body.library);
+      if (asset.library) asset.librarySource = 'manual';
+      else delete asset.librarySource;
+    }
     if (body.material !== undefined) asset.material = Boolean(body.material);
     if (asset.material !== true && asset.library !== true) {
       const result = await removeAssetCompletely(pr, asset);
@@ -912,7 +916,7 @@ async function handleApi(req, res, url) {
     let size = 0; const out = createWriteStream(target, { flags: 'wx' });
     try { for await (const chunk of req) { size += chunk.length; if (size > MAX_UPLOAD_BYTES) throw Object.assign(new Error('upload exceeds MAX_UPLOAD_BYTES'), { status: 413 }); if (!out.write(chunk)) await new Promise(r => out.once('drain', r)); } await new Promise((r,j) => out.end(e => e ? j(e) : r())); }
     catch (e) { out.destroy(); await fsp.rm(target,{force:true}); throw e; }
-    const mime = contentTypeOnly(req.headers['content-type'] || '') || mimeFromExt(original); const kind = kindFromMime(mime, original); const category = safeDecode(req.headers['x-asset-category'] || ''); const asset = addAsset({ projectId: pr.id, kind, filename: original, mime, localPath: target, metadata: { size, ...(await mediaMetadata(target)) }, source: 'upload', category }); await saveDb(); return json(res,201,asset);
+    const mime = contentTypeOnly(req.headers['content-type'] || '') || mimeFromExt(original); const kind = kindFromMime(mime, original); const category = safeDecode(req.headers['x-asset-category'] || ''); const library = String(req.headers['x-asset-library'] || '').toLowerCase() === 'true'; const asset = addAsset({ projectId: pr.id, kind, filename: original, mime, localPath: target, metadata: { size, ...(await mediaMetadata(target)) }, source: 'upload', category, library }); await saveDb(); return json(res,201,asset);
   }
   m = p.match(/^\/api\/projects\/([^/]+)\/timeline\/export$/);
   if (m && method === 'POST') { const pr = projectOr404(m[1]); if (!pr) return notFound(res); const asset = await createExport(pr); return json(res,201,asset); }
