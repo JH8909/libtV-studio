@@ -1,0 +1,348 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - button "打开画布列表" [ref=e5] [cursor=pointer]
+        - generic "当前项目" [ref=e7]:
+          - group "当前画布" [ref=e8]:
+            - generic "未命名画布 1" [ref=e9] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=e12] [cursor=pointer]
+        - status [ref=e14]:
+          - generic [ref=e16]: 已保存
+      - generic [ref=e17]:
+        - generic "资料" [ref=e18]:
+          - button "素材" [ref=e19] [cursor=pointer]
+          - button "技能" [ref=e22] [cursor=pointer]
+        - generic "成片" [ref=e26]:
+          - button "时间线" [ref=e27] [cursor=pointer]
+          - button "导出" [ref=e30] [cursor=pointer]
+        - generic "模型与创意" [ref=e34]:
+          - button "模型/API" [ref=e35] [cursor=pointer]
+          - button "Agent" [ref=e38] [cursor=pointer]
+    - main [ref=e41]:
+      - generic [ref=e42]:
+        - application "无限画布" [ref=e43]:
+          - img:
+            - generic:
+              - generic [ref=e44] [cursor=pointer]
+              - generic [ref=e45] [cursor=pointer]
+              - generic [ref=e46] [cursor=pointer]
+          - generic [ref=e47]:
+            - generic:
+              - strong [ref=e51]: 文本
+              - region "展开输入区" [ref=e52] [cursor=pointer]:
+                - generic [ref=e56]:
+                  - generic [ref=e57]: 尝试：
+                  - strong [ref=e58]: 分镜脚本
+                  - strong [ref=e60]: 提示词扩写
+            - generic:
+              - strong [ref=e65]: 视频
+              - region "展开输入区" [ref=e66] [cursor=pointer]:
+                - generic [ref=e68]:
+                  - generic "当前生成视频" [ref=e69]
+                  - button "播放" [ref=e70]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:10
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic [ref=e72]:
+              - strong [ref=e77]: 图片
+              - img "图片素材" [ref=e79]
+            - generic:
+              - strong [ref=e83]: 图片
+              - region "展开输入区" [ref=e84] [cursor=pointer]:
+                - img "当前生成图片" [ref=e86]
+            - generic:
+              - strong [ref=e90]: 文本
+              - region "展开输入区" [ref=e91] [cursor=pointer]:
+                - generic [ref=e95]:
+                  - generic [ref=e96]: 尝试：
+                  - strong [ref=e97]: 分镜脚本
+                  - strong [ref=e99]: 提示词扩写
+            - generic:
+              - strong [ref=e104]: 视频
+              - region "展开输入区" [ref=e105] [cursor=pointer]:
+                - generic [ref=e107]:
+                  - generic "当前生成视频" [ref=e108]
+                  - button "播放" [ref=e109]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:10
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic [ref=e111]:
+              - strong [ref=e116]: 图片
+              - img "图片素材" [ref=e118]
+        - generic [ref=e119]:
+          - button "添加节点" [ref=e120] [cursor=pointer]
+          - generic "鼠标操作" [ref=e123]:
+            - button "抓手" [ref=e124] [cursor=pointer]
+          - button "撤销" [disabled] [ref=e127]
+          - button "重做" [disabled] [ref=e129]
+          - button "运行全部" [ref=e132] [cursor=pointer]
+          - button "适配画布" [ref=e134] [cursor=pointer]
+          - button "缩小" [ref=e136] [cursor=pointer]
+          - generic [ref=e138]: 42%
+          - button "放大" [ref=e139] [cursor=pointer]
+          - button "快捷键" [ref=e141] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+        - generic:
+          - generic: 今天
+          - button "视频 · 视频生成指令：核心卖点是，轻便携带，容量大，运动人群使用。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 15 秒，画幅 16:9。":
+            - button "删除素材"
+            - generic: 视频
+            - generic:
+              - button "视频生成指令：核心卖点是，轻便携带，容量大，运动人群使用。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 15 秒，画幅 16:9。"
+          - button "图片 · 72360481-c6f1-4214-a6e2-f7589bf5b5d3-output.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "72360481-c6f1-4214-a6e2-… 无提示词":
+                - generic: 72360481-c6f1-4214-a6e2-…
+                - generic: 无提示词
+          - button "图片 · output.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "output.png 无提示词":
+                - generic: output.png
+                - generic: 无提示词
+          - button "图片 · 按照参考图生成三视图，正面，侧面，背面，纯白色背景":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "按照参考图生成三视图，正面，侧面，背面，纯白色背景"
+          - button "视频 · 视频生成指令：做一段15秒带货视频。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 15 秒，画幅 16:9。":
+            - button "删除素材"
+            - generic: 视频
+            - generic:
+              - button "视频生成指令：做一段15秒带货视频。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 15 秒，画幅 16:9。"
+          - button "图片 · b2dc1ff7-2f1a-4a9e-9b99-d855db8fb371-output.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "b2dc1ff7-2f1a-4a9e-9b99-… 无提示词":
+                - generic: b2dc1ff7-2f1a-4a9e-9b99-…
+                - generic: 无提示词
+          - generic: 昨天
+          - button "图片 · canvas-output-1781191670613.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "canvas-output-1781191670… 无提示词":
+                - generic: canvas-output-1781191670…
+                - generic: 无提示词
+          - button "图片 · canvas-output-1781191670613.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "canvas-output-1781191670… 无提示词":
+                - generic: canvas-output-1781191670…
+                - generic: 无提示词
+          - button "图片 · canvas-output-1781191670613.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "canvas-output-1781191670… 无提示词":
+                - generic: canvas-output-1781191670…
+                - generic: 无提示词
+          - button "图片 · image-generation.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "image-generation.png 无提示词":
+                - generic: image-generation.png
+                - generic: 无提示词
+          - button "图片 · image-generation.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "image-generation.png 无提示词":
+                - generic: image-generation.png
+                - generic: 无提示词
+          - button "图片 · canvas-output-1781191670613.png":
+            - button "删除素材"
+            - generic: 图片
+            - generic:
+              - button "canvas-output-1781191670… 无提示词":
+                - generic: canvas-output-1781191670…
+                - generic: 无提示词
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类"
+          - generic:
+            - searchbox "搜索技能"
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic: 选择节点、连线或 Timeline Clip
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 8 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic:
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.image_to_video · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-image-2.1-flash
+              - generic: 已完成
+            - generic: image.edit
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.image_to_video · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.image_to_video · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.image_to_video · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-image-2.1-flash
+              - generic: 已完成
+            - generic: image.generate
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销" [disabled]
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+          - generic:
+            - generic:
+              - generic: S1 · task_uFZFIgUr5wlc9OIZzUhfjXCSxvyuNPXW.mp4
+              - generic: 10.0s · ×1.00
+            - generic:
+              - generic: S1 · task_raVhcHPw8ycKOCACbJrBN3cyhY1cH4y6.mp4
+              - generic: 10.0s · ×1.00
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - dialog [ref=e145]:
+    - generic [ref=e146]:
+      - strong [ref=e148]: 新建画布
+      - generic [ref=e149]:
+        - generic [ref=e150]: 画布名称
+        - textbox "画布名称" [active] [ref=e151]: 未命名画布 3
+      - generic [ref=e152]:
+        - button "取消" [ref=e153] [cursor=pointer]
+        - button "创建画布" [ref=e154] [cursor=pointer]
+  - status
+  - tooltip

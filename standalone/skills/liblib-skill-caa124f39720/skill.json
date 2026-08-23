@@ -1,0 +1,134 @@
+{
+  "id": "liblib-skill-caa124f39720",
+  "version": 1,
+  "sourceVersion": "1.0.15",
+  "name": "新中式美学TVC",
+  "category": "商业广告",
+  "kind": "视频",
+  "cover": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/fc88a7500af42ee82e678b94aaa1a7e69fc34d26.png",
+  "author": "AI萨大法官",
+  "description": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+  "cardSummary": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+  "usage": "品牌广告",
+  "howToUse": "在 Agent 中选择该 Skill，按来源要求提供“导入产品图和卖点描述”；先确认执行计划，再生成来源声明的交付物。",
+  "tags": [
+    "商业广告",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "caa124f3972044b8925b9308e96411c0",
+    "skillUuid": "ff4bee5acb0243509e5dfec8f8b65d14",
+    "skillKey": "neo-chinese-aesthetic-tvc-beda8103d1a8414aa15aa0eb1db95a07",
+    "inputType": "导入产品图和卖点描述",
+    "outputContent": "角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片",
+    "url": "https://www.liblib.tv/skill/share?uuid=caa124f3972044b8925b9308e96411c0",
+    "importedAt": "2026-08-22T03:16:23.547Z",
+    "importerVersion": 2,
+    "definition": {
+      "name": "新中式美学TVC",
+      "description": "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+      "useScenario": "品牌广告",
+      "inputType": "导入产品图和卖点描述",
+      "outputContent": "角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片",
+      "outputItems": [
+        "角色三视图",
+        "场景图",
+        "分镜",
+        "多语言旁白",
+        "国风BGM",
+        "完整成片"
+      ],
+      "sourceVersion": "1.0.15",
+      "resultType": 3,
+      "sourceType": 1,
+      "showMarkdown": false
+    }
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "导入产品图和卖点描述",
+      "type": "text",
+      "required": false,
+      "placeholder": "导入产品图和卖点描述"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image",
+        "video"
+      ]
+    }
+  ],
+  "outputs": [
+    "角色三视图",
+    "场景图",
+    "分镜",
+    "多语言旁白",
+    "国风BGM",
+    "完整成片"
+  ],
+  "fixedSteps": [
+    "核对来源要求的输入：导入产品图和卖点描述",
+    "依据来源公开说明生成可编辑执行计划",
+    "制作并核对来源声明的交付物：角色三视图",
+    "制作并核对来源声明的交付物：场景图",
+    "制作并核对来源声明的交付物：分镜",
+    "制作并核对来源声明的交付物：多语言旁白",
+    "制作并核对来源声明的交付物：国风BGM",
+    "制作并核对来源声明的交付物：完整成片",
+    "仅在全部公开交付物完成后结束本次 Skill 运行"
+  ],
+  "rules": {
+    "inputContract": "导入产品图和卖点描述",
+    "outputContract": [
+      "角色三视图",
+      "场景图",
+      "分镜",
+      "多语言旁白",
+      "国风BGM",
+      "完整成片"
+    ],
+    "useScenario": "品牌广告",
+    "sourceVersion": "1.0.15",
+    "disclosure": "仅执行来源公开的输入、输出和说明；来源未公开的私有画布、提示词或参数不会被臆造。"
+  },
+  "promptTemplates": {
+    "videoPlanSystem": "你是 Skill 执行导演。必须先遵守下列来源公开执行契约，再补全用户提供的变量；每项已声明交付物都要在计划中有对应步骤。来源没有公开的规则不能臆造。\n\n【来源 Skill 的公开执行契约】\n名称：新中式美学TVC\n说明：新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉\n使用场景：品牌广告\n输入：导入产品图和卖点描述\n交付物：角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片\n来源版本：1.0.15\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。",
+    "videoPlanPrompt": "根据来源公开执行契约和用户当前需求制定可编辑执行计划。\n\n用户需求：{{INSTRUCTION}}\n\n请按“输入核对 → 来源声明的交付物逐项制作 → 验收”输出；对缺失输入只标明待补，不自行虚构。",
+    "videoPrompt": "【来源 Skill 的公开执行契约】\n名称：新中式美学TVC\n说明：新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉\n使用场景：品牌广告\n输入：导入产品图和卖点描述\n交付物：角色三视图、场景图、分镜、多语言旁白、国风BGM、完整成片\n来源版本：1.0.15\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。\n\n视频执行：{{INSTRUCTION}}。请严格按来源公开交付物制作，并采用上游已确认的计划；来源未声明的主体、剧情、文字和风格不可擅自新增。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/cae03587a7a583f30eb149fd1148211a6cffb638.mp4",
+      "label": "案例 1",
+      "canvasUrl": "https://www.liblib.tv/canvas/chat-share?shareId=D1oNHHoV7t"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/05b89e3d1ee698b7f27993d48601d5efc12997b5.mp4",
+      "label": "案例 2"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/beda8103d1a8414aa15aa0eb1db95a07/ebc97728b58142359a1de0cd2412b8f1b2e47952.mp4",
+      "label": "案例 3"
+    }
+  ],
+  "execution": {
+    "workflow": "generic-video",
+    "adapter": "single-video",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": true,
+    "appendVideosToTimeline": true,
+    "audioMode": "full",
+    "sourceFaithful": true
+  }
+}

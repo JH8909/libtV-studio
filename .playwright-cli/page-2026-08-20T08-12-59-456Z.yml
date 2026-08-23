@@ -1,0 +1,64 @@
+- generic [ref=f8e1]:
+  - generic [ref=f8e2]:
+    - banner [ref=f8e3]:
+      - generic [ref=f8e4]:
+        - button "打开画布列表" [ref=f8e5] [cursor=pointer]
+        - generic "当前项目" [ref=f8e7]:
+          - group "当前画布" [ref=f8e160]:
+            - generic "Text与预设审计临时画布" [ref=f8e161] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f8e8] [cursor=pointer]
+        - status [ref=f8e10]:
+          - generic [ref=f8e12]: 已保存
+      - generic [ref=f8e13]:
+        - generic "资料" [ref=f8e14]:
+          - button "素材" [ref=f8e15] [cursor=pointer]
+          - button "技能" [ref=f8e18] [cursor=pointer]
+        - generic "成片" [ref=f8e22]:
+          - button "时间线" [ref=f8e23] [cursor=pointer]
+          - button "导出" [ref=f8e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f8e30]:
+          - button "模型/API" [ref=f8e31] [cursor=pointer]
+          - button "Agent" [ref=f8e34] [cursor=pointer]
+    - main [ref=f8e37]:
+      - generic [ref=f8e38]:
+        - application "无限画布" [ref=f8e39]:
+          - img:
+            - generic [ref=f8e164] [cursor=pointer]
+          - generic [ref=f8e44]:
+            - generic:
+              - strong [ref=f8e168]: 文本
+              - generic:
+                - region "展开输入区" [ref=f8e169]:
+                  - textbox "文本结果" [active] [ref=f8e170]: "# 《审计脚本》 ## 1. 项目统一设定 - 画幅：16:9；时长：3秒；风格：东方电影感。 ## 3. 正式分镜拆解 | 镜号 | 阶段/景别 | 图片提示词 | 视频提示词 | 文案/旁白 | 时长 | 音效/音乐 | | --- | --- | --- | --- | --- | --- | --- | | 1 | 开场 / 远景 | 玉石置于云海中，侧逆光，画面定格 | 起始状态：玉石置于云海；动作过程：镜头缓慢推进；结束状态：保持一拍 | — | 3s | 风声 | ## 4. 统一负面提示词 - 禁止字幕和画面文字。"
+                - generic [ref=f8e171]:
+                  - button "完整查看脚本" [ref=f8e172] [cursor=pointer]
+                  - button "复制文本结果" [ref=f8e174] [cursor=pointer]
+            - generic:
+              - strong [ref=f8e179]: 图片
+              - region "展开输入区" [ref=f8e180] [cursor=pointer]:
+                - generic [ref=f8e184]:
+                  - generic [ref=f8e185]: 尝试：
+                  - strong [ref=f8e186]: 图生图
+                  - strong [ref=f8e188]: 图片高清
+            - generic:
+              - strong [ref=f8e193]: 视频
+              - region "展开输入区" [ref=f8e194] [cursor=pointer]:
+                - generic [ref=f8e198]:
+                  - generic [ref=f8e199]: 尝试：
+                  - strong [ref=f8e200]: 文生视频
+                  - strong [ref=f8e202]: 首帧视频
+        - generic [ref=f8e45]:
+          - button "添加节点" [ref=f8e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f8e49]:
+            - button "抓手" [ref=f8e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f8e53]
+          - button "重做" [disabled] [ref=f8e55]
+          - button "运行全部" [ref=f8e58] [cursor=pointer]
+          - button "适配画布" [ref=f8e60] [cursor=pointer]
+          - button "缩小" [ref=f8e62] [cursor=pointer]
+          - generic [ref=f8e64]: 89%
+          - button "放大" [ref=f8e65] [cursor=pointer]
+          - button "快捷键" [ref=f8e67] [cursor=pointer]
+  - status
+  - tooltip "展开 / 收起输入区"

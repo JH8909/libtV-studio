@@ -1,0 +1,781 @@
+{
+  "surfaces": {
+    "topbar": [
+      "Text Audit Project",
+      "已保存",
+      "素材",
+      "技能",
+      "时间线",
+      "导出",
+      "模型/API",
+      "Agent"
+    ],
+    "welcome": [
+      "双击画布 自由生成节点",
+      "文本生成",
+      "从想法开始创作",
+      "图片生成",
+      "生成电影级视觉画面",
+      "视频生成",
+      "让画面动起来"
+    ],
+    "canvasToolbar": [
+      "100%"
+    ],
+    "assetDrawer": [
+      "素材管理",
+      "上传",
+      "素材",
+      "提示词库",
+      "类型",
+      "全部",
+      "图片",
+      "视频",
+      "音频",
+      "暂无素材"
+    ],
+    "skillDrawer": [
+      "技能广场",
+      "推荐",
+      "专业影视",
+      "商业广告",
+      "视频",
+      "使用",
+      "影视打斗特效skill",
+      "一句话生成角色人物影视特效支持文字参考图/视频",
+      "专业影视 · 15 秒 · 9:16 / 16:9 · 1 镜",
+      "批量UGC带货",
+      "真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。",
+      "商业广告 · 15 秒 · 16:9 · 1 镜",
+      "图片",
+      "电影质感画面专业生成",
+      "一句大白话就能生成超质感电影级多风格图片",
+      "专业影视 · 16:9 · 1 镜",
+      "新中式美学TVC",
+      "新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+      "商业广告 · 15 秒 · 16:9 · 5 镜"
+    ],
+    "skillDetailModal": [
+      "影视打斗特效skill",
+      "使用 Skill",
+      "1/4",
+      "简介",
+      "介绍",
+      "一句话生成角色人物影视特效支持文字参考图/视频",
+      "使用场景",
+      "真人漫剧/打斗/短片/动画/热血漫画/3D动漫等",
+      "如何使用",
+      "只需要一句话即可，如果希望是什么风火雷电系列都可以说明，可自由搭配组合技能名称，用户描述的场景、角色、风格意图、情绪基调、特效诉",
+      "输出内容",
+      "支持15-最高30秒的技能打斗特效竖版和横板视频"
+    ],
+    "agent": [
+      "创意对话",
+      "把模糊想法聊清楚",
+      "从主题、角色、风格或镜头方向开始。对话只给建议；使用技能才会改画布。",
+      "快速开始",
+      "发散方向",
+      "从一个模糊想法找到三条路",
+      "建立风格",
+      "确定画面气质和视觉语言",
+      "拆解场景",
+      "把概念变成可讨论的画面"
+    ],
+    "agentSkillMenu": [
+      "影视打斗特效skill",
+      "专业影视 · 一句话生成角色人物影视特效支持文字参考图/视频",
+      "↵",
+      "批量UGC带货",
+      "商业广告 · 真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。",
+      "电影质感画面专业生成",
+      "专业影视 · 一句大白话就能生成超质感电影级多风格图片",
+      "新中式美学TVC",
+      "商业广告 · 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉",
+      "商业广告 · 从产品图片和卖点描述出发，按固定的品牌锚点、五镜头分镜、关键帧、首帧视频和声音方案，生成一支 15 秒新中式品牌 TVC。"
+    ],
+    "timeline": [
+      "时间线",
+      "1280×720 · 30 fps · 0.00s",
+      "请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除",
+      "字幕",
+      "100%",
+      "切分",
+      "复制",
+      "叠化",
+      "作为 AI 参考",
+      "波纹删除",
+      "删除",
+      "0s",
+      "2s",
+      "4s",
+      "6s",
+      "8s",
+      "10s",
+      "12s",
+      "14s",
+      "16s",
+      "18s",
+      "20s",
+      "C1",
+      "V2",
+      "V1",
+      "A1",
+      "A2"
+    ],
+    "helpModal": [
+      "画布快捷键",
+      "双击",
+      "添加节点",
+      "节点右键",
+      "节点菜单",
+      "V",
+      "选择工具",
+      "H / Space",
+      "抓手工具",
+      "C",
+      "连线工具",
+      "Delete",
+      "删除选中",
+      "⌘/Ctrl Z",
+      "撤销",
+      "F",
+      "适配画布"
+    ],
+    "imageNode": [
+      "图片",
+      "尝试：",
+      "图生图",
+      "图片高清"
+    ],
+    "imageNodeExpanded": [
+      "图片",
+      "尝试：",
+      "图生图",
+      "图片高清",
+      "参考",
+      "文生图",
+      "无可用选项",
+      "16:9 · 1K · 1张"
+    ],
+    "inspector": [
+      "imageGen",
+      "Node ID",
+      "eefa0844-29e3-49d5-a73e-a28ee55a455e",
+      "Position",
+      "-250, 0",
+      "Inputs",
+      "0",
+      "Outputs"
+    ]
+  },
+  "aria": [
+    {
+      "id": "#workspaceIcon",
+      "tag": "button",
+      "label": "打开画布列表"
+    },
+    {
+      "id": "#projectSelect",
+      "tag": "div",
+      "label": "当前项目"
+    },
+    {
+      "id": ".app-select",
+      "tag": "details",
+      "label": "当前画布"
+    },
+    {
+      "id": ".project-delete",
+      "tag": "button",
+      "label": "删除画布 Text Audit Project"
+    },
+    {
+      "id": "#newProjectBtn",
+      "tag": "button",
+      "label": "新建画布"
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "资料"
+    },
+    {
+      "id": "#assetDrawerBtn",
+      "tag": "button",
+      "label": "素材"
+    },
+    {
+      "id": "#skillDrawerBtn",
+      "tag": "button",
+      "label": "技能"
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "成片"
+    },
+    {
+      "id": "#timelineToggleBtn",
+      "tag": "button",
+      "label": "时间线"
+    },
+    {
+      "id": "#exportBtn",
+      "tag": "button",
+      "label": "导出"
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "模型与创意"
+    },
+    {
+      "id": "#providerSettingsBtn",
+      "tag": "button",
+      "label": "模型/API"
+    },
+    {
+      "id": "#agentBtn",
+      "tag": "button",
+      "label": "Agent"
+    },
+    {
+      "id": "#canvas",
+      "tag": "div",
+      "label": "无限画布"
+    },
+    {
+      "id": ".generator-preview",
+      "tag": "section",
+      "label": "收起输入区"
+    },
+    {
+      "id": ".node-ref-add",
+      "tag": "button",
+      "label": "添加参考素材"
+    },
+    {
+      "id": ".generator-prompt",
+      "tag": "textarea",
+      "label": "描述希望生成的画面内容，@引用素材"
+    },
+    {
+      "id": ".app-select",
+      "tag": "details",
+      "label": "模型"
+    },
+    {
+      "id": ".primary",
+      "tag": "button",
+      "label": "生成"
+    },
+    {
+      "id": "#welcomeCards",
+      "tag": "div",
+      "label": "快速开始"
+    },
+    {
+      "id": "#addNodeBtn",
+      "tag": "button",
+      "label": "添加节点"
+    },
+    {
+      "id": "#mouseTools",
+      "tag": "div",
+      "label": "鼠标操作"
+    },
+    {
+      "id": ".tool-btn",
+      "tag": "button",
+      "label": "抓手"
+    },
+    {
+      "id": "#canvasUndoBtn",
+      "tag": "button",
+      "label": "撤销"
+    },
+    {
+      "id": "#canvasRedoBtn",
+      "tag": "button",
+      "label": "重做"
+    },
+    {
+      "id": "#runAllBtn",
+      "tag": "button",
+      "label": "运行全部"
+    },
+    {
+      "id": "#fitBtn",
+      "tag": "button",
+      "label": "适配画布"
+    },
+    {
+      "id": "#zoomOutBtn",
+      "tag": "button",
+      "label": "缩小"
+    },
+    {
+      "id": "#zoomInBtn",
+      "tag": "button",
+      "label": "放大"
+    },
+    {
+      "id": "#helpBtn",
+      "tag": "button",
+      "label": "快捷键"
+    },
+    {
+      "id": "#refreshAssetsBtn",
+      "tag": "button",
+      "label": "刷新"
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#assetLibraryTabs",
+      "tag": "div",
+      "label": "素材库分类"
+    },
+    {
+      "id": "#skillDrawer",
+      "tag": "aside",
+      "label": "技能广场"
+    },
+    {
+      "id": "#importSkillBtn",
+      "tag": "button",
+      "label": "导入 Skill"
+    },
+    {
+      "id": "#refreshSkillsBtn",
+      "tag": "button",
+      "label": "刷新技能"
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#skillCategoryFilters",
+      "tag": "div",
+      "label": "Skill 分类"
+    },
+    {
+      "id": "#skillSearchInput",
+      "tag": "input",
+      "label": "搜索 Skill"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 影视打斗特效skill 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 批量UGC带货 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 电影质感画面专业生成 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 新中式美学TVC 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 新中式美学TVC 详情"
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#previewFullscreenBtn",
+      "tag": "button",
+      "label": "全屏预览"
+    },
+    {
+      "id": ".job-filters",
+      "tag": "div",
+      "label": "任务筛选"
+    },
+    {
+      "id": "#timelineUndoBtn",
+      "tag": "button",
+      "label": "撤销"
+    },
+    {
+      "id": "#timelineRedoBtn",
+      "tag": "button",
+      "label": "重做"
+    },
+    {
+      "id": "#timelineZoomOutBtn",
+      "tag": "button",
+      "label": "缩小"
+    },
+    {
+      "id": "#timelineZoomInBtn",
+      "tag": "button",
+      "label": "放大"
+    },
+    {
+      "id": "#splitClipBtn",
+      "tag": "button",
+      "label": "切分：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#duplicateClipBtn",
+      "tag": "button",
+      "label": "复制：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#crossfadeBtn",
+      "tag": "button",
+      "label": "叠化：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#timelineRefBtn",
+      "tag": "button",
+      "label": "作为 AI 参考：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#rippleDeleteBtn",
+      "tag": "button",
+      "label": "波纹删除：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#deleteClipBtn",
+      "tag": "button",
+      "label": "删除：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#timelineCloseBtn",
+      "tag": "button",
+      "label": "收起时间线"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "静音"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "隐藏"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "静音"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "隐藏"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "静音"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "隐藏"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "静音"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "隐藏"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "静音"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "隐藏"
+    },
+    {
+      "id": "#agentOverlay",
+      "tag": "section",
+      "label": "创意 Agent"
+    },
+    {
+      "id": "#agentResizer",
+      "tag": "div",
+      "label": "调整 Agent 面板宽度"
+    },
+    {
+      "id": "#agentFavoritesBtn",
+      "tag": "button",
+      "label": "收藏夹"
+    },
+    {
+      "id": "#agentHistoryBtn",
+      "tag": "button",
+      "label": "历史"
+    },
+    {
+      "id": "#agentNewConversationBtn",
+      "tag": "button",
+      "label": "新会话"
+    },
+    {
+      "id": "#agentCloseBtn",
+      "tag": "button",
+      "label": "关闭 Agent"
+    },
+    {
+      "id": "#agentAttachmentPreview",
+      "tag": "div",
+      "label": "已添加的参考文件"
+    },
+    {
+      "id": "#agentPromptInput",
+      "tag": "textarea",
+      "label": "创意输入"
+    },
+    {
+      "id": "#agentPromptPlusBtn",
+      "tag": "button",
+      "label": "上传文件"
+    },
+    {
+      "id": "#agentSkillBtn",
+      "tag": "button",
+      "label": "选择 Skill"
+    },
+    {
+      "id": ".agent-prompt-model-trigger",
+      "tag": "button",
+      "label": "DeepSeek · fake-deepseek-text"
+    },
+    {
+      "id": "#agentDictationBtn",
+      "tag": "button",
+      "label": "语音输入"
+    },
+    {
+      "id": "#agentSendBtn",
+      "tag": "button",
+      "label": "发送创意"
+    },
+    {
+      "id": "#providerModalClose",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#helpModalClose",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#previewFullscreenModal",
+      "tag": "div",
+      "label": "全屏预览"
+    },
+    {
+      "id": "#previewFullscreenCloseBtn",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#mediaLightbox",
+      "tag": "div",
+      "label": "媒体预览"
+    },
+    {
+      "id": "#mediaLightboxClose",
+      "tag": "button",
+      "label": "关闭预览"
+    },
+    {
+      "id": "#assetPromptModal",
+      "tag": "div",
+      "label": "素材提示词"
+    },
+    {
+      "id": "#assetPromptClose",
+      "tag": "button",
+      "label": "关闭提示词"
+    },
+    {
+      "id": "#assetPromptText",
+      "tag": "textarea",
+      "label": "完整提示词"
+    },
+    {
+      "id": "#textOutputModal",
+      "tag": "div",
+      "label": "脚本全文"
+    },
+    {
+      "id": "#textOutputContinuityBtn",
+      "tag": "button",
+      "label": "连续性分析"
+    },
+    {
+      "id": "#textOutputStoryboardBtn",
+      "tag": "button",
+      "label": "生成分镜脚本"
+    },
+    {
+      "id": "#textOutputEditBtn",
+      "tag": "button",
+      "label": "编辑脚本"
+    },
+    {
+      "id": "#textOutputSaveBtn",
+      "tag": "button",
+      "label": "保存脚本"
+    },
+    {
+      "id": "#textOutputCopyBtn",
+      "tag": "button",
+      "label": "复制脚本全文"
+    },
+    {
+      "id": "#textOutputModalClose",
+      "tag": "button",
+      "label": "关闭"
+    },
+    {
+      "id": "#textOutputEditor",
+      "tag": "textarea",
+      "label": "脚本全文"
+    }
+  ],
+  "issues": [
+    {
+      "type": "英文 Skill 裸露（非代码上下文）",
+      "samples": [
+        "Skill"
+      ]
+    },
+    {
+      "type": "英文 Agent 裸露",
+      "samples": [
+        "Agent"
+      ]
+    },
+    {
+      "type": "英文 API",
+      "samples": [
+        "API"
+      ]
+    },
+    {
+      "type": "英文界面词（Timeline/Clip 等）",
+      "samples": [
+        "Timeline",
+        "Clip"
+      ]
+    },
+    {
+      "type": "模型/API 混排标签",
+      "samples": [
+        "模型/API"
+      ]
+    },
+    {
+      "type": "技能 vs Skill 混用",
+      "samples": [
+        "技能",
+        "Skill"
+      ]
+    }
+  ],
+  "errors": [],
+  "mixedLangAria": [
+    {
+      "id": ".project-delete",
+      "tag": "button",
+      "label": "删除画布 Text Audit Project"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 影视打斗特效skill 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 批量UGC带货 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 新中式美学TVC 详情"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "查看 新中式美学TVC 详情"
+    },
+    {
+      "id": "#splitClipBtn",
+      "tag": "button",
+      "label": "切分：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#duplicateClipBtn",
+      "tag": "button",
+      "label": "复制：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#crossfadeBtn",
+      "tag": "button",
+      "label": "叠化：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#timelineRefBtn",
+      "tag": "button",
+      "label": "作为 AI 参考：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#rippleDeleteBtn",
+      "tag": "button",
+      "label": "波纹删除：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#deleteClipBtn",
+      "tag": "button",
+      "label": "删除：请选择一个 Timeline Clip"
+    },
+    {
+      "id": "#agentOverlay",
+      "tag": "section",
+      "label": "创意 Agent"
+    },
+    {
+      "id": "#agentResizer",
+      "tag": "div",
+      "label": "调整 Agent 面板宽度"
+    },
+    {
+      "id": "#agentCloseBtn",
+      "tag": "button",
+      "label": "关闭 Agent"
+    }
+  ]
+}

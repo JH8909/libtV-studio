@@ -1,0 +1,282 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LibTV Studio</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/styles.css?v=20260820-ds-control-fullwidth" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="topbar compact-topbar">
+      <div class="workspace-crumbs">
+        <button id="workspaceIcon" class="workspace-icon" title="鍒囨崲鐢诲竷" aria-label="鎵撳紑鐢诲竷鍒楄〃"><img src="/brand/libtv-logo.png" alt="" aria-hidden="true"></button>
+        <div id="projectSelect" class="project-select" aria-label="褰撳墠椤圭洰"></div>
+        <button id="newProjectBtn" class="top-chip" title="鏂板缓鐢诲竷" aria-label="鏂板缓鐢诲竷"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+        <span id="saveState" class="save-state" data-state="saved" role="status" aria-live="polite"><i class="save-state-dot" aria-hidden="true"></i><span>宸蹭繚瀛?/span></span>
+      </div>
+      <div class="top-actions">
+        <div class="top-action-group" aria-label="璧勬枡">
+          <button id="assetDrawerBtn" class="top-chip" title="绱犳潗搴? aria-label="绱犳潗" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>绱犳潗</span></button>
+          <button id="skillDrawerBtn" class="top-chip" title="鎶€鑳藉箍鍦? aria-label="鎶€鑳? aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i><span>鎶€鑳?/span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="鎴愮墖">
+          <button id="timelineToggleBtn" class="top-chip" title="鏃堕棿绾? aria-label="鏃堕棿绾? aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>鏃堕棿绾?/span></button>
+          <button id="exportBtn" class="top-chip" aria-label="瀵煎嚭"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>瀵煎嚭</span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="妯″瀷涓庡垱鎰?>
+          <button id="providerSettingsBtn" class="top-chip" title="绗笁鏂规ā鍨?/ API" aria-label="妯″瀷/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>妯″瀷/API</span></button>
+          <button id="agentBtn" class="top-chip" aria-label="Agent" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span><i class="top-chip-dot hidden" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="stage-shell">
+      <section class="canvas-wrap full-canvas-wrap">
+        <div id="canvas" class="canvas" tabindex="0" role="application" aria-label="鏃犻檺鐢诲竷">
+          <div id="canvasNotice" class="canvas-notice hidden" role="alert" aria-live="assertive"></div>
+          <svg id="edgesSvg" class="edges-svg"><g id="edgesLayer"></g></svg>
+          <div id="canvasWorld" class="canvas-world"></div>
+          <div id="welcomeCards" class="canvas-welcome hidden" aria-label="蹇€熷紑濮?>
+            <p><i class="ui-icon" style="--icon:url('/vendor/icons/click.svg')"></i> 鍙屽嚮鐢诲竷 鑷敱鐢熸垚鑺傜偣</p>
+            <div class="welcome-card-list">
+              <button data-welcome-action="text"><img src="/welcome-assets/text-generation.png?v=2" alt="" /><span><strong>鏂囨湰鐢熸垚</strong><small>浠庢兂娉曞紑濮嬪垱浣?/small></span></button>
+              <button data-welcome-action="image"><img src="/welcome-assets/image-generation.png?v=2" alt="" /><span><strong>鍥剧墖鐢熸垚</strong><small>鐢熸垚鐢靛奖绾ц瑙夌敾闈?/small></span></button>
+              <button data-welcome-action="video"><img src="/welcome-assets/video-generation.png?v=2" alt="" /><span><strong>瑙嗛鐢熸垚</strong><small>璁╃敾闈㈠姩璧锋潵</small></span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-bottom-toolbar">
+          <button id="addNodeBtn" class="tool-btn" title="娣诲姞鑺傜偣" aria-label="娣诲姞鑺傜偣"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <span class="toolbar-sep"></span>
+          <div class="toolbar-tool-group" id="mouseTools" aria-label="榧犳爣鎿嶄綔">
+            <button data-tool="pan" class="tool-btn" title="鎶撴墜 (H)" aria-label="鎶撴墜"><i class="ui-icon" style="--icon:url('/vendor/icons/hand-stop.svg')"></i></button>
+          </div>
+          <span class="toolbar-sep"></span>
+          <button id="canvasUndoBtn" class="tool-btn" title="鎾ら攢" aria-label="鎾ら攢"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-back-up.svg')"></i></button>
+          <button id="canvasRedoBtn" class="tool-btn" title="閲嶅仛" aria-label="閲嶅仛"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-forward-up.svg')"></i></button>
+          <span class="toolbar-sep"></span>
+          <button id="runAllBtn" class="tool-btn strong" title="鎸変緷璧栭『搴忚繍琛屾暣涓伐浣滄祦" aria-label="杩愯鍏ㄩ儴"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i></button>
+          <button id="fitBtn" class="tool-btn" title="閫傞厤" aria-label="閫傞厤鐢诲竷"><i class="ui-icon" style="--icon:url('/vendor/icons/arrows-maximize.svg')"></i></button>
+          <button id="zoomOutBtn" class="tool-btn" title="缂╁皬" aria-label="缂╁皬"><i class="ui-icon" style="--icon:url('/vendor/icons/minus.svg')"></i></button>
+          <span id="zoomLabel" class="zoom-label">100%</span>
+          <button id="zoomInBtn" class="tool-btn" title="鏀惧ぇ" aria-label="鏀惧ぇ"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="helpBtn" class="tool-btn" title="蹇嵎閿? aria-label="蹇嵎閿?><i class="ui-icon" style="--icon:url('/vendor/icons/help-circle.svg')"></i></button>
+        </div>
+
+        <div id="connectionToast" class="connection-toast hidden">鎷栧埌鐩爣杈撳叆绔彛</div>
+      </section>
+
+      <aside id="assetDrawer" class="floating-drawer right-drawer asset-drawer hidden-drawer">
+        <div class="drawer-header"><strong>绱犳潗绠＄悊</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>涓婁紶</span></button><button id="refreshAssetsBtn" class="icon-btn" title="鍒锋柊" aria-label="鍒锋柊"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="鍏抽棴" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
+        <div id="assetLibraryTabs" class="asset-library-tabs" role="tablist" aria-label="绱犳潗搴撳垎绫?><button class="active" data-library-tab="assets" role="tab" aria-selected="true">绱犳潗</button><button data-library-tab="prompts" role="tab" aria-selected="false">鎻愮ず璇嶅簱</button></div>
+        <div id="assetFilterChips" class="asset-filter-chips" data-library-panel="assets">
+          <div class="asset-filter-group"><span class="asset-filter-label">绫诲瀷</span><div class="asset-filter-options">
+            <button data-filter-kind="all" class="chip active">鍏ㄩ儴</button>
+            <button data-filter-kind="image" class="chip">鍥剧墖</button>
+            <button data-filter-kind="video" class="chip">瑙嗛</button>
+            <button data-filter-kind="audio" class="chip">闊抽</button>
+          </div></div>
+        </div>
+        <div id="assetList" class="asset-list" data-library-panel="assets"></div>
+        <div id="promptLibraryList" class="prompt-library-list hidden" data-library-panel="prompts"></div>
+      </aside>
+
+      <aside id="skillDrawer" class="floating-drawer right-drawer skill-drawer hidden-drawer" aria-label="鎶€鑳藉箍鍦?>
+        <div class="drawer-header"><strong>鎶€鑳藉箍鍦?/strong><div><button id="importSkillBtn" class="icon-btn" title="瀵煎叆鎶€鑳? aria-label="瀵煎叆鎶€鑳?><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="refreshSkillsBtn" class="icon-btn" title="鍒锋柊鎶€鑳? aria-label="鍒锋柊鎶€鑳?><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="鍏抽棴" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="鎶€鑳藉垎绫?></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="鎼滅储鎶€鑳? aria-label="鎼滅储鎶€鑳?></label></div>
+        <div id="skillLibraryList" class="skill-library-list"></div>
+      </aside>
+
+      <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
+        <div class="drawer-header"><strong>灞炴€?/strong><button data-close-drawer="inspectorDrawer" class="icon-btn" title="鍏抽棴" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+        <div id="previewStage" class="preview-stage"></div>
+        <div class="preview-controls"><button id="previewPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>鎾斁</span></button><span id="previewTime" class="muted"></span><span class="spacer"></span><button id="previewFullscreenBtn" class="icon-btn" title="鍏ㄥ睆棰勮" aria-label="鍏ㄥ睆棰勮"><i class="ui-icon" style="--icon:url('/vendor/icons/arrows-maximize.svg')"></i></button></div>
+        <div id="inspector" class="inspector empty-state">閫夋嫨鑺傜偣銆佽繛绾挎垨 Timeline Clip</div>
+        <div class="section-divider"></div>
+        <div class="drawer-subtitle job-list-head"><span>鐢熸垚浠诲姟</span><span id="jobSummary" class="job-summary"></span></div>
+        <div class="job-filters" role="group" aria-label="浠诲姟绛涢€?><button type="button" data-job-filter="all" class="active">鍏ㄩ儴</button><button type="button" data-job-filter="active">杩涜涓?/button><button type="button" data-job-filter="failed">澶辫触</button><button type="button" data-job-filter="succeeded">宸插畬鎴?/button><button id="archiveCompletedJobsBtn" type="button" title="闅愯棌宸插畬鎴愬拰宸插彇娑堜换鍔?>褰掓。瀹屾垚</button></div>
+        <div id="jobList" class="job-list"></div>
+      </aside>
+
+    </main>
+
+    <section id="timelineShell" class="timeline-shell collapsed">
+      <div class="timeline-header">
+        <div><strong>鏃堕棿绾?/strong><span id="timelineMeta" class="muted"></span><span id="timelineHint" class="timeline-hint" aria-live="polite"></span></div>
+        <div class="timeline-actions">
+          <button id="timelineUndoBtn" title="鎾ら攢" aria-label="鎾ら攢"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-back-up.svg')"></i></button><button id="timelineRedoBtn" title="閲嶅仛" aria-label="閲嶅仛"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-forward-up.svg')"></i></button>
+          <button id="addTextClipBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/file-text.svg')"></i><span>瀛楀箷</span></button>
+          <button id="timelineZoomOutBtn" title="缂╁皬" aria-label="缂╁皬"><i class="ui-icon" style="--icon:url('/vendor/icons/minus.svg')"></i></button><span id="timelineZoomLabel" class="muted">100%</span><button id="timelineZoomInBtn" title="鏀惧ぇ" aria-label="鏀惧ぇ"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="splitClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/cut.svg')"></i><span>鍒囧垎</span></button><button id="duplicateClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>澶嶅埗</span></button><button id="crossfadeBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/layers-subtract.svg')"></i><span>鍙犲寲</span></button>
+          <button id="timelineRefBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/link.svg')"></i><span>浣滀负 AI 鍙傝€?/span></button><button id="rippleDeleteBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/trash-x.svg')"></i><span>娉㈢汗鍒犻櫎</span></button><button id="deleteClipBtn" disabled><i class="ui-icon" style="--icon:url('/vendor/icons/trash.svg')"></i><span>鍒犻櫎</span></button>
+          <button id="timelineCloseBtn" title="鏀惰捣鏃堕棿绾? aria-label="鏀惰捣鏃堕棿绾?><i class="ui-icon" style="--icon:url('/vendor/icons/chevron-down.svg')"></i></button>
+        </div>
+      </div>
+      <div class="timeline-ruler" id="timelineRuler"></div><div class="timeline-body" id="timelineBody"></div>
+    </section>
+  </div>
+
+  <section id="agentOverlay" class="agent-overlay hidden" aria-label="鍒涙剰 Agent">
+    <div id="agentResizer" class="agent-resizer" role="separator" aria-orientation="vertical" aria-label="璋冩暣 Agent 闈㈡澘瀹藉害" tabindex="0"></div>
+    <div class="agent-panel">
+      <header class="drawer-header agent-panel-header">
+        <strong id="agentConversationTitle">鍒涙剰瀵硅瘽</strong>
+        <div>
+          <button id="agentFavoritesBtn" class="icon-btn" type="button" title="鏀惰棌澶? aria-label="鏀惰棌澶? aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/star.svg')"></i></button>
+          <button id="agentHistoryBtn" class="icon-btn" type="button" title="鍘嗗彶" aria-label="鍘嗗彶"><i class="ui-icon" style="--icon:url('/vendor/icons/history.svg')"></i></button>
+          <button id="agentNewConversationBtn" class="icon-btn" type="button" title="鏂颁細璇? aria-label="鏂颁細璇?><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="agentCloseBtn" class="icon-btn" type="button" title="鍏抽棴" aria-label="鍏抽棴 Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+        </div>
+      </header>
+      <div id="agentHistoryMenu" class="agent-history-menu hidden" role="menu"></div>
+      <div id="agentMessages" class="agent-messages" aria-live="polite">
+        <div id="agentEmptyState" class="agent-empty-state">
+          <div class="agent-empty-hero" aria-hidden="true">
+            <div class="agent-empty-glow"></div>
+            <div class="agent-empty-mark"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i></div>
+          </div>
+          <div class="agent-empty-copy">
+            <h2>鎶婃ā绯婃兂娉曡亰娓呮</h2>
+            <p>浠庝富棰樸€佽鑹层€侀鏍兼垨闀滃ご鏂瑰悜寮€濮嬨€傚璇濆彧缁欏缓璁紱浣跨敤鎶€鑳芥墠浼氭敼鐢诲竷銆?/p>
+          </div>
+          <div class="agent-starters">
+            <span class="agent-starters-label">蹇€熷紑濮?/span>
+            <button type="button" class="agent-starter" data-agent-prompt="甯垜鍙戞暎涓変釜瀹屽叏涓嶅悓鐨勫垱鎰忔柟鍚? data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>鍙戞暎鏂瑰悜</strong><small>浠庝竴涓ā绯婃兂娉曟壘鍒颁笁鏉¤矾</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="甯垜璁捐杩欎釜椤圭洰鐨勮瑙夐鏍煎拰鑹插僵鍩鸿皟" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/palette.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>寤虹珛椋庢牸</strong><small>纭畾鐢婚潰姘旇川鍜岃瑙夎瑷€</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="甯垜鎶婅繖涓兂娉曟媶鎴愬嚑涓湁鐢婚潰鎰熺殑鍦烘櫙" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/layout-grid.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>鎷嗚В鍦烘櫙</strong><small>鎶婃蹇靛彉鎴愬彲璁ㄨ鐨勭敾闈?/small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <form id="agentPromptForm" class="agent-prompt-form" data-promptbar>
+        <div class="agent-prompt-anchor">
+          <div id="agentPromptSourceMenu" class="agent-prompt-source-menu hidden" role="menu"></div>
+          <div id="agentAttachmentPreview" class="agent-attachment-preview hidden" aria-label="宸叉坊鍔犵殑鍙傝€冩枃浠?></div>
+          <div class="agent-prompt-composer">
+            <div id="agentSkillChip" class="agent-skill-chip hidden"></div>
+            <textarea id="agentPromptInput" rows="1" placeholder="鍐欎笅涓€涓兂娉曗€? aria-label="鍒涙剰杈撳叆"></textarea>
+            <div class="agent-prompt-controls">
+              <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="涓婁紶鏂囦欢" title="涓婁紶鏂囦欢"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button>
+              <button id="agentSkillBtn" class="agent-prompt-control" type="button" aria-label="閫夋嫨鎶€鑳? title="閫夋嫨鎶€鑳? aria-expanded="false" aria-haspopup="menu"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></button>
+              <div id="agentModelSelect" class="agent-model-select"></div>
+              <button id="agentDictationBtn" class="agent-prompt-control" type="button" aria-label="璇煶杈撳叆" title="璇煶杈撳叆"><i class="ui-icon" style="--icon:url('/vendor/icons/microphone.svg')"></i></button>
+              <button id="agentSendBtn" class="agent-send-btn" type="submit" aria-label="鍙戦€佸垱鎰?><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i></button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div id="nodeMenu" class="node-menu hidden" role="menu">
+    <div id="nodeMenuContent" class="node-menu-content"></div>
+  </div>
+
+  <div id="nodeContextMenu" class="context-menu hidden"></div>
+
+  <div id="createProjectModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle">
+    <section class="create-project-modal">
+      <div class="modal-header"><strong id="createProjectTitle">鏂板缓鐢诲竷</strong></div>
+      <label class="create-project-field"><span>鐢诲竷鍚嶇О</span><input id="createProjectInput" class="ds-control-input" type="text" maxlength="120" autocomplete="off"></label>
+      <div class="modal-footer"><button id="createProjectCancel" type="button">鍙栨秷</button><button id="createProjectConfirm" type="button" class="primary">鍒涘缓鐢诲竷</button></div>
+    </section>
+  </div>
+
+  <div id="deleteProjectModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deleteProjectTitle">
+    <section class="create-project-modal">
+      <div class="modal-header"><strong id="deleteProjectTitle">鍒犻櫎鐢诲竷</strong></div>
+      <p id="deleteProjectMessage" class="delete-project-message"></p>
+      <div class="modal-footer"><button id="deleteProjectCancel" type="button">鍙栨秷</button><button id="deleteProjectConfirm" type="button" class="danger">鍒犻櫎鐢诲竷</button></div>
+    </section>
+  </div>
+
+  <div id="providerModal" class="modal-backdrop hidden">
+    <section class="provider-modal">
+      <div class="modal-header"><div><strong>妯″瀷 / API</strong><small>APIMart 杈撳叆 API Key 鍚庤嚜鍔ㄦ媺鍙栧彲鐢ㄦā鍨嬶紱瀵嗛挜鍙繚瀛樺湪鏈満</small></div><button id="providerModalClose" class="icon-btn" title="鍏抽棴" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+      <div id="providerSettingsForm" class="provider-settings-form"></div>
+      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">淇濆瓨閰嶇疆</button></div>
+    </section>
+  </div>
+
+  <div id="helpModal" class="modal-backdrop hidden">
+    <section class="help-modal"><div class="modal-header"><strong>鐢诲竷蹇嵎閿?/strong><button id="helpModalClose" class="icon-btn" title="鍏抽棴" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div><div class="help-grid">
+      <div><kbd>鍙屽嚮</kbd><span>娣诲姞鑺傜偣</span></div><div><kbd>鑺傜偣鍙抽敭</kbd><span>鑺傜偣鑿滃崟</span></div>
+      <div><kbd>V</kbd><span>閫夋嫨宸ュ叿</span></div><div><kbd>H / Space</kbd><span>鎶撴墜宸ュ叿</span></div>
+      <div><kbd>C</kbd><span>杩炵嚎宸ュ叿</span></div><div><kbd>Delete</kbd><span>鍒犻櫎閫変腑</span></div>
+      <div><kbd>鈱?Ctrl Z</kbd><span>鎾ら攢</span></div><div><kbd>F</kbd><span>閫傞厤鐢诲竷</span></div>
+    </div></section>
+  </div>
+
+  <div id="previewFullscreenModal" class="preview-fullscreen-overlay hidden" aria-label="鍏ㄥ睆棰勮">
+    <div class="preview-fullscreen-content">
+      <div id="previewFullscreenStage" class="preview-fullscreen-stage"></div>
+      <div class="preview-fullscreen-controls">
+        <button id="previewFullscreenPlayBtn" class="icon-btn"><i class="ui-icon" style="--icon:url('/vendor/icons/player-play.svg')"></i><span>鎾斁</span></button>
+        <span id="previewFullscreenTime" class="muted"></span>
+        <span class="spacer"></span>
+        <button id="previewFullscreenCloseBtn" class="icon-btn" title="鍏抽棴 (Esc)" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mediaLightbox" class="media-lightbox hidden" role="dialog" aria-modal="true" aria-label="濯掍綋棰勮">
+    <div class="media-lightbox-content">
+      <button id="mediaLightboxClose" class="media-lightbox-close icon-btn" title="鍏抽棴 (Esc)" aria-label="鍏抽棴棰勮"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+      <div id="mediaLightboxStage" class="media-lightbox-stage"></div>
+    </div>
+  </div>
+
+  <div id="assetPromptModal" class="asset-prompt-modal hidden" role="dialog" aria-modal="true" aria-label="绱犳潗鎻愮ず璇?>
+    <section class="asset-prompt-panel">
+      <div class="asset-prompt-header"><strong>鍥剧墖鎻愮ず璇?/strong><div><button id="assetPromptCopy"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>澶嶅埗</span></button><button id="assetPromptClose" class="icon-btn" title="鍏抽棴 (Esc)" aria-label="鍏抽棴鎻愮ず璇?><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+      <textarea id="assetPromptText" class="asset-prompt-text" readonly aria-label="瀹屾暣鎻愮ず璇?></textarea>
+    </section>
+  </div>
+
+  <div id="skillDetailModal" class="modal-backdrop skill-detail-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="skillDetailTitle">
+    <section class="skill-detail-modal" role="document">
+      <div id="skillDetailBody" class="skill-detail-modal-body"></div>
+    </section>
+  </div>
+
+  <div id="textOutputModal" class="text-output-modal hidden" role="dialog" aria-modal="true" aria-label="鑴氭湰鍏ㄦ枃">
+    <section class="text-output-page">
+      <div class="modal-header text-output-header">
+        <div><strong id="textOutputTitle">鑴氭湰鍏ㄦ枃</strong><small id="textOutputMeta">瀹屾暣鏌ョ湅鍜屼慨鏀规枃鏈敓鎴愮粨鏋?/small></div>
+        <div class="text-output-header-actions">
+          <button id="textOutputContinuityBtn" aria-label="杩炵画鎬у垎鏋? aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/timeline-event-plus.svg')"></i><span>杩炵画鎬?/span></button>
+          <button id="textOutputStoryboardBtn" class="primary" aria-label="鐢熸垚鍒嗛暅鑴氭湰"><i class="ui-icon" style="--icon:url('/vendor/icons/layout-grid.svg')"></i><span>鐢熸垚鍒嗛暅鑴氭湰</span></button>
+          <button id="textOutputEditBtn" aria-label="缂栬緫鑴氭湰"><i class="ui-icon" style="--icon:url('/vendor/icons/edit.svg')"></i><span>缂栬緫</span></button>
+          <button id="textOutputSaveBtn" class="primary hidden" aria-label="淇濆瓨鑴氭湰"><i class="ui-icon" style="--icon:url('/vendor/icons/device-floppy.svg')"></i><span>淇濆瓨</span></button>
+          <button id="textOutputCopyBtn" aria-label="澶嶅埗鑴氭湰鍏ㄦ枃"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>澶嶅埗鍏ㄦ枃</span></button>
+          <button id="textOutputModalClose" class="icon-btn" title="鍏抽棴 (Esc)" aria-label="鍏抽棴"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
+        </div>
+      </div>
+      <div id="textOutputTable" class="text-output-table-wrap"></div>
+      <textarea id="textOutputEditor" class="text-output-editor" aria-label="鑴氭湰鍏ㄦ枃"></textarea>
+    </section>
+  </div>
+
+  <!-- compatibility controls kept for existing command handlers -->
+  <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
+  <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="/app.js?v=20260820-ds-control-fullwidth"></script>
+</body>
+</html>

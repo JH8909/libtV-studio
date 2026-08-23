@@ -1,0 +1,141 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - banner [ref=f4e3]:
+      - generic [ref=f4e4]:
+        - button "打开画布列表" [ref=f4e5] [cursor=pointer]
+        - generic "当前项目" [ref=f4e7]:
+          - group "当前画布" [ref=f4e8]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f4e9] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f4e12] [cursor=pointer]
+        - status [ref=f4e14]:
+          - generic [ref=f4e16]: 已保存
+      - generic [ref=f4e17]:
+        - generic "资料" [ref=f4e18]:
+          - button "素材" [ref=f4e19] [cursor=pointer]
+          - button "技能" [ref=f4e22] [cursor=pointer]
+        - generic "成片" [ref=f4e26]:
+          - button "时间线" [ref=f4e27] [cursor=pointer]
+          - button "导出" [ref=f4e30] [cursor=pointer]
+        - generic "模型与创意" [ref=f4e34]:
+          - button "模型/API" [ref=f4e35] [cursor=pointer]
+          - button "Agent" [ref=f4e38] [cursor=pointer]
+    - main [ref=f4e41]:
+      - generic [ref=f4e42]:
+        - application "无限画布" [ref=f4e43]:
+          - img:
+            - generic [ref=f4e48] [cursor=pointer]
+          - generic [ref=f4e49]:
+            - generic:
+              - strong [ref=f4e409]: 文本
+              - generic:
+                - region "展开输入区" [ref=f4e410]:
+                  - textbox "文本结果" [ref=f4e411]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f4e412]:
+                  - button "完整查看脚本" [ref=f4e413] [cursor=pointer]
+                  - button "复制文本结果" [ref=f4e415] [cursor=pointer]
+            - generic:
+              - strong [ref=f4e420]: 图片
+              - region "展开输入区" [ref=f4e421] [cursor=pointer]:
+                - img "当前生成图片" [ref=f4e423]
+            - generic:
+              - strong [ref=f4e427]: 图片
+              - region "展开输入区" [ref=f4e428] [cursor=pointer]:
+                - img "参考图片预览" [ref=f4e430]
+            - generic:
+              - strong [ref=f4e434]: 视频
+              - region "展开输入区" [ref=f4e435] [cursor=pointer]:
+                - generic [ref=f4e437]:
+                  - generic "当前生成视频" [ref=f4e438]
+                  - button "播放" [ref=f4e439]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic:
+              - strong [ref=f4e470]: 视频
+              - generic:
+                - region "收起输入区" [ref=f4e471] [cursor=pointer]:
+                  - generic [ref=f4e475]:
+                    - generic [ref=f4e476]: 尝试：
+                    - strong [ref=f4e477]: 文生视频
+                    - strong [ref=f4e479]: 首帧视频
+                - generic [ref=f4e481]:
+                  - generic [ref=f4e482]:
+                    - button "添加参考素材" [ref=f4e483] [cursor=pointer]:
+                      - generic [ref=f4e485]: 参考
+                    - group [ref=f4e486]:
+                      - generic "文生视频" [ref=f4e487]
+                  - textbox "描述镜头、动作、运镜和音效，@引用素材" [ref=f4e491]
+                  - generic [ref=f4e492]:
+                    - generic [ref=f4e493]:
+                      - group "模型" [ref=f4e495]:
+                        - generic "Agnes v2.0" [ref=f4e496] [cursor=pointer]
+                      - group [ref=f4e500]:
+                        - generic "5s · 16:9 · 720p" [ref=f4e501] [cursor=pointer]
+                      - group [ref=f4e505]:
+                        - generic "参考类型" [ref=f4e506] [cursor=pointer]
+                    - button "生成" [active] [ref=f4e511] [cursor=pointer]
+        - generic [ref=f4e85]:
+          - button "添加节点" [ref=f4e86] [cursor=pointer]
+          - generic "鼠标操作" [ref=f4e89]:
+            - button "抓手" [ref=f4e90] [cursor=pointer]
+          - button "撤销" [ref=f4e93] [cursor=pointer]
+          - button "重做" [disabled] [ref=f4e95]
+          - button "运行全部" [ref=f4e98] [cursor=pointer]
+          - button "适配画布" [ref=f4e100] [cursor=pointer]
+          - button "缩小" [ref=f4e102] [cursor=pointer]
+          - generic [ref=f4e104]: 90%
+          - button "放大" [ref=f4e105] [cursor=pointer]
+          - button "快捷键" [ref=f4e107] [cursor=pointer]
+      - complementary "属性与生成任务" [ref=f4e216]:
+        - generic [ref=f4e217]:
+          - strong [ref=f4e218]: 属性
+          - button "关闭" [ref=f4e219] [cursor=pointer]
+        - generic [ref=f4e223]:
+          - button "播放" [ref=f4e224] [cursor=pointer]
+          - text: 0.00s
+          - button "全屏预览" [ref=f4e227] [cursor=pointer]
+        - generic [ref=f4e229]:
+          - heading "videoGen" [level=3] [ref=f4e513]
+          - generic [ref=f4e514]:
+            - term [ref=f4e515]: Node ID
+            - definition [ref=f4e516]: ded76393-afe0-4d81-955b-a14f095bfc3f
+            - term [ref=f4e517]: Position
+            - definition [ref=f4e518]: 30, 70
+            - term [ref=f4e519]: Inputs
+            - definition [ref=f4e520]: "0"
+            - term [ref=f4e521]: Outputs
+            - definition [ref=f4e522]: "0"
+        - generic [ref=f4e282]:
+          - generic [ref=f4e283]: 生成任务
+          - generic [ref=f4e284]: 0 进行中 · 0 失败 · 3 完成
+        - group "任务筛选" [ref=f4e285]:
+          - button "全部" [ref=f4e286] [cursor=pointer]
+          - button "进行中" [ref=f4e287] [cursor=pointer]
+          - button "失败" [ref=f4e288] [cursor=pointer]
+          - button "已完成" [ref=f4e289] [cursor=pointer]
+          - button "归档完成" [ref=f4e290] [cursor=pointer]
+        - generic [ref=f4e291]:
+          - generic [ref=f4e292]:
+            - generic [ref=f4e293]:
+              - strong [ref=f4e294]: agnes-video-v2.0
+              - generic [ref=f4e295]: 已完成
+            - generic [ref=f4e296]: video.generate · 100%
+            - progressbar "任务进度" [ref=f4e297]
+          - generic [ref=f4e299]:
+            - generic [ref=f4e300]:
+              - strong [ref=f4e301]: agnes-image-2.1-flash
+              - generic [ref=f4e302]: 已完成
+            - generic [ref=f4e303]: image.generate
+          - generic [ref=f4e304]:
+            - generic [ref=f4e305]:
+              - strong [ref=f4e306]: agnes-2.5-flash
+              - generic [ref=f4e307]: 已完成
+            - generic [ref=f4e308]: text.generate · 100%
+            - progressbar "任务进度" [ref=f4e309]
+  - status:
+    - generic: 请填写内容或连接上游文本节点
+  - tooltip "生成"

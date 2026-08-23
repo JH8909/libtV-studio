@@ -1,0 +1,107 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - banner [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - button "打开画布列表" [ref=f7e5] [cursor=pointer]
+        - generic "当前项目" [ref=f7e7]:
+          - group "当前画布" [ref=f7e73]:
+            - generic "Text与预设审计临时画布" [ref=f7e74] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f7e12] [cursor=pointer]
+        - status [ref=f7e14]:
+          - generic [ref=f7e16]: 已保存
+      - generic [ref=f7e17]:
+        - generic "资料" [ref=f7e18]:
+          - button "素材" [ref=f7e19] [cursor=pointer]
+          - button "技能" [ref=f7e22] [cursor=pointer]
+        - generic "成片" [ref=f7e26]:
+          - button "时间线" [ref=f7e27] [cursor=pointer]
+          - button "导出" [ref=f7e30] [cursor=pointer]
+        - generic "模型与创意" [ref=f7e34]:
+          - button "模型/API" [ref=f7e35] [cursor=pointer]
+          - button "Agent" [ref=f7e38] [cursor=pointer]
+    - main [ref=f7e41]:
+      - generic [ref=f7e42]:
+        - application "无限画布" [ref=f7e43]:
+          - generic [ref=f7e48]:
+            - generic:
+              - strong [ref=f7e80]: 文本
+              - generic:
+                - region "展开输入区" [ref=f7e81]:
+                  - textbox "文本结果" [ref=f7e82]: "# 《审计脚本》 ## 1. 项目统一设定 - 画幅：16:9；时长：3秒；风格：东方电影感。 ## 3. 正式分镜拆解 | 镜号 | 阶段/景别 | 图片提示词 | 视频提示词 | 文案/旁白 | 时长 | 音效/音乐 | | --- | --- | --- | --- | --- | --- | --- | | 1 | 开场 / 远景 | 玉石置于云海中，侧逆光，画面定格 | 起始状态：玉石置于云海；动作过程：镜头缓慢推进；结束状态：保持一拍 | — | 3s | 风声 | ## 4. 统一负面提示词 - 禁止字幕和画面文字。"
+                - generic [ref=f7e83]:
+                  - button "完整查看脚本" [ref=f7e84] [cursor=pointer]
+                  - button "复制文本结果" [ref=f7e86] [cursor=pointer]
+        - generic [ref=f7e49]:
+          - button "添加节点" [ref=f7e50] [cursor=pointer]
+          - generic "鼠标操作" [ref=f7e53]:
+            - button "抓手" [ref=f7e54] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f7e57]
+          - button "重做" [disabled] [ref=f7e59]
+          - button "运行全部" [ref=f7e62] [cursor=pointer]
+          - button "适配画布" [ref=f7e64] [cursor=pointer]
+          - button "缩小" [ref=f7e66] [cursor=pointer]
+          - generic [ref=f7e68]: 100%
+          - button "放大" [ref=f7e69] [cursor=pointer]
+          - button "快捷键" [ref=f7e71] [cursor=pointer]
+  - dialog "脚本全文" [ref=f7e88]:
+    - generic [ref=f7e89]:
+      - generic [ref=f7e90]:
+        - strong [ref=f7e92]: 分镜脚本
+        - generic [ref=f7e93]:
+          - button "连续性分析" [active] [pressed] [ref=f7e94] [cursor=pointer]:
+            - generic [ref=f7e141]: 隐藏连续性
+          - button "生成分镜节点" [ref=f7e97] [cursor=pointer]
+          - button "编辑脚本" [ref=f7e100] [cursor=pointer]:
+            - generic [ref=f7e102]: 编辑
+          - button "复制脚本全文" [ref=f7e103] [cursor=pointer]:
+            - generic [ref=f7e105]: 复制全文
+          - button "关闭" [ref=f7e106] [cursor=pointer]
+      - generic [ref=f7e108]:
+        - generic [ref=f7e142]:
+          - generic [ref=f7e143]:
+            - generic [ref=f7e144]:
+              - strong [ref=f7e145]: 剧情连续性
+              - generic [ref=f7e146]: 1 个镜头 · 总时长 3s · 通过
+            - generic [ref=f7e147]: 通过
+          - generic [ref=f7e148]:
+            - generic [ref=f7e149]:
+              - text: 角色
+              - paragraph [ref=f7e150]: —
+            - generic [ref=f7e151]:
+              - text: 场景
+              - paragraph [ref=f7e152]: —
+            - generic [ref=f7e153]:
+              - text: 道具
+              - paragraph [ref=f7e154]: —
+          - paragraph [ref=f7e155]: 连续性锚点会自动写入后续图片与视频节点提示词；修正红色问题后才能建立镜头节点。
+        - article [ref=f7e109]:
+          - heading "《审计脚本》" [level=1] [ref=f7e111]
+          - generic [ref=f7e112]:
+            - navigation "脚本章节" [ref=f7e113]:
+              - button "正式分镜" [ref=f7e114] [cursor=pointer]
+              - button "项目概览" [ref=f7e115] [cursor=pointer]
+              - button "制作规范" [ref=f7e116] [cursor=pointer]
+            - generic [ref=f7e118]:
+              - heading "正式分镜" [level=2] [ref=f7e119]
+              - table [ref=f7e121]:
+                - rowgroup [ref=f7e122]:
+                  - row [ref=f7e123]:
+                    - columnheader "镜号" [ref=f7e124]
+                    - columnheader "阶段/景别" [ref=f7e125]
+                    - columnheader "图片提示词" [ref=f7e126]
+                    - columnheader "视频提示词" [ref=f7e127]
+                    - columnheader "文案/旁白" [ref=f7e128]
+                    - columnheader "时长" [ref=f7e129]
+                    - columnheader "音效/音乐" [ref=f7e130]
+                - rowgroup [ref=f7e131]:
+                  - row [ref=f7e132]:
+                    - cell "1" [ref=f7e133]
+                    - cell "开场 / 远景" [ref=f7e134]
+                    - cell "玉石置于云海中，侧逆光，画面定格" [ref=f7e135]
+                    - cell "起始状态：玉石置于云海；动作过程：镜头缓慢推进；结束状态：保持一拍" [ref=f7e136]
+                    - cell "—" [ref=f7e137]
+                    - cell "3s" [ref=f7e138]
+                    - cell "风声" [ref=f7e139]
+  - status
+  - tooltip: 完整查看脚本

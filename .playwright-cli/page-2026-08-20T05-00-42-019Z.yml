@@ -1,0 +1,176 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - button "打开画布列表" [active] [ref=e5] [cursor=pointer]
+        - generic "当前项目" [ref=e7]:
+          - group "当前画布" [ref=e155]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=e156] [cursor=pointer]
+            - listbox [ref=e171]:
+              - generic [ref=e172]:
+                - option "Playwright 全流程验收 2026-08-20 ✓" [selected] [ref=e173] [cursor=pointer]
+                - button "删除画布 Playwright 全流程验收 2026-08-20" [ref=e174] [cursor=pointer]
+              - generic [ref=e176]:
+                - option "未命名画布 1" [ref=e177] [cursor=pointer]
+                - button "删除画布 未命名画布 1" [ref=e178] [cursor=pointer]
+              - generic [ref=e180]:
+                - option "New Project" [ref=e181] [cursor=pointer]
+                - button "删除画布 New Project" [ref=e182] [cursor=pointer]
+        - button "新建画布" [ref=e12] [cursor=pointer]
+        - status [ref=e14]:
+          - generic [ref=e16]: 已保存
+      - generic [ref=e17]:
+        - generic "资料" [ref=e18]:
+          - button "素材" [ref=e19] [cursor=pointer]
+          - button "技能" [ref=e22] [cursor=pointer]
+        - generic "成片" [ref=e26]:
+          - button "时间线" [ref=e27] [cursor=pointer]
+          - button "导出" [ref=e30] [cursor=pointer]
+        - generic "模型与创意" [ref=e34]:
+          - button "模型/API" [ref=e35] [cursor=pointer]
+          - button "Agent" [ref=e38] [cursor=pointer]
+    - main [ref=e41]:
+      - generic [ref=e42]:
+        - application "无限画布" [ref=e43]:
+          - generic "快速开始":
+            - paragraph: 双击画布 自由生成节点
+            - generic:
+              - button "文本生成 从想法开始创作" [ref=e159] [cursor=pointer]:
+                - generic [ref=e160]:
+                  - strong [ref=e161]: 文本生成
+                  - generic [ref=e162]: 从想法开始创作
+              - button "图片生成 生成电影级视觉画面" [ref=e163] [cursor=pointer]:
+                - generic [ref=e164]:
+                  - strong [ref=e165]: 图片生成
+                  - generic [ref=e166]: 生成电影级视觉画面
+              - button "视频生成 让画面动起来" [ref=e167] [cursor=pointer]:
+                - generic [ref=e168]:
+                  - strong [ref=e169]: 视频生成
+                  - generic [ref=e170]: 让画面动起来
+        - generic [ref=e119]:
+          - button "添加节点" [ref=e120] [cursor=pointer]
+          - generic "鼠标操作" [ref=e123]:
+            - button "抓手" [ref=e124] [cursor=pointer]
+          - button "撤销" [disabled] [ref=e127]
+          - button "重做" [disabled] [ref=e129]
+          - button "运行全部" [ref=e132] [cursor=pointer]
+          - button "适配画布" [ref=e134] [cursor=pointer]
+          - button "缩小" [ref=e136] [cursor=pointer]
+          - generic [ref=e138]: 42%
+          - button "放大" [ref=e139] [cursor=pointer]
+          - button "快捷键" [ref=e141] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+        - generic: 暂无素材
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类"
+          - generic:
+            - searchbox "搜索技能"
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic: 选择节点、连线或 Timeline Clip
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 0 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic: 当前筛选没有任务
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销" [disabled]
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - status
+  - tooltip "切换画布"

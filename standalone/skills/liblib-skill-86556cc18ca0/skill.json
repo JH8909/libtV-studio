@@ -1,0 +1,128 @@
+{
+  "id": "liblib-skill-86556cc18ca0",
+  "version": 1,
+  "sourceVersion": "1.0.2",
+  "name": "电影质感画面专业生成",
+  "category": "专业影视",
+  "kind": "图片",
+  "cover": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/f91b91c3de22e17a6509f8a2219754a03743eff9.png",
+  "author": "星曜AG",
+  "description": "一句大白话就能生成超质感电影级多风格图片",
+  "cardSummary": "一句大白话就能生成超质感电影级多风格图片",
+  "usage": "适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。",
+  "howToUse": "在 Agent 中选择该 Skill，按来源要求提供“用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多”；先确认执行计划，再生成来源声明的交付物。",
+  "tags": [
+    "专业影视",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "86556cc18ca0486a8490fd363a029dbc",
+    "skillUuid": "9d4436fe4be04a4393f3881b21eaf41a",
+    "skillKey": "cinematic-image-transformer-9d8925c591a643bbad8ca8cfbb87922c",
+    "inputType": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+    "outputContent": "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片",
+    "url": "https://www.liblib.tv/skill/share?uuid=86556cc18ca0486a8490fd363a029dbc",
+    "importedAt": "2026-08-22T03:15:20.058Z",
+    "importerVersion": 2,
+    "definition": {
+      "name": "电影质感画面专业生成",
+      "description": "一句大白话就能生成超质感电影级多风格图片",
+      "useScenario": "适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。",
+      "inputType": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+      "outputContent": "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片",
+      "outputItems": [
+        "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片"
+      ],
+      "sourceVersion": "1.0.2",
+      "resultType": 2,
+      "sourceType": 1,
+      "showMarkdown": false
+    }
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+      "type": "text",
+      "required": false,
+      "placeholder": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image"
+      ]
+    },
+    {
+      "id": "aspectRatio",
+      "label": "画幅",
+      "type": "select",
+      "required": false,
+      "default": "16:9",
+      "options": [
+        "16:9"
+      ]
+    }
+  ],
+  "outputs": [
+    "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片"
+  ],
+  "fixedSteps": [
+    "核对来源要求的输入：用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+    "依据来源公开说明生成可编辑执行计划",
+    "制作并核对来源声明的交付物：电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片",
+    "仅在全部公开交付物完成后结束本次 Skill 运行"
+  ],
+  "rules": {
+    "inputContract": "用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多",
+    "outputContract": [
+      "电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片"
+    ],
+    "useScenario": "适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。",
+    "sourceVersion": "1.0.2",
+    "format": "16:9",
+    "disclosure": "仅执行来源公开的输入、输出和说明；来源未公开的私有画布、提示词或参数不会被臆造。"
+  },
+  "promptTemplates": {
+    "videoPlanSystem": "你是 Skill 执行导演。必须先遵守下列来源公开执行契约，再补全用户提供的变量；每项已声明交付物都要在计划中有对应步骤。来源没有公开的规则不能臆造。\n\n【来源 Skill 的公开执行契约】\n名称：电影质感画面专业生成\n说明：一句大白话就能生成超质感电影级多风格图片\n使用场景：适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。\n输入：用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多\n交付物：电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片\n来源版本：1.0.2\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。",
+    "videoPlanPrompt": "根据来源公开执行契约和用户当前需求制定可编辑执行计划。\n\n用户需求：{{INSTRUCTION}}\n\n请按“输入核对 → 来源声明的交付物逐项制作 → 验收”输出；对缺失输入只标明待补，不自行虚构。",
+    "imagePrompt": "【来源 Skill 的公开执行契约】\n名称：电影质感画面专业生成\n说明：一句大白话就能生成超质感电影级多风格图片\n使用场景：适用于用户用大白话描述画面，不知道该用什么风格、镜头、光线或提示词时。Skill 会自动识别文字和画面情绪与题材，匹配合适的电影感风格方向，例如冷寂雨夜、悲凉胶片、末日孤城、霓虹都市、荒漠史诗等，而从帮助用户读取风格库和参数库生成图片。\n输入：用户只需要输入想要的画面描述，例如“一个女人在雨夜拿着伞独自走在大街，氛围感强”。也可以指定方向，例如“做成末日感”不需要你会多\n交付物：电影感静帧图像，默认16:9宽银幕比例。MJ模型输出高度风格化电影剧照，image2模型输出高质量无噪点无脏污的写实电影感图像。所有风格的电影感图片\n来源版本：1.0.2\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。\n\n图片执行：{{INSTRUCTION}}。请严格遵守来源的输入和交付物定义，并采用上游已确认的计划；未声明的主体、文字、品牌和风格不可擅自新增。画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/557e9b80642bface4f498697a3e2d2894feac74d.png",
+      "label": "案例 1"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/f0c955c21091570b71a321d5d6160eb185ba25c7.png",
+      "label": "案例 2"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/b9f078a421893a4e2c8871f4e21d9a3835998d3e.png",
+      "label": "案例 3"
+    },
+    {
+      "type": "image",
+      "url": "https://libtv-res.liblib.art/upload-images/9d8925c591a643bbad8ca8cfbb87922c/7d18f7a21f6622166d519833114cded5fef294c8.png",
+      "label": "案例 4"
+    }
+  ],
+  "execution": {
+    "workflow": "generic-image",
+    "adapter": "single-image",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": false,
+    "appendVideosToTimeline": false,
+    "audioMode": "full",
+    "sourceFaithful": true
+  }
+}

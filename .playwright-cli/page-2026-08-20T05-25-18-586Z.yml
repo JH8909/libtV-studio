@@ -1,0 +1,254 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - button "打开画布列表" [ref=f1e5] [cursor=pointer]
+        - generic "当前项目" [ref=f1e7]:
+          - group "当前画布" [ref=f1e69]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f1e70] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f1e12] [cursor=pointer]
+        - status [ref=f1e14]:
+          - generic [ref=f1e16]: 已保存
+      - generic [ref=f1e17]:
+        - generic "资料" [ref=f1e18]:
+          - button "素材" [ref=f1e19] [cursor=pointer]
+          - button "技能" [ref=f1e22] [cursor=pointer]
+        - generic "成片" [ref=f1e26]:
+          - button "时间线" [ref=f1e27] [cursor=pointer]
+          - button "导出" [ref=f1e30] [cursor=pointer]
+        - generic "模型与创意" [ref=f1e34]:
+          - button "模型/API" [ref=f1e35] [cursor=pointer]
+          - button "Agent" [ref=f1e38] [cursor=pointer]
+    - main [ref=f1e41]:
+      - generic [ref=f1e42]:
+        - application "无限画布" [ref=f1e43]:
+          - img:
+            - generic [ref=f1e73] [cursor=pointer]
+          - generic [ref=f1e44]:
+            - generic:
+              - strong [ref=f1e77]: 文本
+              - generic:
+                - region "展开输入区" [ref=f1e78]:
+                  - textbox "文本结果" [ref=f1e79]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f1e80]:
+                  - button "完整查看脚本" [ref=f1e81] [cursor=pointer]
+                  - button "复制文本结果" [ref=f1e83] [cursor=pointer]
+            - generic:
+              - strong [ref=f1e88]: 图片
+              - region "展开输入区" [ref=f1e89] [cursor=pointer]:
+                - img "当前生成图片" [ref=f1e91]
+            - generic:
+              - strong [ref=f1e95]: 图片
+              - region "展开输入区" [ref=f1e96] [cursor=pointer]:
+                - img "参考图片预览" [ref=f1e98]
+            - generic:
+              - toolbar "节点操作" [ref=f1e221]:
+                - button "复制节点" [ref=f1e222] [cursor=pointer]
+                - button "打开属性" [ref=f1e224] [cursor=pointer]
+                - button "添加到时间线" [ref=f1e226] [cursor=pointer]
+                - button "放大视频" [ref=f1e228] [cursor=pointer]
+                - button "下载视频" [ref=f1e230] [cursor=pointer]
+              - strong [ref=f1e235]: 视频
+              - generic:
+                - region "收起输入区" [ref=f1e236] [cursor=pointer]:
+                  - generic [ref=f1e238]:
+                    - generic "当前生成视频" [ref=f1e239]
+                    - button "播放" [ref=f1e240]
+                    - group "视频播放控制":
+                      - button "播放"
+                      - generic: 0:00 / 0:03
+                      - slider "视频进度": "0"
+                      - button "静音"
+                      - button "全屏播放"
+                - generic [ref=f1e242]:
+                  - generic [ref=f1e243]:
+                    - button "添加参考素材" [ref=f1e244] [cursor=pointer]:
+                      - generic [ref=f1e246]: 参考
+                    - group [ref=f1e247]:
+                      - generic "文生视频" [ref=f1e248]
+                  - generic [ref=f1e254] [cursor=pointer]:
+                    - generic [ref=f1e255]: 首帧
+                    - button "移除参考"
+                  - textbox "描述镜头、动作、运镜和音效，@引用素材" [ref=f1e258]: 天然玉石摆件在冷调云海中缓慢环绕，镜头平稳推进，保持主体和光线连续。
+                  - generic [ref=f1e259]:
+                    - generic [ref=f1e260]:
+                      - group "模型" [ref=f1e262]:
+                        - generic "Agnes v2.0" [ref=f1e263] [cursor=pointer]
+                      - group [ref=f1e267]:
+                        - generic "3s · 16:9 · 480p" [ref=f1e268] [cursor=pointer]
+                      - group [ref=f1e272]:
+                        - generic "连续性" [ref=f1e273] [cursor=pointer]
+                    - button "重新生成" [ref=f1e278] [cursor=pointer]
+        - generic [ref=f1e45]:
+          - button "添加节点" [ref=f1e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f1e49]:
+            - button "抓手" [ref=f1e50] [cursor=pointer]
+          - button "撤销" [ref=f1e53] [cursor=pointer]
+          - button "重做" [disabled] [ref=f1e55]
+          - button "运行全部" [ref=f1e58] [cursor=pointer]
+          - button "适配画布" [ref=f1e60] [cursor=pointer]
+          - button "缩小" [ref=f1e62] [cursor=pointer]
+          - generic [ref=f1e64]: 90%
+          - button "放大" [ref=f1e65] [cursor=pointer]
+          - button "快捷键" [ref=f1e67] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+        - generic:
+          - generic: 今天
+          - button "视频 · 天然玉石摆件在冷调云海中缓慢环绕，镜头平稳推进，保持主体和光线连续。":
+            - button "下载素材"
+            - button "删除素材"
+            - generic: 视频
+            - generic:
+              - button "天然玉石摆件在冷调云海中缓慢环绕，镜头平稳推进，保持主体和光线连续。"
+          - button "图片 · 电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。" [active]:
+            - button "下载素材" [ref=f1e280] [cursor=pointer]
+            - button "删除素材" [ref=f1e282] [cursor=pointer]
+            - generic: 图片
+            - generic:
+              - button "电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。"
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类"
+          - generic:
+            - searchbox "搜索技能"
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic:
+          - heading "videoGen" [level=3]
+          - generic:
+            - term: Node ID
+            - definition: 5621c29b-abf3-4953-aaf2-df1fcd50e346
+            - term: Position
+            - definition: "-60, -10"
+            - term: Inputs
+            - definition: "0"
+            - term: Outputs
+            - definition: "0"
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 3 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic:
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.generate · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-image-2.1-flash
+              - generic: 已完成
+            - generic: image.generate
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销" [disabled]
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+          - generic:
+            - generic:
+              - generic: 25238b351d1e42d5b0e3cc64a6c5fbee.png
+              - generic: 3.0s · ×1.00
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - status:
+    - generic: 已添加参考：25238b351d1e42d5b0e3cc64a6c5fbee.png
+  - tooltip: 电影感近景：天然玉石摆件置于冷调云海与暗色背景，侧逆光突出雕花细节，16:9。

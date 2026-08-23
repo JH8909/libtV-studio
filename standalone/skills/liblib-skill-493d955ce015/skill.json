@@ -1,0 +1,126 @@
+{
+  "id": "liblib-skill-493d955ce015",
+  "version": 1,
+  "sourceVersion": "1.0.18",
+  "name": "批量UGC带货",
+  "category": "商业广告",
+  "kind": "视频",
+  "cover": "https://libtv-res.liblib.art/upload-images/8db3e80ed29a49109eb6c801f13bb76c/25bdcae644d63e386188d6afa46dc6d61c5b1b25.png",
+  "author": "消息免打扰",
+  "description": "真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。",
+  "cardSummary": "真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。",
+  "usage": "带货视频、口播种草",
+  "howToUse": "在 Agent 中选择该 Skill，按来源要求提供“输入产品图、产品卖点”；先确认执行计划，再生成来源声明的交付物。",
+  "tags": [
+    "商业广告",
+    "LiblibTV"
+  ],
+  "source": {
+    "provider": "LiblibTV",
+    "templateUuid": "493d955ce0154503afc765a0c62e7eda",
+    "skillUuid": "1641649dbb3b494bb1bb5aed9bd8d030",
+    "skillKey": "ugc-video-sales-script-8db3e80ed29a49109eb6c801f13bb76c",
+    "inputType": "输入产品图、产品卖点",
+    "outputContent": "产品三视图、模特三视图、脚本内容、完整成片",
+    "url": "https://www.liblib.tv/skill/share?uuid=493d955ce0154503afc765a0c62e7eda",
+    "importedAt": "2026-08-22T03:15:19.461Z",
+    "importerVersion": 2,
+    "definition": {
+      "name": "批量UGC带货",
+      "description": "真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。",
+      "useScenario": "带货视频、口播种草",
+      "inputType": "输入产品图、产品卖点",
+      "outputContent": "产品三视图、模特三视图、脚本内容、完整成片",
+      "outputItems": [
+        "产品三视图",
+        "模特三视图",
+        "脚本内容",
+        "完整成片"
+      ],
+      "sourceVersion": "1.0.18",
+      "resultType": 3,
+      "sourceType": 1,
+      "showMarkdown": false
+    }
+  },
+  "inputs": [
+    {
+      "id": "instruction",
+      "label": "输入产品图、产品卖点",
+      "type": "text",
+      "required": false,
+      "placeholder": "输入产品图、产品卖点"
+    },
+    {
+      "id": "referenceAsset",
+      "label": "参考素材",
+      "type": "asset",
+      "required": false,
+      "accept": [
+        "image",
+        "video"
+      ]
+    }
+  ],
+  "outputs": [
+    "产品三视图",
+    "模特三视图",
+    "脚本内容",
+    "完整成片"
+  ],
+  "fixedSteps": [
+    "核对来源要求的输入：输入产品图、产品卖点",
+    "依据来源公开说明生成可编辑执行计划",
+    "制作并核对来源声明的交付物：产品三视图",
+    "制作并核对来源声明的交付物：模特三视图",
+    "制作并核对来源声明的交付物：脚本内容",
+    "制作并核对来源声明的交付物：完整成片",
+    "仅在全部公开交付物完成后结束本次 Skill 运行"
+  ],
+  "rules": {
+    "inputContract": "输入产品图、产品卖点",
+    "outputContract": [
+      "产品三视图",
+      "模特三视图",
+      "脚本内容",
+      "完整成片"
+    ],
+    "useScenario": "带货视频、口播种草",
+    "sourceVersion": "1.0.18",
+    "disclosure": "仅执行来源公开的输入、输出和说明；来源未公开的私有画布、提示词或参数不会被臆造。"
+  },
+  "promptTemplates": {
+    "videoPlanSystem": "你是 Skill 执行导演。必须先遵守下列来源公开执行契约，再补全用户提供的变量；每项已声明交付物都要在计划中有对应步骤。来源没有公开的规则不能臆造。\n\n【来源 Skill 的公开执行契约】\n名称：批量UGC带货\n说明：真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。\n使用场景：带货视频、口播种草\n输入：输入产品图、产品卖点\n交付物：产品三视图、模特三视图、脚本内容、完整成片\n来源版本：1.0.18\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。",
+    "videoPlanPrompt": "根据来源公开执行契约和用户当前需求制定可编辑执行计划。\n\n用户需求：{{INSTRUCTION}}\n\n请按“输入核对 → 来源声明的交付物逐项制作 → 验收”输出；对缺失输入只标明待补，不自行虚构。",
+    "videoPrompt": "【来源 Skill 的公开执行契约】\n名称：批量UGC带货\n说明：真实口播种草、生活化镜头、角色场景参考，打造高转化短视频。\n使用场景：带货视频、口播种草\n输入：输入产品图、产品卖点\n交付物：产品三视图、模特三视图、脚本内容、完整成片\n来源版本：1.0.18\n仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。\n\n视频执行：{{INSTRUCTION}}。请严格按来源公开交付物制作，并采用上游已确认的计划；来源未声明的主体、剧情、文字和风格不可擅自新增。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。"
+  },
+  "examples": [
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/8db3e80ed29a49109eb6c801f13bb76c/d8fc82808399586168adc118a6e409037f08df8b.mp4",
+      "label": "案例 1",
+      "canvasUrl": "https://www.liblib.tv/canvas/chat-share?shareId=05tP023IAj"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/8db3e80ed29a49109eb6c801f13bb76c/b5f9d225f75ca4b5acf9bf3a1e4bdc671265810c.mp4",
+      "label": "案例 2"
+    },
+    {
+      "type": "video",
+      "url": "https://libtv-res.liblib.art/upload-images/8db3e80ed29a49109eb6c801f13bb76c/598628a681157c5a2b639f578d708adb71646374.mp4",
+      "label": "案例 3"
+    }
+  ],
+  "execution": {
+    "workflow": "generic-video",
+    "adapter": "single-video",
+    "requiresExplicitSelection": true,
+    "autoRun": true,
+    "generateKeyframes": false,
+    "generateShotVideos": true,
+    "appendVideosToTimeline": true,
+    "audioMode": "full",
+    "sourceFaithful": true
+  }
+}

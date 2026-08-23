@@ -5,7 +5,7 @@
 
 import re
 
-APP_JS_PATH = r'E:\codex\libtv-studio-complete-v1.3\libtv-studio-complete-v1.3\standalone\public\app.js'
+APP_JS_PATH = r'F:\codex\libtv-studio-complete-v1.3\standalone\public\app.js'
 
 # 读取原文件（使用latin-1编码处理特殊字符）
 with open(APP_JS_PATH, 'r', encoding='utf-8', errors='replace') as f:

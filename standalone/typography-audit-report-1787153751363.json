@@ -1,0 +1,458 @@
+{
+  "samples": [
+    {
+      "surface": "global",
+      "label": "html root",
+      "selector": "html",
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "QUill Type AuditType Audit 已保存 素材"
+    },
+    {
+      "surface": "global",
+      "label": "button default",
+      "selector": "button",
+      "fontSize": "16px",
+      "lineHeight": "19.2px",
+      "fontWeight": "400",
+      "text": ""
+    },
+    {
+      "surface": "topbar",
+      "label": "topbar",
+      "selector": ".compact-topbar",
+      "fontSize": "13px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "Type AuditType Audit 已保存 素材 技能 时间线 导出 模型"
+    },
+    {
+      "surface": "topbar",
+      "label": "top chip text",
+      "selector": "#skillDrawerBtn span",
+      "fontSize": "16px",
+      "lineHeight": "19.2px",
+      "fontWeight": "400",
+      "text": "技能"
+    },
+    {
+      "surface": "topbar",
+      "label": "save state",
+      "selector": "#saveState span",
+      "fontSize": "11px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "已保存"
+    },
+    {
+      "surface": "topbar",
+      "label": "project select",
+      "selector": ".project-select .app-select>summary",
+      "fontSize": "14px",
+      "lineHeight": "16.8px",
+      "fontWeight": "400",
+      "text": "Type Audit"
+    },
+    {
+      "surface": "welcome",
+      "label": "welcome hint",
+      "selector": ".canvas-welcome p",
+      "fontSize": "13px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "双击画布 自由生成节点"
+    },
+    {
+      "surface": "welcome",
+      "label": "welcome card title",
+      "selector": ".welcome-card-list strong",
+      "fontSize": "18px",
+      "lineHeight": "21.6px",
+      "fontWeight": "700",
+      "text": "文本生成"
+    },
+    {
+      "surface": "welcome",
+      "label": "welcome card subtitle",
+      "selector": ".welcome-card-list small",
+      "fontSize": "12px",
+      "lineHeight": "14.4px",
+      "fontWeight": "400",
+      "text": "从想法开始创作"
+    },
+    {
+      "surface": "canvas",
+      "label": "zoom label",
+      "selector": ".zoom-label",
+      "fontSize": "11px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "100%"
+    },
+    {
+      "surface": "canvas",
+      "label": "node title",
+      "selector": ".node-title strong",
+      "missing": true
+    },
+    {
+      "surface": "canvas",
+      "label": "node kind meta",
+      "selector": ".node-kind",
+      "missing": true
+    },
+    {
+      "surface": "canvas",
+      "label": "node prompt input",
+      "selector": ".generator-prompt",
+      "missing": true
+    },
+    {
+      "surface": "canvas",
+      "label": "node suggestions",
+      "selector": ".generator-suggestions strong",
+      "missing": true
+    },
+    {
+      "surface": "asset",
+      "label": "drawer title",
+      "selector": ".drawer-header strong",
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "fontWeight": "600",
+      "text": "素材管理"
+    },
+    {
+      "surface": "asset",
+      "label": "asset card lead",
+      "selector": ".asset-card-lead",
+      "missing": true
+    },
+    {
+      "surface": "asset",
+      "label": "asset card meta",
+      "selector": ".asset-card-meta",
+      "missing": true
+    },
+    {
+      "surface": "skill",
+      "label": "skill card title",
+      "selector": ".skill-card-heading h3",
+      "fontSize": "16px",
+      "lineHeight": "21.6px",
+      "fontWeight": "600",
+      "text": "影视打斗特效skill"
+    },
+    {
+      "surface": "skill",
+      "label": "skill card blurb",
+      "selector": ".skill-card-blurb",
+      "fontSize": "13px",
+      "lineHeight": "20.8px",
+      "fontWeight": "400",
+      "text": "一句话生成角色人物影视特效支持文字参考图/视频"
+    },
+    {
+      "surface": "skill",
+      "label": "skill card specs",
+      "selector": ".skill-card-specs",
+      "fontSize": "12px",
+      "lineHeight": "17.4px",
+      "fontWeight": "400",
+      "text": "专业影视 · 15 秒 · 9:16 / 16:9 · 1 镜"
+    },
+    {
+      "surface": "skill",
+      "label": "skill use button",
+      "selector": ".skill-use-button",
+      "fontSize": "13px",
+      "lineHeight": "15.6px",
+      "fontWeight": "600",
+      "text": "使用"
+    },
+    {
+      "surface": "skill",
+      "label": "skill search",
+      "selector": "#skillSearchInput",
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": ""
+    },
+    {
+      "surface": "skillDetail",
+      "label": "skill detail title",
+      "selector": ".skill-detail-heading h2",
+      "fontSize": "22px",
+      "lineHeight": "29.7px",
+      "fontWeight": "600",
+      "text": "影视打斗特效skill"
+    },
+    {
+      "surface": "skillDetail",
+      "label": "skill detail CTA",
+      "selector": ".skill-detail-use span",
+      "fontSize": "14px",
+      "lineHeight": "16.8px",
+      "fontWeight": "600",
+      "text": "使用技能"
+    },
+    {
+      "surface": "skillDetail",
+      "label": "skill detail body",
+      "selector": ".skill-detail-section p",
+      "missing": true
+    },
+    {
+      "surface": "agent",
+      "label": "agent empty title",
+      "selector": ".agent-empty-copy h2",
+      "fontSize": "22px",
+      "lineHeight": "29.7px",
+      "fontWeight": "600",
+      "text": "把模糊想法聊清楚"
+    },
+    {
+      "surface": "agent",
+      "label": "agent empty body",
+      "selector": ".agent-empty-copy p",
+      "fontSize": "13px",
+      "lineHeight": "20.8px",
+      "fontWeight": "400",
+      "text": "从主题、角色、风格或镜头方向开始。对话只给建议；使用技能才会改画布。"
+    },
+    {
+      "surface": "agent",
+      "label": "agent starter title",
+      "selector": ".agent-starter-copy strong",
+      "fontSize": "14px",
+      "lineHeight": "18.9px",
+      "fontWeight": "600",
+      "text": "发散方向"
+    },
+    {
+      "surface": "agent",
+      "label": "agent starter meta",
+      "selector": ".agent-starter-copy small",
+      "fontSize": "11px",
+      "lineHeight": "15.95px",
+      "fontWeight": "400",
+      "text": "从一个模糊想法找到三条路"
+    },
+    {
+      "surface": "agent",
+      "label": "agent prompt input",
+      "selector": "#agentPromptInput",
+      "fontSize": "13px",
+      "lineHeight": "18px",
+      "fontWeight": "400",
+      "text": ""
+    },
+    {
+      "surface": "agent",
+      "label": "agent model trigger",
+      "selector": ".agent-prompt-model-trigger",
+      "fontSize": "11px",
+      "lineHeight": "13.2px",
+      "fontWeight": "400",
+      "text": ""
+    },
+    {
+      "surface": "timeline",
+      "label": "timeline title",
+      "selector": ".timeline-header strong",
+      "fontSize": "13px",
+      "lineHeight": "normal",
+      "fontWeight": "700",
+      "text": "时间线"
+    },
+    {
+      "surface": "timeline",
+      "label": "timeline hint",
+      "selector": ".timeline-hint",
+      "fontSize": "12px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除"
+    },
+    {
+      "surface": "timeline",
+      "label": "timeline action",
+      "selector": ".timeline-actions button span",
+      "fontSize": "12px",
+      "lineHeight": "14.4px",
+      "fontWeight": "400",
+      "text": "字幕"
+    },
+    {
+      "surface": "timeline",
+      "label": "timeline clip",
+      "selector": ".clip",
+      "missing": true
+    },
+    {
+      "surface": "canvas",
+      "label": "zoom label",
+      "selector": ".zoom-label",
+      "fontSize": "11px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "100%"
+    },
+    {
+      "surface": "canvas",
+      "label": "node title",
+      "selector": ".node-title strong",
+      "fontSize": "13px",
+      "lineHeight": "normal",
+      "fontWeight": "600",
+      "text": "图片"
+    },
+    {
+      "surface": "canvas",
+      "label": "node kind meta",
+      "selector": ".node-kind",
+      "missing": true
+    },
+    {
+      "surface": "canvas",
+      "label": "node prompt input",
+      "selector": ".generator-prompt",
+      "fontSize": "13px",
+      "lineHeight": "20.15px",
+      "fontWeight": "400",
+      "text": ""
+    },
+    {
+      "surface": "canvas",
+      "label": "node suggestions",
+      "selector": ".generator-suggestions strong",
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "fontWeight": "600",
+      "text": "图生图"
+    },
+    {
+      "surface": "inspector",
+      "label": "inspector empty",
+      "selector": "#inspector",
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "imageGenNode IDce2b3b9b-128b-4db6-b57a-7"
+    },
+    {
+      "surface": "inspector",
+      "label": "inspector heading",
+      "selector": ".inspector h3",
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "fontWeight": "700",
+      "text": "imageGen"
+    },
+    {
+      "surface": "inspector",
+      "label": "inspector dl",
+      "selector": ".inspector dl",
+      "fontSize": "12px",
+      "lineHeight": "17.4px",
+      "fontWeight": "400",
+      "text": "Node IDce2b3b9b-128b-4db6-b57a-7768449f0"
+    },
+    {
+      "surface": "modal",
+      "label": "help modal title",
+      "selector": ".help-modal .modal-header strong",
+      "fontSize": "15px",
+      "lineHeight": "normal",
+      "fontWeight": "700",
+      "text": "画布快捷键"
+    },
+    {
+      "surface": "modal",
+      "label": "help grid label",
+      "selector": ".help-grid span",
+      "fontSize": "12px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "添加节点"
+    },
+    {
+      "surface": "modal",
+      "label": "help grid kbd",
+      "selector": ".help-grid kbd",
+      "fontSize": "11px",
+      "lineHeight": "normal",
+      "fontWeight": "400",
+      "text": "双击"
+    }
+  ],
+  "bySize": {
+    "14px": [
+      "global/html root",
+      "topbar/project select",
+      "skill/skill search",
+      "skillDetail/skill detail CTA",
+      "agent/agent starter title",
+      "canvas/node suggestions",
+      "inspector/inspector empty",
+      "inspector/inspector heading"
+    ],
+    "16px": [
+      "global/button default",
+      "topbar/top chip text",
+      "asset/drawer title",
+      "skill/skill card title"
+    ],
+    "13px": [
+      "topbar/topbar",
+      "welcome/welcome hint",
+      "skill/skill card blurb",
+      "skill/skill use button",
+      "agent/agent empty body",
+      "agent/agent prompt input",
+      "timeline/timeline title",
+      "canvas/node title",
+      "canvas/node prompt input"
+    ],
+    "11px": [
+      "topbar/save state",
+      "canvas/zoom label",
+      "agent/agent starter meta",
+      "agent/agent model trigger",
+      "canvas/zoom label",
+      "modal/help grid kbd"
+    ],
+    "18px": [
+      "welcome/welcome card title"
+    ],
+    "12px": [
+      "welcome/welcome card subtitle",
+      "skill/skill card specs",
+      "timeline/timeline hint",
+      "timeline/timeline action",
+      "inspector/inspector dl",
+      "modal/help grid label"
+    ],
+    "22px": [
+      "skillDetail/skill detail title",
+      "agent/agent empty title"
+    ],
+    "15px": [
+      "modal/help modal title"
+    ]
+  },
+  "issues": [],
+  "uniqueSizes": [
+    "11px",
+    "12px",
+    "13px",
+    "14px",
+    "15px",
+    "16px",
+    "18px",
+    "22px"
+  ],
+  "sizeCount": 8
+}

@@ -1,6 +1,6 @@
-# LibTV Studio Complete v2.0
+# QUill Complete v2.0
 
-A local-first AI video creation workspace inspired by the current LibTV product interaction model: a full-screen spatial canvas, direct text/image/video nodes, third-party model APIs, reusable Assets and a professional frame Timeline.
+A local-first AI video creation workspace: a full-screen spatial canvas, direct text/image/video nodes, third-party model APIs, reusable Assets and a professional frame Timeline.
 
 **No ComfyUI. No local GPU runtime.** The Standalone version runs on Node.js 22+ without `npm install`, PostgreSQL, Redis, MinIO or Docker. Generation uses the third-party providers configured in the local model settings.
 
@@ -23,7 +23,9 @@ Windows:
 start-local.cmd
 ```
 
-Open `http://127.0.0.1:3000`.
+Open `http://127.0.0.1:3342`.
+
+**文档**：[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) · [TESTING.md](./TESTING.md) · [ARCHITECTURE.md](./ARCHITECTURE.md) · [PROJECT_GAP_AUDIT.md](./PROJECT_GAP_AUDIT.md) · [CHANGELOG.md](./CHANGELOG.md)
 
 ## v2.0 creative Agent
 
@@ -31,14 +33,16 @@ The top-right **Agent** button opens a project-persistent creative conversation:
 - Explore ideas, themes, visual directions, characters, scenes and shot concepts.
 - Continue the conversation to compare and polish creative directions.
 - Copy or favorite creative cards without changing the project.
-- The Agent is read-only: it never modifies the Canvas, starts paid generation, changes the Timeline or exports media.
+- 普通创意对话保持只读；只有用户选择并确认 Skill 后，Agent 才会写入 Canvas，并按 SkillRun 的固定步骤触发生成与 Timeline 编排。
 - Configured text models are called through the local server; credentials and project history remain local.
+
+SkillRun 状态会持久化到项目数据中，并可从 Agent 的历史菜单回看。刷新页面或重新打开画布后，已开始且未进入人工确认点的 Skill 会恢复未完成步骤；手动确认模式会停在分镜和关键帧确认点，失败节点可单独重试。
 
 Agent model output is strictly validated into read-only creative cards by the local server. Models never return executable patches, tool calls or arbitrary node objects.
 
 ## Canvas interaction
 
-The Standalone UI was rebuilt around the LibTV-style spatial interaction requested for this project:
+The Standalone UI was rebuilt around the QUill-style spatial interaction requested for this project:
 - Full-screen dark dotted infinite workspace instead of permanent sidebars.
 - **Double-click blank canvas** → Add Node catalog at the clicked world coordinate.
 - **Right-click blank canvas** → Add Node / Fit / mouse mode / Assets / Timeline actions.
@@ -51,7 +55,7 @@ The Standalone UI was rebuilt around the LibTV-style spatial interaction request
 - Edges remain selectable/deletable and media-reference roles remain inspectable.
 - Bottom-center canvas bar contains Add / Undo / Redo / Fit / Zoom / Help.
 
-See `INTERACTION_v1.3.md` for the interaction contract.
+See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for UI/UX and canvas interaction. Run `pnpm test:design-system` to validate conventions.
 
 ## Text nodes
 
@@ -84,7 +88,7 @@ Current providers:
 
 Image nodes expose prompt, model, aspect ratio/quality controls and show generated output inline. Provider results are downloaded into the project Asset Library before reuse.
 
-LibTV-style node interactions (v2.2):
+QUill-style node interactions (v2.2):
 - **参考素材 panel** — Image and Video nodes can attach references directly from the Asset Library (no edges required). Roles are auto-assigned by asset kind and video mode (`first-frame` / `last-frame` / `reference-image` / `reference-video` / `reference-audio`) and can be switched or removed inside the node.
 - **Best-of-N variants** — set 变体 to 2 or 4 and one Image generation returns that many candidates; pick the keeper on the node's filmstrip. The selected image is what flows downstream and to the Timeline.
 - **添加到时间线** on Image nodes (parity with Video nodes); double-click an image/video preview to open it full-size.
@@ -187,9 +191,9 @@ The existing v1.2 OpenChatCut-style editing surface remains intact:
 - Selected clip → AI Reference with `timelineItemId`, `sourceInFrame`, `sourceOutFrame`
 - HTTP Range (`206`) media serving for stable video seek/preview
 
-### Professional editing (LibTV-style)
+### Professional editing (QUill-style)
 
-The clip inspector adds a **专业编辑** section for two LibTV-style controllable regeneration flows. Both reuse the existing generation invariants (references, constraints, job state) and both require FFmpeg for keyframe extraction:
+The clip inspector adds a **专业编辑** section for two QUill-style controllable regeneration flows. Both reuse the existing generation invariants (references, constraints, job state) and both require FFmpeg for keyframe extraction:
 
 - **重拍此段 (anchor-locked reshoot)** — `POST /api/projects/:id/timeline/reshoot`. The server extracts the clip's source boundary frames (`anchor-in` at `sourceInFrame`, `anchor-out` at `sourceOutFrame`) into image assets and submits a `video.first_last_frame` generation with those anchors as references. On success the new video **replaces the clip in place**, preserving timing, track, transform and fades.
 - **续写接片 (tail-frame continuation)** — `POST /api/projects/:id/timeline/extend`. The last source frame of the selected clip becomes the `first-frame` of a `video.image_to_video` generation; on success a new clip is **appended right after** the selected one. Chain it repeatedly to build long sequences.
@@ -210,23 +214,7 @@ Timeline → MP4 supports:
 
 ## Regression tests
 
-Creative planning Agent, provider contracts, proposal revision and graph application:
-
-```bash
-node standalone/agent-e2e.mjs
-```
-
-Provider contracts using local fake vendor endpoints — no paid request:
-
-```bash
-node standalone/provider-contract-e2e.mjs
-```
-
-v1.3 Provider Contract coverage:
-- APIMart model discovery and categorized selection
-- APIMart text/Agent, image upload, asynchronous image/video tasks and first/last frames
-
-See `TEST_REPORT_v2.0.md` for the final regression results.
+See [TESTING.md](./TESTING.md) for all `pnpm test:*` commands.
 
 ## Persistence
 
@@ -256,4 +244,4 @@ Standalone and service architecture share the same domain boundary:
 
 `Project → Workflow → GenerationJob → Asset → TimelineItem → GenerationReference`
 
-`UPSTREAM_COMPONENTS.md` records the pinned TongFlow, OpenChatCut and mcp-video-gen reference snapshots.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for invariants and upstream integration notes.

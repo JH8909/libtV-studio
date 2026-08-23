@@ -1,0 +1,770 @@
+﻿{
+  "surfaces": {
+    "topbar": [
+      "Text Audit Project",
+      "宸蹭繚瀛?,
+      "绱犳潗",
+      "鎶€鑳?,
+      "鏃堕棿绾?,
+      "瀵煎嚭",
+      "妯″瀷/API",
+      "Agent"
+    ],
+    "welcome": [
+      "鍙屽嚮鐢诲竷 鑷敱鐢熸垚鑺傜偣",
+      "鏂囨湰鐢熸垚",
+      "浠庢兂娉曞紑濮嬪垱浣?,
+      "鍥剧墖鐢熸垚",
+      "鐢熸垚鐢靛奖绾ц瑙夌敾闈?,
+      "瑙嗛鐢熸垚",
+      "璁╃敾闈㈠姩璧锋潵"
+    ],
+    "canvasToolbar": [
+      "100%"
+    ],
+    "assetDrawer": [
+      "绱犳潗绠＄悊",
+      "涓婁紶",
+      "绱犳潗",
+      "鎻愮ず璇嶅簱",
+      "绫诲瀷",
+      "鍏ㄩ儴",
+      "鍥剧墖",
+      "瑙嗛",
+      "闊抽",
+      "鏆傛棤绱犳潗"
+    ],
+    "skillDrawer": [
+      "鎶€鑳藉箍鍦?,
+      "鎺ㄨ崘",
+      "涓撲笟褰辫",
+      "鍟嗕笟骞垮憡",
+      "瑙嗛",
+      "浣跨敤",
+      "褰辫鎵撴枟鐗规晥skill",
+      "涓€鍙ヨ瘽鐢熸垚瑙掕壊浜虹墿褰辫鐗规晥鏀寔鏂囧瓧鍙傝€冨浘/瑙嗛",
+      "涓撲笟褰辫 路 15 绉?路 9:16 / 16:9 路 1 闀?,
+      "鎵归噺UGC甯﹁揣",
+      "鐪熷疄鍙ｆ挱绉嶈崏銆佺敓娲诲寲闀滃ご銆佽鑹插満鏅弬鑰冿紝鎵撻€犻珮杞寲鐭棰戙€?,
+      "鍟嗕笟骞垮憡 路 15 绉?路 16:9 路 1 闀?,
+      "鍥剧墖",
+      "鐢靛奖璐ㄦ劅鐢婚潰涓撲笟鐢熸垚",
+      "涓€鍙ュぇ鐧借瘽灏辫兘鐢熸垚瓒呰川鎰熺數褰辩骇澶氶鏍煎浘鐗?,
+      "涓撲笟褰辫 路 16:9 路 1 闀?,
+      "鏂颁腑寮忕編瀛VC",
+      "鏂颁腑寮忕編瀛﹀叏妗堬細浠庡閫犮€佸竷鏅埌骞垮憡鎴愮墖锛屼竴绔欏紡鎯婅壋瑙嗚",
+      "鍟嗕笟骞垮憡 路 15 绉?路 16:9 路 5 闀?
+    ],
+    "skillDetailModal": [
+      "褰辫鎵撴枟鐗规晥skill",
+      "浣跨敤 Skill",
+      "1/4",
+      "绠€浠?,
+      "浠嬬粛",
+      "涓€鍙ヨ瘽鐢熸垚瑙掕壊浜虹墿褰辫鐗规晥鏀寔鏂囧瓧鍙傝€冨浘/瑙嗛",
+      "浣跨敤鍦烘櫙",
+      "鐪熶汉婕墽/鎵撴枟/鐭墖/鍔ㄧ敾/鐑婕敾/3D鍔ㄦ极绛?,
+      "濡備綍浣跨敤",
+      "鍙渶瑕佷竴鍙ヨ瘽鍗冲彲锛屽鏋滃笇鏈涙槸浠€涔堥鐏浄鐢电郴鍒楅兘鍙互璇存槑锛屽彲鑷敱鎼厤缁勫悎鎶€鑳藉悕绉帮紝鐢ㄦ埛鎻忚堪鐨勫満鏅€佽鑹层€侀鏍兼剰鍥俱€佹儏缁熀璋冦€佺壒鏁堣瘔",
+      "杈撳嚭鍐呭",
+      "鏀寔15-鏈€楂?0绉掔殑鎶€鑳芥墦鏂楃壒鏁堢珫鐗堝拰妯澘瑙嗛"
+    ],
+    "agent": [
+      "鍒涙剰瀵硅瘽",
+      "鎶婃ā绯婃兂娉曡亰娓呮",
+      "浠庝富棰樸€佽鑹层€侀鏍兼垨闀滃ご鏂瑰悜寮€濮嬨€傚璇濆彧缁欏缓璁紱浣跨敤鎶€鑳芥墠浼氭敼鐢诲竷銆?,
+      "蹇€熷紑濮?,
+      "鍙戞暎鏂瑰悜",
+      "浠庝竴涓ā绯婃兂娉曟壘鍒颁笁鏉¤矾",
+      "寤虹珛椋庢牸",
+      "纭畾鐢婚潰姘旇川鍜岃瑙夎瑷€",
+      "鎷嗚В鍦烘櫙",
+      "鎶婃蹇靛彉鎴愬彲璁ㄨ鐨勭敾闈?
+    ],
+    "agentSkillMenu": [
+      "褰辫鎵撴枟鐗规晥skill",
+      "涓撲笟褰辫 路 涓€鍙ヨ瘽鐢熸垚瑙掕壊浜虹墿褰辫鐗规晥鏀寔鏂囧瓧鍙傝€冨浘/瑙嗛",
+      "鈫?,
+      "鎵归噺UGC甯﹁揣",
+      "鍟嗕笟骞垮憡 路 鐪熷疄鍙ｆ挱绉嶈崏銆佺敓娲诲寲闀滃ご銆佽鑹插満鏅弬鑰冿紝鎵撻€犻珮杞寲鐭棰戙€?,
+      "鐢靛奖璐ㄦ劅鐢婚潰涓撲笟鐢熸垚",
+      "涓撲笟褰辫 路 涓€鍙ュぇ鐧借瘽灏辫兘鐢熸垚瓒呰川鎰熺數褰辩骇澶氶鏍煎浘鐗?,
+      "鏂颁腑寮忕編瀛VC",
+      "鍟嗕笟骞垮憡 路 鏂颁腑寮忕編瀛﹀叏妗堬細浠庡閫犮€佸竷鏅埌骞垮憡鎴愮墖锛屼竴绔欏紡鎯婅壋瑙嗚",
+      "鍟嗕笟骞垮憡 路 浠庝骇鍝佸浘鐗囧拰鍗栫偣鎻忚堪鍑哄彂锛屾寜鍥哄畾鐨勫搧鐗岄敋鐐广€佷簲闀滃ご鍒嗛暅銆佸叧閿抚銆侀甯ц棰戝拰澹伴煶鏂规锛岀敓鎴愪竴鏀?15 绉掓柊涓紡鍝佺墝 TVC銆?
+    ],
+    "timeline": [
+      "鏃堕棿绾?,
+      "1280脳720 路 30 fps 路 0.00s",
+      "璇烽€夋嫨涓€涓?Timeline Clip 鍚庡啀浣跨敤鍓垏銆佸鍒躲€佸彔鍖栨垨鍒犻櫎",
+      "瀛楀箷",
+      "100%",
+      "鍒囧垎",
+      "澶嶅埗",
+      "鍙犲寲",
+      "浣滀负 AI 鍙傝€?,
+      "娉㈢汗鍒犻櫎",
+      "鍒犻櫎",
+      "0s",
+      "2s",
+      "4s",
+      "6s",
+      "8s",
+      "10s",
+      "12s",
+      "14s",
+      "16s",
+      "18s",
+      "20s",
+      "C1",
+      "V2",
+      "V1",
+      "A1",
+      "A2"
+    ],
+    "helpModal": [
+      "鐢诲竷蹇嵎閿?,
+      "鍙屽嚮",
+      "娣诲姞鑺傜偣",
+      "鑺傜偣鍙抽敭",
+      "鑺傜偣鑿滃崟",
+      "V",
+      "閫夋嫨宸ュ叿",
+      "H / Space",
+      "鎶撴墜宸ュ叿",
+      "C",
+      "杩炵嚎宸ュ叿",
+      "Delete",
+      "鍒犻櫎閫変腑",
+      "鈱?Ctrl Z",
+      "鎾ら攢",
+      "F",
+      "閫傞厤鐢诲竷"
+    ],
+    "imageNode": [
+      "鍥剧墖",
+      "灏濊瘯锛?,
+      "鍥剧敓鍥?,
+      "鍥剧墖楂樻竻"
+    ],
+    "imageNodeExpanded": [
+      "鍥剧墖",
+      "灏濊瘯锛?,
+      "鍥剧敓鍥?,
+      "鍥剧墖楂樻竻",
+      "鍙傝€?,
+      "鏂囩敓鍥?,
+      "鏃犲彲鐢ㄩ€夐」",
+      "16:9 路 1K 路 1寮?
+    ]
+  },
+  "aria": [
+    {
+      "id": "#workspaceIcon",
+      "tag": "button",
+      "label": "鎵撳紑鐢诲竷鍒楄〃"
+    },
+    {
+      "id": "#projectSelect",
+      "tag": "div",
+      "label": "褰撳墠椤圭洰"
+    },
+    {
+      "id": ".app-select",
+      "tag": "details",
+      "label": "褰撳墠鐢诲竷"
+    },
+    {
+      "id": ".project-delete",
+      "tag": "button",
+      "label": "鍒犻櫎鐢诲竷 Text Audit Project"
+    },
+    {
+      "id": "#newProjectBtn",
+      "tag": "button",
+      "label": "鏂板缓鐢诲竷"
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "璧勬枡"
+    },
+    {
+      "id": "#assetDrawerBtn",
+      "tag": "button",
+      "label": "绱犳潗"
+    },
+    {
+      "id": "#skillDrawerBtn",
+      "tag": "button",
+      "label": "鎶€鑳?
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "鎴愮墖"
+    },
+    {
+      "id": "#timelineToggleBtn",
+      "tag": "button",
+      "label": "鏃堕棿绾?
+    },
+    {
+      "id": "#exportBtn",
+      "tag": "button",
+      "label": "瀵煎嚭"
+    },
+    {
+      "id": ".top-action-group",
+      "tag": "div",
+      "label": "妯″瀷涓庡垱鎰?
+    },
+    {
+      "id": "#providerSettingsBtn",
+      "tag": "button",
+      "label": "妯″瀷/API"
+    },
+    {
+      "id": "#agentBtn",
+      "tag": "button",
+      "label": "Agent"
+    },
+    {
+      "id": "#canvas",
+      "tag": "div",
+      "label": "鏃犻檺鐢诲竷"
+    },
+    {
+      "id": ".generator-preview",
+      "tag": "section",
+      "label": "鏀惰捣杈撳叆鍖?
+    },
+    {
+      "id": ".node-ref-add",
+      "tag": "button",
+      "label": "娣诲姞鍙傝€冪礌鏉?
+    },
+    {
+      "id": ".generator-prompt",
+      "tag": "textarea",
+      "label": "鎻忚堪甯屾湜鐢熸垚鐨勭敾闈㈠唴瀹癸紝@寮曠敤绱犳潗"
+    },
+    {
+      "id": ".app-select",
+      "tag": "details",
+      "label": "妯″瀷"
+    },
+    {
+      "id": ".primary",
+      "tag": "button",
+      "label": "鐢熸垚"
+    },
+    {
+      "id": "#welcomeCards",
+      "tag": "div",
+      "label": "蹇€熷紑濮?
+    },
+    {
+      "id": "#addNodeBtn",
+      "tag": "button",
+      "label": "娣诲姞鑺傜偣"
+    },
+    {
+      "id": "#mouseTools",
+      "tag": "div",
+      "label": "榧犳爣鎿嶄綔"
+    },
+    {
+      "id": ".tool-btn",
+      "tag": "button",
+      "label": "鎶撴墜"
+    },
+    {
+      "id": "#canvasUndoBtn",
+      "tag": "button",
+      "label": "鎾ら攢"
+    },
+    {
+      "id": "#canvasRedoBtn",
+      "tag": "button",
+      "label": "閲嶅仛"
+    },
+    {
+      "id": "#runAllBtn",
+      "tag": "button",
+      "label": "杩愯鍏ㄩ儴"
+    },
+    {
+      "id": "#fitBtn",
+      "tag": "button",
+      "label": "閫傞厤鐢诲竷"
+    },
+    {
+      "id": "#zoomOutBtn",
+      "tag": "button",
+      "label": "缂╁皬"
+    },
+    {
+      "id": "#zoomInBtn",
+      "tag": "button",
+      "label": "鏀惧ぇ"
+    },
+    {
+      "id": "#helpBtn",
+      "tag": "button",
+      "label": "蹇嵎閿?
+    },
+    {
+      "id": "#refreshAssetsBtn",
+      "tag": "button",
+      "label": "鍒锋柊"
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#assetLibraryTabs",
+      "tag": "div",
+      "label": "绱犳潗搴撳垎绫?
+    },
+    {
+      "id": "#skillDrawer",
+      "tag": "aside",
+      "label": "鎶€鑳藉箍鍦?
+    },
+    {
+      "id": "#importSkillBtn",
+      "tag": "button",
+      "label": "瀵煎叆 Skill"
+    },
+    {
+      "id": "#refreshSkillsBtn",
+      "tag": "button",
+      "label": "鍒锋柊鎶€鑳?
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#skillCategoryFilters",
+      "tag": "div",
+      "label": "Skill 鍒嗙被"
+    },
+    {
+      "id": "#skillSearchInput",
+      "tag": "input",
+      "label": "鎼滅储 Skill"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 褰辫鎵撴枟鐗规晥skill 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鎵归噺UGC甯﹁揣 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鐢靛奖璐ㄦ劅鐢婚潰涓撲笟鐢熸垚 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鏂颁腑寮忕編瀛VC 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鏂颁腑寮忕編瀛VC 璇︽儏"
+    },
+    {
+      "id": ".icon-btn",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#previewFullscreenBtn",
+      "tag": "button",
+      "label": "鍏ㄥ睆棰勮"
+    },
+    {
+      "id": ".job-filters",
+      "tag": "div",
+      "label": "浠诲姟绛涢€?
+    },
+    {
+      "id": "#timelineUndoBtn",
+      "tag": "button",
+      "label": "鎾ら攢"
+    },
+    {
+      "id": "#timelineRedoBtn",
+      "tag": "button",
+      "label": "閲嶅仛"
+    },
+    {
+      "id": "#timelineZoomOutBtn",
+      "tag": "button",
+      "label": "缂╁皬"
+    },
+    {
+      "id": "#timelineZoomInBtn",
+      "tag": "button",
+      "label": "鏀惧ぇ"
+    },
+    {
+      "id": "#splitClipBtn",
+      "tag": "button",
+      "label": "鍒囧垎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#duplicateClipBtn",
+      "tag": "button",
+      "label": "澶嶅埗锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#crossfadeBtn",
+      "tag": "button",
+      "label": "鍙犲寲锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#timelineRefBtn",
+      "tag": "button",
+      "label": "浣滀负 AI 鍙傝€冿細璇烽€夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#rippleDeleteBtn",
+      "tag": "button",
+      "label": "娉㈢汗鍒犻櫎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#deleteClipBtn",
+      "tag": "button",
+      "label": "鍒犻櫎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#timelineCloseBtn",
+      "tag": "button",
+      "label": "鏀惰捣鏃堕棿绾?
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闈欓煶"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闅愯棌"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闈欓煶"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闅愯棌"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闈欓煶"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闅愯棌"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闈欓煶"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闅愯棌"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闈欓煶"
+    },
+    {
+      "id": ".track-mini",
+      "tag": "button",
+      "label": "闅愯棌"
+    },
+    {
+      "id": "#agentOverlay",
+      "tag": "section",
+      "label": "鍒涙剰 Agent"
+    },
+    {
+      "id": "#agentResizer",
+      "tag": "div",
+      "label": "璋冩暣 Agent 闈㈡澘瀹藉害"
+    },
+    {
+      "id": "#agentFavoritesBtn",
+      "tag": "button",
+      "label": "鏀惰棌澶?
+    },
+    {
+      "id": "#agentHistoryBtn",
+      "tag": "button",
+      "label": "鍘嗗彶"
+    },
+    {
+      "id": "#agentNewConversationBtn",
+      "tag": "button",
+      "label": "鏂颁細璇?
+    },
+    {
+      "id": "#agentCloseBtn",
+      "tag": "button",
+      "label": "鍏抽棴 Agent"
+    },
+    {
+      "id": "#agentAttachmentPreview",
+      "tag": "div",
+      "label": "宸叉坊鍔犵殑鍙傝€冩枃浠?
+    },
+    {
+      "id": "#agentPromptInput",
+      "tag": "textarea",
+      "label": "鍒涙剰杈撳叆"
+    },
+    {
+      "id": "#agentPromptPlusBtn",
+      "tag": "button",
+      "label": "涓婁紶鏂囦欢"
+    },
+    {
+      "id": "#agentSkillBtn",
+      "tag": "button",
+      "label": "閫夋嫨 Skill"
+    },
+    {
+      "id": ".agent-prompt-model-trigger",
+      "tag": "button",
+      "label": "DeepSeek 路 fake-deepseek-text"
+    },
+    {
+      "id": "#agentDictationBtn",
+      "tag": "button",
+      "label": "璇煶杈撳叆"
+    },
+    {
+      "id": "#agentSendBtn",
+      "tag": "button",
+      "label": "鍙戦€佸垱鎰?
+    },
+    {
+      "id": "#providerModalClose",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#helpModalClose",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#previewFullscreenModal",
+      "tag": "div",
+      "label": "鍏ㄥ睆棰勮"
+    },
+    {
+      "id": "#previewFullscreenCloseBtn",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#mediaLightbox",
+      "tag": "div",
+      "label": "濯掍綋棰勮"
+    },
+    {
+      "id": "#mediaLightboxClose",
+      "tag": "button",
+      "label": "鍏抽棴棰勮"
+    },
+    {
+      "id": "#assetPromptModal",
+      "tag": "div",
+      "label": "绱犳潗鎻愮ず璇?
+    },
+    {
+      "id": "#assetPromptClose",
+      "tag": "button",
+      "label": "鍏抽棴鎻愮ず璇?
+    },
+    {
+      "id": "#assetPromptText",
+      "tag": "textarea",
+      "label": "瀹屾暣鎻愮ず璇?
+    },
+    {
+      "id": "#textOutputModal",
+      "tag": "div",
+      "label": "鑴氭湰鍏ㄦ枃"
+    },
+    {
+      "id": "#textOutputContinuityBtn",
+      "tag": "button",
+      "label": "杩炵画鎬у垎鏋?
+    },
+    {
+      "id": "#textOutputStoryboardBtn",
+      "tag": "button",
+      "label": "鐢熸垚鍒嗛暅鑴氭湰"
+    },
+    {
+      "id": "#textOutputEditBtn",
+      "tag": "button",
+      "label": "缂栬緫鑴氭湰"
+    },
+    {
+      "id": "#textOutputSaveBtn",
+      "tag": "button",
+      "label": "淇濆瓨鑴氭湰"
+    },
+    {
+      "id": "#textOutputCopyBtn",
+      "tag": "button",
+      "label": "澶嶅埗鑴氭湰鍏ㄦ枃"
+    },
+    {
+      "id": "#textOutputModalClose",
+      "tag": "button",
+      "label": "鍏抽棴"
+    },
+    {
+      "id": "#textOutputEditor",
+      "tag": "textarea",
+      "label": "鑴氭湰鍏ㄦ枃"
+    }
+  ],
+  "issues": [
+    {
+      "type": "鑻辨枃 Skill 瑁搁湶锛堥潪浠ｇ爜涓婁笅鏂囷級",
+      "samples": [
+        "Skill"
+      ]
+    },
+    {
+      "type": "鑻辨枃 Agent 瑁搁湶",
+      "samples": [
+        "Agent"
+      ]
+    },
+    {
+      "type": "鑻辨枃 API",
+      "samples": [
+        "API"
+      ]
+    },
+    {
+      "type": "鑻辨枃鐣岄潰璇嶏紙Timeline/Clip 绛夛級",
+      "samples": [
+        "Timeline",
+        "Clip"
+      ]
+    },
+    {
+      "type": "妯″瀷/API 娣锋帓鏍囩",
+      "samples": [
+        "妯″瀷/API"
+      ]
+    },
+    {
+      "type": "鎶€鑳?vs Skill 娣风敤",
+      "samples": [
+        "鎶€鑳?,
+        "Skill"
+      ]
+    }
+  ],
+  "mixedLangAria": [
+    {
+      "id": ".project-delete",
+      "tag": "button",
+      "label": "鍒犻櫎鐢诲竷 Text Audit Project"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 褰辫鎵撴枟鐗规晥skill 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鎵归噺UGC甯﹁揣 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鏂颁腑寮忕編瀛VC 璇︽儏"
+    },
+    {
+      "id": ".skill-card",
+      "tag": "article",
+      "label": "鏌ョ湅 鏂颁腑寮忕編瀛VC 璇︽儏"
+    },
+    {
+      "id": "#splitClipBtn",
+      "tag": "button",
+      "label": "鍒囧垎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#duplicateClipBtn",
+      "tag": "button",
+      "label": "澶嶅埗锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#crossfadeBtn",
+      "tag": "button",
+      "label": "鍙犲寲锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#timelineRefBtn",
+      "tag": "button",
+      "label": "浣滀负 AI 鍙傝€冿細璇烽€夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#rippleDeleteBtn",
+      "tag": "button",
+      "label": "娉㈢汗鍒犻櫎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#deleteClipBtn",
+      "tag": "button",
+      "label": "鍒犻櫎锛氳閫夋嫨涓€涓?Timeline Clip"
+    },
+    {
+      "id": "#agentOverlay",
+      "tag": "section",
+      "label": "鍒涙剰 Agent"
+    },
+    {
+      "id": "#agentResizer",
+      "tag": "div",
+      "label": "璋冩暣 Agent 闈㈡澘瀹藉害"
+    },
+    {
+      "id": "#agentCloseBtn",
+      "tag": "button",
+      "label": "鍏抽棴 Agent"
+    }
+  ]
+}

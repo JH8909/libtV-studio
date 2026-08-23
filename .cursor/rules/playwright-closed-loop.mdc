@@ -1,0 +1,17 @@
+---
+description: 新增功能或流程时必须用 Playwright 验证可闭环性
+alwaysApply: true
+---
+
+# Playwright 闭环验证
+
+当新增、修改或多步产品流程（Skill、Agent、画布写入、SkillRun、生成、时间线、导入导出等）时：
+
+1. **实现后必须跑 Playwright**，不要只靠静态 e2e 或口头确认。
+2. 默认命令：
+   - 快速 API/契约：`node standalone/skill-run-e2e.mjs`
+   - UI 闭环：`node standalone/agent-playwright-e2e.mjs`（或 `pnpm test:playwright`）
+   - 组合：`pnpm test:standalone-loop`
+3. 若缺少 `playwright` 依赖，先安装再跑：`pnpm add -D -w playwright && pnpm exec playwright install chromium`。
+4. Playwright 失败时先修产品/测试，再继续其它工作；把新流程补进 `standalone/agent-playwright-e2e.mjs` 或专用 `*-playwright-e2e.mjs`。
+5. 验收标准：用户路径能从入口走到可见结果（例如 Skill 选择 → 输入校验 → SkillRun → 画布节点 → 预览/时间线），且失败步骤可定位。

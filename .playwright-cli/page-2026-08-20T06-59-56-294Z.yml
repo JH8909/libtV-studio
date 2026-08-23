@@ -1,0 +1,74 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - banner [ref=f4e3]:
+      - generic [ref=f4e4]:
+        - button "打开画布列表" [ref=f4e5] [cursor=pointer]
+        - generic "当前项目" [ref=f4e7]:
+          - group "当前画布" [ref=f4e8]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f4e9] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f4e12] [cursor=pointer]
+        - status [ref=f4e14]:
+          - generic [ref=f4e16]: 已保存
+      - generic [ref=f4e17]:
+        - generic "资料" [ref=f4e18]:
+          - button "素材" [ref=f4e19] [cursor=pointer]
+          - button "技能" [ref=f4e22] [cursor=pointer]
+        - generic "成片" [ref=f4e26]:
+          - button "时间线" [ref=f4e27] [cursor=pointer]
+          - button "导出" [ref=f4e30] [cursor=pointer]
+        - generic "模型与创意" [ref=f4e34]:
+          - button "模型/API" [ref=f4e35] [cursor=pointer]
+          - button "Agent" [ref=f4e38] [cursor=pointer]
+    - main [ref=f4e41]:
+      - generic [ref=f4e42]:
+        - application "无限画布" [ref=f4e43]:
+          - alert [ref=f4e44]:
+            - strong [ref=f4e45]: 工作区暂时无法加载
+            - generic [ref=f4e46]: 正在重新连接本地服务…
+            - button "加载中…" [disabled] [ref=f4e47]
+          - img:
+            - generic [ref=f4e48] [cursor=pointer]
+          - generic [ref=f4e49]:
+            - generic:
+              - strong [ref=f4e53]: 文本
+              - generic:
+                - region "展开输入区" [ref=f4e54]:
+                  - textbox "文本结果" [ref=f4e55]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f4e56]:
+                  - button "完整查看脚本" [ref=f4e57] [cursor=pointer]
+                  - button "复制文本结果" [ref=f4e59] [cursor=pointer]
+            - generic:
+              - strong [ref=f4e64]: 图片
+              - region "展开输入区" [ref=f4e65] [cursor=pointer]:
+                - img "当前生成图片" [ref=f4e67]
+            - generic:
+              - strong [ref=f4e71]: 图片
+              - region "展开输入区" [ref=f4e72] [cursor=pointer]:
+                - img "参考图片预览" [ref=f4e74]
+            - generic:
+              - strong [ref=f4e78]: 视频
+              - region "展开输入区" [ref=f4e79] [cursor=pointer]:
+                - generic [ref=f4e81]:
+                  - generic "当前生成视频" [ref=f4e82]
+                  - button "播放" [ref=f4e83]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:00
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+        - generic [ref=f4e85]:
+          - button "添加节点" [ref=f4e86] [cursor=pointer]
+          - generic "鼠标操作" [ref=f4e89]:
+            - button "抓手" [ref=f4e90] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f4e93]
+          - button "重做" [disabled] [ref=f4e95]
+          - button "运行全部" [ref=f4e98] [cursor=pointer]
+          - button "适配画布" [ref=f4e100] [cursor=pointer]
+          - button "缩小" [ref=f4e102] [cursor=pointer]
+          - generic [ref=f4e104]: 100%
+          - button "放大" [ref=f4e105] [cursor=pointer]
+          - button "快捷键" [ref=f4e107] [cursor=pointer]
+  - status
+  - tooltip

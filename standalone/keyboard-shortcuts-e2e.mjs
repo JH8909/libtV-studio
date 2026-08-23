@@ -12,6 +12,7 @@ const checks = [
   ['Space keydown consumes browser and control defaults', /function handleSpacePanKeydown/.test(source) && /e\.preventDefault\(\);e\.stopPropagation\(\);return true;/.test(source)],
   ['Space keyup consumes focused button activation', /function handleSpacePanKeyup/.test(source) && /window\.addEventListener\('keyup',handleSpacePanKeyup,\{capture:true\}\);/.test(source)],
   ['old editing-gated Space shortcut is gone', !/e\.code===['"]Space['"]&&!editing/.test(source)],
+  ['C selects the connection tool outside text entry', /!editing&&e\.key\.toLowerCase\(\)==='c'\)setTool\('connect'\)/.test(source)],
 ];
 
 const failed = checks.filter(([, ok]) => !ok).map(([name]) => name);

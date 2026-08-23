@@ -1,0 +1,341 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - banner [ref=f2e3]:
+      - generic [ref=f2e4]:
+        - button "打开画布列表" [ref=f2e5] [cursor=pointer]
+        - generic "当前项目" [ref=f2e7]:
+          - group "当前画布" [ref=f2e65]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f2e66] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f2e8] [cursor=pointer]
+        - status [ref=f2e10]:
+          - generic [ref=f2e12]: 已保存
+      - generic [ref=f2e13]:
+        - generic "资料" [ref=f2e14]:
+          - button "素材" [ref=f2e15] [cursor=pointer]
+          - button "技能" [ref=f2e18] [cursor=pointer]
+        - generic "成片" [ref=f2e22]:
+          - button "时间线" [ref=f2e23] [cursor=pointer]
+          - button "导出" [ref=f2e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f2e30]:
+          - button "模型/API" [ref=f2e31] [cursor=pointer]
+          - button "Agent" [pressed] [ref=f2e34] [cursor=pointer]
+    - main [ref=f2e37]:
+      - generic [ref=f2e38]:
+        - application "无限画布" [ref=f2e39]:
+          - img:
+            - generic [ref=f2e69] [cursor=pointer]
+          - generic [ref=f2e40]:
+            - generic:
+              - strong [ref=f2e73]: 文本
+              - generic:
+                - region "展开输入区" [ref=f2e74]:
+                  - textbox "文本结果" [ref=f2e75]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f2e76]:
+                  - button "完整查看脚本" [ref=f2e77] [cursor=pointer]
+                  - button "复制文本结果" [ref=f2e79] [cursor=pointer]
+            - generic:
+              - strong [ref=f2e84]: 图片
+              - region "展开输入区" [ref=f2e85] [cursor=pointer]:
+                - img "当前生成图片" [ref=f2e87]
+            - generic:
+              - strong [ref=f2e91]: 图片
+              - region "展开输入区" [ref=f2e92] [cursor=pointer]:
+                - img "参考图片预览" [ref=f2e94]
+            - generic:
+              - strong [ref=f2e98]: 视频
+              - region "展开输入区" [ref=f2e99] [cursor=pointer]:
+                - generic [ref=f2e101]:
+                  - generic "当前生成视频" [ref=f2e102]
+                  - button "播放" [ref=f2e103]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+        - generic [ref=f2e41]:
+          - button "添加节点" [ref=f2e42] [cursor=pointer]
+          - generic "鼠标操作" [ref=f2e45]:
+            - button "抓手" [ref=f2e46] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f2e49]
+          - button "重做" [disabled] [ref=f2e51]
+          - button "运行全部" [ref=f2e54] [cursor=pointer]
+          - button "适配画布" [ref=f2e56] [cursor=pointer]
+          - button "缩小" [ref=f2e58] [cursor=pointer]
+          - generic [ref=f2e60]: 90%
+          - button "放大" [ref=f2e61] [cursor=pointer]
+          - button "快捷键" [ref=f2e63] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材"
+          - tab "提示词库" [selected]
+        - generic:
+          - generic:
+            - heading "分镜" [level=3]
+            - article:
+              - generic:
+                - strong: 多机位九宫格
+                - generic: v2 · 1:1 · 预设比例
+              - paragraph: 同一主体或场景的 9 个机位与角度参考图。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 多机位九宫格 4K
+                - generic: v1 · 1:1 · 预设比例
+              - paragraph: 高分辨率 3×3 多机位参考图，适合精细材质与大屏输出。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 剧情推演四宫格
+                - generic: v1 · 1:1 · 预设比例
+              - paragraph: 用 2×2 四格表现同一事件的起因、发展、转折和结果。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 25 宫格连贯分镜
+                - generic: v1 · 1:1 · 预设比例
+              - paragraph: 用 5×5 网格生成 25 帧连续叙事分镜。
+              - group:
+                - generic "查看与编辑系统提示词"
+          - generic:
+            - heading "角色" [level=3]
+            - article:
+              - generic:
+                - strong: 角色脸部三视图
+                - generic: v1 · 16:9 · 预设比例
+              - paragraph: 角色脸部正面、四分之三侧面和侧面的一致性参考。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 角色设定参考表
+                - generic: v1 · 16:9 · 预设比例
+              - paragraph: 胸口特写加全身正面、侧面、背面三视图。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 角色六表情
+                - generic: v1 · 3:2 · 预设比例
+              - paragraph: 同一角色的平静、微笑、大笑、悲伤、愤怒和惊讶六宫格。
+              - group:
+                - generic "查看与编辑系统提示词"
+          - generic:
+            - heading "产品" [level=3]
+            - article:
+              - generic:
+                - strong: 产品三视图
+                - generic: v1 · 16:9 · 预设比例
+              - paragraph: 产品正面、侧面和顶面的正投影视图。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 极简母版包装图
+                - generic: v1 · 3:4 · 继承上游
+              - paragraph: 锁定一个稳定、可落地的正面商业包装母版。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 极简一致性变体
+                - generic: v1 · 16:9 · 预设比例
+              - paragraph: 基于当前包装母版生成 3–4 个轻量 SKU 变体。
+              - group:
+                - generic "查看与编辑系统提示词"
+            - article:
+              - generic:
+                - strong: 极简提案展示图
+                - generic: v1 · 16:9 · 预设比例
+              - paragraph: 把当前包装做成棚拍、系列、材质和使用场景提案板。
+              - group:
+                - generic "查看与编辑系统提示词"
+          - generic:
+            - heading "视角" [level=3]
+            - article:
+              - generic:
+                - strong: 360° 全景图
+                - generic: v1 · 2:1 · 预设比例
+              - paragraph: 可左右无缝循环拼接的空间全景图。
+              - group:
+                - generic "查看与编辑系统提示词"
+          - generic:
+            - heading "光影" [level=3]
+            - article:
+              - generic:
+                - strong: 电影级光影方案
+                - generic: v1 · 3:2 · 预设比例
+              - paragraph: 同一主体和构图下的 6 种电影光影对比方案。
+              - group:
+                - generic "查看与编辑系统提示词"
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类":
+            - tab "推荐"
+            - tab "专业影视"
+            - tab "商业广告" [selected]
+          - generic:
+            - searchbox "搜索技能": TVC
+        - generic:
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 1 镜
+          - button "查看 新中式美学TVC 详情":
+            - generic: 视频
+            - generic:
+              - button "使用"
+              - generic:
+                - heading "新中式美学TVC" [level=3]
+              - paragraph: 新中式美学全案：从妆造、布景到广告成片，一站式惊艳视觉
+              - paragraph: 商业广告 · 15 秒 · 16:9 · 5 镜
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - text: 0.00s
+          - button "全屏预览"
+        - generic: 选择节点、连线或 Timeline Clip
+        - generic:
+          - generic: 生成任务
+          - generic: 0 进行中 · 0 失败 · 3 完成
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+        - generic:
+          - generic:
+            - generic:
+              - strong: agnes-video-v2.0
+              - generic: 已完成
+            - generic: video.generate · 100%
+            - progressbar "任务进度"
+          - generic:
+            - generic:
+              - strong: agnes-image-2.1-flash
+              - generic: 已完成
+            - generic: image.generate
+          - generic:
+            - generic:
+              - strong: agnes-2.5-flash
+              - generic: 已完成
+            - generic: text.generate · 100%
+            - progressbar "任务进度"
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+          - text: 1280×720 · 30 fps · 0.00s
+          - generic: 请选择一个 Timeline Clip 后再使用剪切、复制、叠化或删除
+        - generic:
+          - button "撤销" [disabled]
+          - button "重做" [disabled]
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分：请选择一个 Timeline Clip" [disabled]:
+            - generic: 切分
+          - button "复制：请选择一个 Timeline Clip" [disabled]:
+            - generic: 复制
+          - button "叠化：请选择一个 Timeline Clip" [disabled]:
+            - generic: 叠化
+          - button "作为 AI 参考：请选择一个 Timeline Clip" [disabled]:
+            - generic: 作为 AI 参考
+          - button "波纹删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 波纹删除
+          - button "删除：请选择一个 Timeline Clip" [disabled]:
+            - generic: 删除
+          - button "收起时间线"
+      - generic:
+        - generic: 0s
+        - generic: 2s
+        - generic: 4s
+        - generic: 6s
+        - generic: 8s
+        - generic: 10s
+        - generic: 12s
+        - generic: 14s
+        - generic: 16s
+        - generic: 18s
+        - generic: 20s
+      - generic:
+        - generic:
+          - generic:
+            - generic: C1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V2
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: V1
+            - button "静音"
+            - button "隐藏"
+          - generic:
+            - generic:
+              - generic: 25238b351d1e42d5b0e3cc64a6c5fbee.png
+              - generic: 3.0s · ×1.00
+        - generic:
+          - generic:
+            - generic: A1
+            - button "静音"
+            - button "隐藏"
+        - generic:
+          - generic:
+            - generic: A2
+            - button "静音"
+            - button "隐藏"
+  - region "创意 Agent" [ref=f2e105]:
+    - separator "调整 Agent 面板宽度" [ref=f2e106]
+    - generic [ref=f2e107]:
+      - generic [ref=f2e108]:
+        - strong [ref=f2e109]: 创意对话
+        - generic [ref=f2e110]:
+          - button "收藏夹" [active] [pressed] [ref=f2e111] [cursor=pointer]
+          - button "历史" [ref=f2e113] [cursor=pointer]
+          - button "新会话" [ref=f2e115] [cursor=pointer]
+          - button "关闭 Agent" [ref=f2e117] [cursor=pointer]
+      - generic [ref=f2e221]:
+        - heading "还没有收藏" [level=2] [ref=f2e222]
+        - paragraph [ref=f2e223]: 在创意卡片上点星标，之后可以在这里回看。
+      - generic [ref=f2e151]:
+        - button "手动确认" [ref=f2e153] [cursor=pointer]
+        - generic [ref=f2e160]:
+          - textbox "创意输入" [ref=f2e166]:
+            - /placeholder: 写下一个想法…
+          - generic [ref=f2e167]:
+            - button "上传文件" [ref=f2e168] [cursor=pointer]
+            - button "选择技能" [ref=f2e170] [cursor=pointer]
+            - button "Agnes · agnes-2.5-flash" [ref=f2e225] [cursor=pointer]
+            - button "语音输入" [ref=f2e176] [cursor=pointer]
+            - button "发送创意" [ref=f2e178] [cursor=pointer]
+  - status
+  - tooltip "收藏夹"

@@ -1,0 +1,98 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - banner [ref=f2e3]:
+      - generic [ref=f2e4]:
+        - button "打开画布列表" [ref=f2e5] [cursor=pointer]
+        - generic "当前项目" [ref=f2e7]
+        - button "新建画布" [ref=f2e8] [cursor=pointer]
+        - status [ref=f2e10]:
+          - generic [ref=f2e12]: 已保存
+      - generic [ref=f2e13]:
+        - generic "资料" [ref=f2e14]:
+          - button "素材" [ref=f2e15] [cursor=pointer]
+          - button "技能" [ref=f2e18] [cursor=pointer]
+        - generic "成片" [ref=f2e22]:
+          - button "时间线" [ref=f2e23] [cursor=pointer]
+          - button "导出" [ref=f2e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f2e30]:
+          - button "模型/API" [ref=f2e31] [cursor=pointer]
+          - button "Agent" [ref=f2e34] [cursor=pointer]
+    - main [ref=f2e37]:
+      - generic [ref=f2e38]:
+        - application "无限画布" [ref=f2e39]
+        - generic [ref=f2e41]:
+          - button "添加节点" [ref=f2e42] [cursor=pointer]
+          - generic "鼠标操作" [ref=f2e45]:
+            - button "抓手" [ref=f2e46] [cursor=pointer]
+          - button "撤销" [ref=f2e49] [cursor=pointer]
+          - button "重做" [ref=f2e51] [cursor=pointer]
+          - button "运行全部" [ref=f2e54] [cursor=pointer]
+          - button "适配画布" [ref=f2e56] [cursor=pointer]
+          - button "缩小" [ref=f2e58] [cursor=pointer]
+          - generic [ref=f2e60]: 100%
+          - button "放大" [ref=f2e61] [cursor=pointer]
+          - button "快捷键" [ref=f2e63] [cursor=pointer]
+      - complementary:
+        - generic:
+          - strong: 素材管理
+          - generic:
+            - button "上传"
+            - button "刷新"
+            - button "关闭"
+        - tablist "素材库分类":
+          - tab "素材" [selected]
+          - tab "提示词库"
+        - generic:
+          - generic:
+            - generic: 类型
+            - generic:
+              - button "全部"
+              - button "图片"
+              - button "视频"
+              - button "音频"
+      - complementary "技能广场":
+        - generic:
+          - strong: 技能广场
+          - generic:
+            - button "导入技能"
+            - button "刷新技能"
+            - button "关闭"
+        - generic:
+          - tablist "技能分类"
+          - generic:
+            - searchbox "搜索技能"
+      - complementary:
+        - generic:
+          - strong: 属性
+          - button "关闭"
+        - generic:
+          - button "播放"
+          - button "全屏预览"
+        - generic: 选择节点、连线或 Timeline Clip
+        - generic: 生成任务
+        - group "任务筛选":
+          - button "全部"
+          - button "进行中"
+          - button "失败"
+          - button "已完成"
+          - button "归档完成"
+    - generic:
+      - generic:
+        - generic:
+          - strong: 时间线
+        - generic:
+          - button "撤销"
+          - button "重做"
+          - button "字幕"
+          - button "缩小"
+          - generic: 100%
+          - button "放大"
+          - button "切分" [disabled]
+          - button "复制" [disabled]
+          - button "叠化" [disabled]
+          - button "作为 AI 参考" [disabled]
+          - button "波纹删除" [disabled]
+          - button "删除" [disabled]
+          - button "收起时间线"
+  - status
+  - tooltip

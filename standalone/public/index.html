@@ -3,25 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LibTV Studio</title>
+  <title>QUill</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="/styles.css?v=20260818-unified-tooltip" />
+  <link rel="stylesheet" href="/styles.css?v=20260822-latest" />
 </head>
 <body>
   <div id="app" class="app-shell">
     <header class="topbar compact-topbar">
       <div class="workspace-crumbs">
-        <button id="workspaceIcon" class="workspace-icon" title="切换画布" aria-label="打开画布列表"><img src="/brand/libtv-logo.png" alt="" aria-hidden="true"></button>
+        <button id="workspaceIcon" class="workspace-icon" title="切换画布" aria-label="打开画布列表"><img src="/brand/quill-logo.png" alt="" aria-hidden="true"></button>
         <div id="projectSelect" class="project-select" aria-label="当前项目"></div>
         <button id="newProjectBtn" class="top-chip" title="新建画布" aria-label="新建画布"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
         <span id="saveState" class="save-state" data-state="saved" role="status" aria-live="polite"><i class="save-state-dot" aria-hidden="true"></i><span>已保存</span></span>
       </div>
       <div class="top-actions">
-        <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
-        <button id="assetDrawerBtn" class="top-chip" title="素材库" aria-label="素材"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
-        <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
-        <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
-        <button id="agentBtn" class="top-chip" aria-label="Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span></button>
+        <div class="top-action-group" aria-label="资料">
+          <button id="assetDrawerBtn" class="top-chip" title="素材" aria-label="素材" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/folders.svg')"></i><span>素材</span></button>
+          <button id="assetLibraryBtn" class="top-chip" title="资产库" aria-label="资产库" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/folder.svg')"></i><span>资产库</span></button>
+          <button id="skillDrawerBtn" class="top-chip" title="技能广场" aria-label="技能" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i><span>技能</span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="成片">
+          <button id="timelineToggleBtn" class="top-chip" title="时间线" aria-label="时间线" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/list-details.svg')"></i><span>时间线</span></button>
+          <button id="exportBtn" class="top-chip" aria-label="导出"><i class="ui-icon" style="--icon:url('/vendor/icons/download.svg')"></i><span>导出</span></button>
+        </div>
+        <span class="top-action-sep" aria-hidden="true"></span>
+        <div class="top-action-group" aria-label="模型与创意">
+          <button id="providerSettingsBtn" class="top-chip" title="第三方模型 / API" aria-label="模型/API"><i class="ui-icon" style="--icon:url('/vendor/icons/adjustments-horizontal.svg')"></i><span>模型/API</span></button>
+          <button id="agentBtn" class="top-chip" aria-label="Agent" aria-pressed="false"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i><span>Agent</span><i class="top-chip-dot hidden" aria-hidden="true"></i></button>
+        </div>
       </div>
     </header>
 
@@ -63,10 +73,11 @@
       </section>
 
       <aside id="assetDrawer" class="floating-drawer right-drawer asset-drawer hidden-drawer">
-        <div class="drawer-header"><strong>素材管理</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="drawer-header"><strong>素材</strong><div><button id="uploadBtn"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i><span>上传</span></button><button id="refreshAssetsBtn" class="icon-btn" title="刷新" aria-label="刷新"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
         <input id="fileInput" type="file" hidden multiple accept="image/*,video/*,audio/*" />
         <div id="assetLibraryTabs" class="asset-library-tabs" role="tablist" aria-label="素材库分类"><button class="active" data-library-tab="assets" role="tab" aria-selected="true">素材</button><button data-library-tab="prompts" role="tab" aria-selected="false">提示词库</button></div>
         <div id="assetFilterChips" class="asset-filter-chips" data-library-panel="assets">
+          <label class="asset-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="assetSearchInput" type="search" placeholder="搜索素材或标签" aria-label="搜索素材"></label>
           <div class="asset-filter-group"><span class="asset-filter-label">类型</span><div class="asset-filter-options">
             <button data-filter-kind="all" class="chip active">全部</button>
             <button data-filter-kind="image" class="chip">图片</button>
@@ -76,6 +87,28 @@
         </div>
         <div id="assetList" class="asset-list" data-library-panel="assets"></div>
         <div id="promptLibraryList" class="prompt-library-list hidden" data-library-panel="prompts"></div>
+      </aside>
+
+      <aside id="assetLibraryDrawer" class="floating-drawer right-drawer asset-library-drawer hidden-drawer" aria-label="资产库" aria-hidden="true">
+        <div class="drawer-header"><strong>资产库</strong><div><button id="assetLibraryUploadBtn" class="icon-btn" title="上传资产" aria-label="上传资产"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="assetLibraryRefreshBtn" class="icon-btn" title="刷新资产" aria-label="刷新资产"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="assetLibraryDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div id="assetLibraryFilterChips" class="asset-library-filter-chips">
+          <label class="asset-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="assetLibrarySearchInput" type="search" placeholder="搜索资产或标签" aria-label="搜索资产"></label>
+          <div id="assetLibraryCategoryNav" class="asset-category-nav" role="tablist" aria-label="资产分类">
+            <button data-asset-library-category="all" class="chip active" role="tab" aria-selected="true">全部</button>
+            <button data-asset-library-category="character" class="chip" role="tab" aria-selected="false">角色</button>
+            <button data-asset-library-category="scene" class="chip" role="tab" aria-selected="false">场景</button>
+            <button data-asset-library-category="prop" class="chip" role="tab" aria-selected="false">道具</button>
+            <button data-asset-library-category="style" class="chip" role="tab" aria-selected="false">风格</button>
+            <button data-asset-library-category="sound" class="chip" role="tab" aria-selected="false">音效</button>
+          </div>
+        </div>
+        <div id="assetLibraryList" class="asset-list"></div>
+      </aside>
+
+      <aside id="skillDrawer" class="floating-drawer right-drawer skill-drawer hidden-drawer" aria-label="技能广场">
+        <div class="drawer-header"><strong>技能广场</strong><div><button id="importSkillBtn" class="icon-btn" title="导入技能" aria-label="导入技能"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button><button id="refreshSkillsBtn" class="icon-btn" title="刷新技能" aria-label="刷新技能"><i class="ui-icon" style="--icon:url('/vendor/icons/refresh.svg')"></i></button><button data-close-drawer="skillDrawer" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+        <div class="skill-library-toolbar"><div id="skillCategoryFilters" class="skill-category-filters" role="tablist" aria-label="技能分类"></div><label class="skill-search"><i class="ui-icon" style="--icon:url('/vendor/icons/search.svg')"></i><input id="skillSearchInput" type="search" placeholder="搜索技能" aria-label="搜索技能"></label></div>
+        <div id="skillLibraryList" class="skill-library-list"></div>
       </aside>
 
       <aside id="inspectorDrawer" class="floating-drawer right-drawer hidden-drawer">
@@ -110,33 +143,56 @@
   <section id="agentOverlay" class="agent-overlay hidden" aria-label="创意 Agent">
     <div id="agentResizer" class="agent-resizer" role="separator" aria-orientation="vertical" aria-label="调整 Agent 面板宽度" tabindex="0"></div>
     <div class="agent-panel">
-      <header class="agent-panel-header">
-        <div class="agent-panel-actions">
-          <button id="agentHistoryBtn" class="agent-window-btn" type="button" title="查看项目会话"><i class="ui-icon" style="--icon:url('/vendor/icons/history.svg')"></i><span>历史</span></button>
-          <button id="agentNewConversationBtn" class="agent-window-btn" type="button" title="新建创意对话"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i><span>新会话</span></button>
+      <header class="drawer-header agent-panel-header">
+        <strong id="agentConversationTitle">创意对话</strong>
+        <div>
+          <button id="agentHistoryBtn" class="icon-btn" type="button" title="历史" aria-label="历史"><i class="ui-icon" style="--icon:url('/vendor/icons/history.svg')"></i></button>
+          <button id="agentNewConversationBtn" class="icon-btn" type="button" title="新会话" aria-label="新会话"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+          <button id="agentCloseBtn" class="icon-btn" type="button" title="关闭" aria-label="关闭 Agent"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
         </div>
       </header>
       <div id="agentHistoryMenu" class="agent-history-menu hidden" role="menu"></div>
       <div id="agentMessages" class="agent-messages" aria-live="polite">
         <div id="agentEmptyState" class="agent-empty-state">
-          <span class="agent-empty-eyebrow">Creative session</span>
-          <h2>你想把什么想法变得更清晰？</h2>
-          <p>从主题、角色、风格或镜头方向开始，Agent 只提供创意建议，不会修改画布。</p>
-          <div class="agent-recommendations">
-            <button type="button" data-agent-prompt="帮我发散三个完全不同的创意方向"><span class="agent-recommendation-icon">✦</span><span><strong>发散方向</strong><small>从一个模糊想法找到三条路</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
-            <button type="button" data-agent-prompt="帮我设计这个项目的视觉风格和色彩基调"><span class="agent-recommendation-icon">◌</span><span><strong>建立风格</strong><small>确定画面气质和视觉语言</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
-            <button type="button" data-agent-prompt="帮我把这个想法拆成几个有画面感的场景"><span class="agent-recommendation-icon">↗</span><span><strong>拆解场景</strong><small>把概念变成可讨论的画面</small></span><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i></button>
+          <div class="agent-empty-hero" aria-hidden="true">
+            <div class="agent-empty-glow"></div>
+            <div class="agent-empty-mark"><i class="ui-icon" style="--icon:url('/vendor/icons/bulb.svg')"></i></div>
+          </div>
+          <div class="agent-empty-copy">
+            <h2>把模糊想法聊清楚</h2>
+            <p>从主题、角色、风格或镜头方向开始。对话只给建议；使用技能才会改画布。</p>
+          </div>
+          <div class="agent-starters">
+            <span class="agent-starters-label">快速开始</span>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我发散三个完全不同的创意方向" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>发散方向</strong><small>从一个模糊想法找到三条路</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我设计这个项目的视觉风格和色彩基调" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/palette.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>建立风格</strong><small>确定画面气质和视觉语言</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
+            <button type="button" class="agent-starter" data-agent-prompt="帮我把这个想法拆成几个有画面感的场景" data-agent-send="1">
+              <span class="agent-starter-icon"><i class="ui-icon" style="--icon:url('/vendor/icons/layout-grid.svg')"></i></span>
+              <span class="agent-starter-copy"><strong>拆解场景</strong><small>把概念变成可讨论的画面</small></span>
+              <i class="ui-icon agent-starter-arrow" style="--icon:url('/vendor/icons/arrow-up-right.svg')"></i>
+            </button>
           </div>
         </div>
       </div>
-      <div id="agentStatus" class="agent-status" role="status" aria-live="polite"></div>
       <form id="agentPromptForm" class="agent-prompt-form" data-promptbar>
         <div class="agent-prompt-anchor">
           <div id="agentPromptSourceMenu" class="agent-prompt-source-menu hidden" role="menu"></div>
           <div class="agent-prompt-composer">
+            <div id="agentSkillChip" class="agent-skill-chip hidden"></div>
+            <div id="agentAttachmentPreview" class="agent-attachment-preview hidden" aria-label="已添加的参考文件"></div>
+            <div id="agentSkillInputHint" class="agent-skill-input-hint hidden"></div>
             <textarea id="agentPromptInput" rows="1" placeholder="写下一个想法…" aria-label="创意输入"></textarea>
             <div class="agent-prompt-controls">
-              <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="添加创作上下文" aria-expanded="false" title="添加创作上下文"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
+              <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="上传文件" title="上传文件"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button>
+              <button id="agentSkillBtn" class="agent-prompt-control" type="button" aria-label="选择技能" title="选择技能" aria-expanded="false" aria-haspopup="menu"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></button>
               <div id="agentModelSelect" class="agent-model-select"></div>
               <button id="agentDictationBtn" class="agent-prompt-control" type="button" aria-label="语音输入" title="语音输入"><i class="ui-icon" style="--icon:url('/vendor/icons/microphone.svg')"></i></button>
               <button id="agentSendBtn" class="agent-send-btn" type="submit" aria-label="发送创意"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i></button>
@@ -156,7 +212,7 @@
   <div id="createProjectModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle">
     <section class="create-project-modal">
       <div class="modal-header"><strong id="createProjectTitle">新建画布</strong></div>
-      <label class="create-project-field"><span>画布名称</span><input id="createProjectInput" type="text" maxlength="120" autocomplete="off"></label>
+      <label class="create-project-field"><span>画布名称</span><input id="createProjectInput" class="ds-control-input" type="text" maxlength="120" autocomplete="off"></label>
       <div class="modal-footer"><button id="createProjectCancel" type="button">取消</button><button id="createProjectConfirm" type="button" class="primary">创建画布</button></div>
     </section>
   </div>
@@ -173,7 +229,18 @@
     <section class="provider-modal">
       <div class="modal-header"><div><strong>模型 / API</strong><small>APIMart 输入 API Key 后自动拉取可用模型；密钥只保存在本机</small></div><button id="providerModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
       <div id="providerSettingsForm" class="provider-settings-form"></div>
-      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存并拉取模型</button></div>
+      <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存配置</button></div>
+    </section>
+  </div>
+
+  <div id="importSkillModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="importSkillTitle">
+    <section class="create-project-modal import-skill-modal">
+      <div class="modal-header"><strong id="importSkillTitle">导入技能</strong><button id="importSkillModalClose" class="icon-btn" type="button" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+      <form id="importSkillForm">
+      <label class="create-project-field"><span>技能详情/分享链接或 UUID</span><input id="importSkillInput" class="ds-control-input" type="text" autocomplete="off" placeholder="支持 LiblibTV 或即梦 AI 的具体 Skill 链接"></label>
+        <p id="importSkillStatus" class="modal-status" role="status" aria-live="polite"></p>
+        <div class="modal-footer"><button id="importSkillCancel" type="button">取消</button><button id="importSkillConfirm" type="submit" class="primary">导入 Skill</button></div>
+      </form>
     </section>
   </div>
 
@@ -199,16 +266,23 @@
   </div>
 
   <div id="mediaLightbox" class="media-lightbox hidden" role="dialog" aria-modal="true" aria-label="媒体预览">
-    <div class="media-lightbox-content">
+    <div id="mediaLightboxContent" class="media-lightbox-content">
       <button id="mediaLightboxClose" class="media-lightbox-close icon-btn" title="关闭 (Esc)" aria-label="关闭预览"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button>
       <div id="mediaLightboxStage" class="media-lightbox-stage"></div>
+      <p id="mediaLightboxPrompt" class="media-lightbox-prompt hidden" aria-label="图片提示词"></p>
     </div>
   </div>
 
   <div id="assetPromptModal" class="asset-prompt-modal hidden" role="dialog" aria-modal="true" aria-label="素材提示词">
     <section class="asset-prompt-panel">
-      <div class="asset-prompt-header"><strong>图片提示词</strong><div><button id="assetPromptCopy"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制</span></button><button id="assetPromptClose" class="icon-btn" title="关闭 (Esc)" aria-label="关闭提示词"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
+      <div class="asset-prompt-header"><strong>素材提示词</strong><div><button id="assetPromptCopy"><i class="ui-icon" style="--icon:url('/vendor/icons/copy.svg')"></i><span>复制</span></button><button id="assetPromptClose" class="icon-btn" title="关闭 (Esc)" aria-label="关闭提示词"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div></div>
       <textarea id="assetPromptText" class="asset-prompt-text" readonly aria-label="完整提示词"></textarea>
+    </section>
+  </div>
+
+  <div id="skillDetailModal" class="modal-backdrop skill-detail-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="skillDetailTitle">
+    <section class="skill-detail-modal" role="document">
+      <div id="skillDetailBody" class="skill-detail-modal-body"></div>
     </section>
   </div>
 
@@ -233,6 +307,6 @@
   <!-- compatibility controls kept for existing command handlers -->
   <div class="hidden" aria-hidden="true"><button id="addImageBtn"></button><button id="addVideoBtn"></button></div>
   <div id="toastRoot" class="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script type="module" src="/app.js?v=20260818-unified-tooltip"></script>
+  <script type="module" src="/app.js?v=20260822-latest"></script>
 </body>
 </html>

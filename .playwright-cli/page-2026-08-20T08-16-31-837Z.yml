@@ -1,0 +1,120 @@
+- generic [ref=f9e1]:
+  - generic [ref=f9e2]:
+    - banner [ref=f9e3]:
+      - generic [ref=f9e4]:
+        - button "打开画布列表" [ref=f9e5] [cursor=pointer]
+        - generic "当前项目" [ref=f9e7]:
+          - group "当前画布" [ref=f9e219]:
+            - generic "Playwright 全流程验收 2026-08-20" [ref=f9e220] [cursor=pointer]
+            - text: ✓
+        - button "新建画布" [ref=f9e8] [cursor=pointer]
+        - status [ref=f9e10]:
+          - generic [ref=f9e12]: 已保存
+      - generic [ref=f9e13]:
+        - generic "资料" [ref=f9e14]:
+          - button "素材" [ref=f9e15] [cursor=pointer]
+          - button "技能" [ref=f9e18] [cursor=pointer]
+        - generic "成片" [ref=f9e22]:
+          - button "时间线" [ref=f9e23] [cursor=pointer]
+          - button "导出" [ref=f9e26] [cursor=pointer]
+        - generic "模型与创意" [ref=f9e30]:
+          - button "模型/API" [ref=f9e31] [cursor=pointer]
+          - button "Agent" [ref=f9e34] [cursor=pointer]
+    - main [ref=f9e37]:
+      - generic [ref=f9e38]:
+        - application "无限画布" [ref=f9e39]:
+          - img:
+            - generic:
+              - generic [ref=f9e223] [cursor=pointer]
+              - generic [ref=f9e224] [cursor=pointer]
+              - generic [ref=f9e225] [cursor=pointer]
+          - generic [ref=f9e44]:
+            - generic:
+              - generic [ref=f9e226]:
+                - strong [ref=f9e229]: 文本
+                - button "展开输入区" [ref=f9e231] [cursor=pointer]
+              - generic:
+                - region "展开输入区" [ref=f9e233]:
+                  - textbox "文本结果" [ref=f9e234]: 镜头 1 | 0-3s | 远景 | 玉石在云海中缓慢旋转 | 低饱和青绿色，侧逆光 | 箫声
+                - generic [ref=f9e235]:
+                  - button "完整查看脚本" [ref=f9e236] [cursor=pointer]
+                  - button "复制文本结果" [ref=f9e238] [cursor=pointer]
+            - generic:
+              - generic [ref=f9e240]:
+                - strong [ref=f9e243]: 图片
+                - button "展开输入区" [ref=f9e245] [cursor=pointer]
+              - region "展开输入区" [ref=f9e247] [cursor=pointer]:
+                - img "当前生成图片" [ref=f9e249]
+            - generic:
+              - generic [ref=f9e250]:
+                - strong [ref=f9e253]: 图片
+                - button "收起输入区" [expanded] [active] [ref=f9e310] [cursor=pointer]
+              - generic:
+                - region "展开输入区" [ref=f9e257] [cursor=pointer]:
+                  - img "当前生成图片" [ref=f9e259]
+                - generic [ref=f9e312]:
+                  - generic [ref=f9e313]:
+                    - button "添加参考素材" [ref=f9e314] [cursor=pointer]:
+                      - generic [ref=f9e316]: 参考
+                    - group [ref=f9e317]:
+                      - generic "图生图" [ref=f9e318]
+                  - generic [ref=f9e324] [cursor=pointer]:
+                    - generic [ref=f9e325]: 参考图片
+                    - button "移除参考"
+                  - textbox "可选：补充需要调整的细节" [ref=f9e328]
+                  - generic [ref=f9e329]:
+                    - generic [ref=f9e330]:
+                      - group "模型" [ref=f9e332]:
+                        - generic "Agnes Img 2.1" [ref=f9e333] [cursor=pointer]
+                      - group [ref=f9e337]:
+                        - generic "1:1 · 1K · 1张" [ref=f9e338] [cursor=pointer]
+                    - button "重新生成" [ref=f9e342] [cursor=pointer]
+            - generic:
+              - generic [ref=f9e260]:
+                - strong [ref=f9e263]: 视频
+                - button "展开输入区" [ref=f9e265] [cursor=pointer]
+              - region "展开输入区" [ref=f9e267] [cursor=pointer]:
+                - generic [ref=f9e269]:
+                  - generic "当前生成视频" [ref=f9e270]
+                  - button "播放" [ref=f9e271]
+                  - group "视频播放控制":
+                    - button "播放"
+                    - generic: 0:00 / 0:03
+                    - slider "视频进度": "0"
+                    - button "静音"
+                    - button "全屏播放"
+            - generic:
+              - generic [ref=f9e273]:
+                - strong [ref=f9e276]: 视频
+                - button "展开输入区" [ref=f9e278] [cursor=pointer]
+              - region "展开输入区" [ref=f9e280] [cursor=pointer]:
+                - generic [ref=f9e284]:
+                  - generic [ref=f9e285]: 尝试：
+                  - strong [ref=f9e286]: 文生视频
+                  - strong [ref=f9e288]: 首帧视频
+            - generic:
+              - generic [ref=f9e290]:
+                - strong [ref=f9e293]: 图片
+                - button "展开输入区" [ref=f9e295] [cursor=pointer]
+              - region "展开输入区" [ref=f9e297] [cursor=pointer]:
+                - img "当前生成图片" [ref=f9e299]
+            - generic:
+              - generic [ref=f9e300]:
+                - strong [ref=f9e303]: 图片
+                - button "展开输入区" [ref=f9e305] [cursor=pointer]
+              - region "展开输入区" [ref=f9e307] [cursor=pointer]:
+                - img "参考图片预览" [ref=f9e309]
+        - generic [ref=f9e45]:
+          - button "添加节点" [ref=f9e46] [cursor=pointer]
+          - generic "鼠标操作" [ref=f9e49]:
+            - button "抓手" [ref=f9e50] [cursor=pointer]
+          - button "撤销" [disabled] [ref=f9e53]
+          - button "重做" [disabled] [ref=f9e55]
+          - button "运行全部" [ref=f9e58] [cursor=pointer]
+          - button "适配画布" [ref=f9e60] [cursor=pointer]
+          - button "缩小" [ref=f9e62] [cursor=pointer]
+          - generic [ref=f9e64]: 32%
+          - button "放大" [ref=f9e65] [cursor=pointer]
+          - button "快捷键" [ref=f9e67] [cursor=pointer]
+  - status
+  - tooltip "收起输入区"
