@@ -20,7 +20,7 @@ import {
   parseCreativeAgentReply,
 } from "./creative-agent.mjs";
 import { normalizeImagePreset } from "./public/image-presets.js";
-import { buildSkillWorkflow, importLiblibSkill, listSkills, skillById } from "./skill-catalog.mjs";
+import { buildSkillWorkflow, importSkill, listSkills, skillById } from "./skill-catalog.mjs";
 import {
   createSkillRunRecord,
   publicSkillRun,
@@ -176,8 +176,18 @@ function creativeAgentContext(project) {
     }),
   };
 }
+function creativeAgentTextOnlyView(view) {
+  const hasClarification = Array.isArray(view.questions) && view.questions.length > 0;
+  const clarification = hasClarification
+    ? `需要补充的信息：\n${view.questions.map((item, index) => `${index + 1}. ${item}`).join("\n")}\n\n请直接回复以上信息，我会继续输出创意方向。`
+    : "";
+  const followUp = Array.isArray(view.followUps) && view.followUps.length
+    ? `你也可以继续告诉我：\n${view.followUps.map((item, index) => `${index + 1}. ${item}`).join("\n")}`
+    : "";
+  return { ...view, text: [view.text, clarification, followUp].filter(Boolean).join("\n\n"), questions: [], followUps: [] };
+}
 function creativeAgentMessageView(message) {
-  return {
+  return creativeAgentTextOnlyView({
     id: message.id,
     role: message.role,
     text: message.text || "",
@@ -189,7 +199,7 @@ function creativeAgentMessageView(message) {
     createdAt: message.createdAt,
     error: message.error || "",
     ...(message.skillRun ? { skillRun: message.skillRun } : {}),
-  };
+  });
 }
 function creativeAgentSources(attachments) {
   return (attachments || []).map((asset) => ({
@@ -245,7 +255,7 @@ function creativeAgentConversationView(conversation) {
       }
       const legacyText = legacyCreativeAgentCardText(message.cards);
       if (legacyText) view.text = [view.text, legacyText].filter(Boolean).join("\n\n");
-      return view;
+      return creativeAgentTextOnlyView(view);
     }),
   };
 }
@@ -261,7 +271,6 @@ function applySkillToProject(project, body = {}) {
   const skillId = String(body.skillId || "").trim();
   const skill = skillById(skillId);
   if (!skill) throw Object.assign(new Error("skill_not_found"), { status: 404 });
-  const confirmMode = body.confirmMode === "manual" ? "manual" : "auto";
   let result;
   const genericMediaWorkflow = ["cinematic-vfx", "generic-video", "generic-image", "generic-plan"].includes(skill.execution?.workflow)
     || skill.execution?.adapter === "single-plan";
@@ -293,29 +302,14 @@ function applySkillToProject(project, body = {}) {
       String(body.productAssetId || "").trim() ||
       (Array.isArray(body.attachments) ? body.attachments.find((item) => item?.kind === "image")?.id || "" : "") ||
       projectAssets(project.id, { kind: "image" })[0]?.id;
-    if (!selectedAsset) {
-      throw Object.assign(new Error("product_image_required"), {
-        status: 400,
-        message: "缺少必填输入：产品图片",
-        missingFields: ["产品图片"],
-      });
-    }
-    const asset = state.assets[selectedAsset];
-    if (!asset || asset.projectId !== project.id || asset.kind !== "image") {
+    const asset = selectedAsset ? state.assets[selectedAsset] : null;
+    if (selectedAsset && (!asset || asset.projectId !== project.id || asset.kind !== "image")) {
       throw Object.assign(new Error("invalid_product_image"), {
         status: 400,
         message: "Skill 需要当前画布中的图片素材作为产品参考。",
-        missingFields: ["产品图片"],
       });
     }
     const sellingPoints = String(body.sellingPoints || body.message || "").trim();
-    if (!sellingPoints) {
-      throw Object.assign(new Error("selling_points_required"), {
-        status: 400,
-        message: "缺少必填输入：产品卖点",
-        missingFields: ["产品卖点"],
-      });
-    }
     result = buildSkillWorkflow({
       skill,
       existingWorkflow: project.workflow,
@@ -326,7 +320,7 @@ function applySkillToProject(project, body = {}) {
       aspectRatio: body.aspectRatio,
     });
   }
-  const skillRun = createSkillRunRecord({ projectId: project.id, skill, result, confirmMode });
+  const skillRun = createSkillRunRecord({ projectId: project.id, skill, result });
   const created = new Set(result.createdNodeIds || []);
   tagWorkflowNodesWithSkillRun((result.nodes || []).filter((node) => created.has(node.id)), skillRun.runId);
   state.skillRuns[skillRun.runId] = skillRun;
@@ -363,9 +357,12 @@ async function completeCreativeAgent(providerId, modelId, messages, signal) {
     label = "百炼 creative agent";
   } else throw Object.assign(new Error(`unknown_provider: ${providerId}`), { status: 400 });
   if (!apiKey) throw Object.assign(new Error(`${label} API key is not configured`), { status: 422 });
-  const body = { model: modelId, stream: false, messages, temperature: 0.75 };
+  // Keep creative replies bounded. Without an output cap, some providers spend
+  // tens of seconds completing a response even when the UI only needs a short
+  // JSON reply.
+  const body = { model: modelId, stream: false, messages, temperature: 0.55, max_tokens: 1536 };
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
-  const timeoutMs = Math.max(1_000, Number(process.env.CREATIVE_AGENT_TIMEOUT_MS || 180_000));
+  const timeoutMs = Math.max(1_000, Number(process.env.CREATIVE_AGENT_TIMEOUT_MS || 60_000));
   const combinedSignal = AbortSignal.any([signal || new AbortController().signal, AbortSignal.timeout(timeoutMs)]);
   let response;
   try {
@@ -401,6 +398,7 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
     const applied = applySkillToProject(project, skillBody);
     const workflowType = applied.skill.execution?.workflow;
     const isVfx = workflowType === "cinematic-vfx";
+    const isSourceFaithful = applied.skill.execution?.sourceFaithful === true;
     const isGenericMedia = ["cinematic-vfx", "generic-video", "generic-image", "generic-plan"].includes(workflowType)
       || applied.skill.execution?.adapter === "single-plan";
     const skillRunView = publicSkillRun(applied.skillRun);
@@ -409,6 +407,8 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
       role: "assistant",
       text: isVfx
         ? `已启用「${applied.skill.name}」Skill。已创建动作拆解方案和影视特效视频节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动加入 Timeline。`
+        : isSourceFaithful
+          ? `已启用「${applied.skill.name}」Skill。已按来源公开的输入与交付物创建执行计划和对应节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；将按依赖顺序自动生成。`
         : isGenericMedia
           ? `已启用「${applied.skill.name}」Skill。已创建生成计划和${workflowType === "generic-image" ? "图片" : workflowType === "generic-plan" ? "方案" : "视频"}节点${applied.result.input.referenceAssetId ? "，并绑定参考素材" : ""}；生成成功后会自动保留到画布${workflowType === "generic-video" ? "并加入 Timeline" : ""}。`
         : `已启用「${applied.skill.name}」Skill。已绑定产品图并创建创意锚点、五镜头分镜、关键帧、首帧视频、旁白方案和BGM方案节点；接下来按依赖顺序生成并把成功镜头加入 Timeline。`,
@@ -452,7 +452,12 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
   conversation.updatedAt = now();
   if (conversation.messages.filter((item) => item.role === "user").length === 1) conversation.title = message.slice(0, 48);
   await saveDb();
-  const history = conversation.messages.slice(-24).map((item) => ({ role: item.role, content: creativeAgentHistoryContent(item) }));
+  // Long conversations otherwise resend hundreds of thousands of characters
+  // on every turn, which makes text generation progressively slower.
+  const history = conversation.messages.slice(-12).map((item) => ({
+    role: item.role,
+    content: creativeAgentHistoryContent(item).slice(0, 4_000),
+  }));
   const system = buildCreativeAgentSystemPrompt(creativeAgentContext(project));
   const raw = await completeCreativeAgent(providerId, modelId, [{ role: "system", content: system }, ...history], signal);
   const reply = parseCreativeAgentReply(raw);
@@ -478,22 +483,23 @@ async function sendCreativeAgentMessage(project, conversation, body, signal) {
 }
 
 function maskedProviderSettingsView() {
+  const modelSetting = (key) => providerSettings[key] === "__none__" ? "__none__" : runtimeConfig[key];
   return {
     AGNES_API_KEY: "",
     AGNES_BASE_URL: runtimeConfig.AGNES_BASE_URL,
-    AGNES_TEXT_MODEL: runtimeConfig.AGNES_TEXT_MODEL,
-    AGNES_IMAGE_MODEL: runtimeConfig.AGNES_IMAGE_MODEL,
-    AGNES_VIDEO_MODEL: runtimeConfig.AGNES_VIDEO_MODEL,
+    AGNES_TEXT_MODEL: modelSetting("AGNES_TEXT_MODEL"),
+    AGNES_IMAGE_MODEL: modelSetting("AGNES_IMAGE_MODEL"),
+    AGNES_VIDEO_MODEL: modelSetting("AGNES_VIDEO_MODEL"),
     APIMART_API_KEY: "",
     DEEPSEEK_API_KEY: "",
     DEEPSEEK_BASE_URL: runtimeConfig.DEEPSEEK_BASE_URL,
-    DEEPSEEK_TEXT_MODEL: runtimeConfig.DEEPSEEK_TEXT_MODEL,
+    DEEPSEEK_TEXT_MODEL: modelSetting("DEEPSEEK_TEXT_MODEL"),
     BAILIAN_API_KEY: "",
     BAILIAN_BASE_URL: runtimeConfig.BAILIAN_BASE_URL,
     BAILIAN_MEDIA_BASE_URL: runtimeConfig.BAILIAN_MEDIA_BASE_URL,
-    BAILIAN_TEXT_MODEL: runtimeConfig.BAILIAN_TEXT_MODEL,
-    BAILIAN_IMAGE_MODEL: runtimeConfig.BAILIAN_IMAGE_MODEL,
-    BAILIAN_VIDEO_MODEL: runtimeConfig.BAILIAN_VIDEO_MODEL,
+    BAILIAN_TEXT_MODEL: modelSetting("BAILIAN_TEXT_MODEL"),
+    BAILIAN_IMAGE_MODEL: modelSetting("BAILIAN_IMAGE_MODEL"),
+    BAILIAN_VIDEO_MODEL: modelSetting("BAILIAN_VIDEO_MODEL"),
     PUBLIC_BASE_URL: runtimeConfig.PUBLIC_BASE_URL,
   };
 }
@@ -575,7 +581,7 @@ async function handleApi(req, res, url) {
   if (p === '/api/models' && method === 'GET') return json(res, 200, { models: await listModels() });
   if (p === '/api/skills/import' && method === 'POST') {
     const body = await readJson(req);
-    const result = await importLiblibSkill(body?.url || body?.shareUrl || body?.uuid);
+    const result = await importSkill(body?.url || body?.shareUrl || body?.uuid);
     return json(res, result.created ? 201 : 200, result);
   }
   if (p === '/api/skills' && method === 'GET') return json(res, 200, { skills: listSkills() });
@@ -618,7 +624,6 @@ async function handleApi(req, res, url) {
     const run = state.skillRuns?.[safeDecode(skillRunMatch[2])];
     if (!project || !run || run.projectId !== projectId) return notFound(res);
     const body = await readJson(req);
-    if (Object.hasOwn(body, "pauseAt")) run.pauseAt = body.pauseAt || null;
     if (Object.hasOwn(body, "status")) run.status = String(body.status || run.status);
     if (Object.hasOwn(body, "error")) run.error = body.error == null ? null : String(body.error);
     if (Array.isArray(body.steps)) {
@@ -631,6 +636,10 @@ async function handleApi(req, res, url) {
       }
     }
     if (Array.isArray(body.assetIds)) run.assetIds = [...new Set(body.assetIds.map(String))];
+    if (Array.isArray(body.createdNodeIds)) run.createdNodeIds = [...new Set(body.createdNodeIds.map(String))];
+    if (Array.isArray(body.videoNodeIds)) run.videoNodeIds = [...new Set(body.videoNodeIds.map(String))];
+    if (Array.isArray(body.audioPlanNodeIds)) run.audioPlanNodeIds = [...new Set(body.audioPlanNodeIds.map(String))];
+    if (body.inputValues && typeof body.inputValues === "object") run.inputValues = { ...run.inputValues, ...body.inputValues };
     syncSkillRunProgress(run, project.workflow);
     await saveDb();
     return json(res, 200, publicSkillRun(run));
@@ -660,7 +669,6 @@ async function handleApi(req, res, url) {
         node.data.phase = "canceled";
       }
     }
-    run.pauseAt = null;
     run.status = "canceled";
     run.error = "用户取消";
     for (const step of run.steps || []) {
@@ -701,7 +709,6 @@ async function handleApi(req, res, url) {
         message: "找不到可重试的镜头或步骤节点。",
       });
     }
-    run.pauseAt = null;
     run.status = "processing";
     run.error = null;
     for (const step of run.steps || []) {
@@ -764,6 +771,11 @@ async function handleApi(req, res, url) {
     res.on('close', () => { closed = true; controller.abort(); });
     res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' });
     const sendEvent = (event, data) => { if (!closed) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
+    const startedAt = Date.now();
+    const progressTimer = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+      sendEvent('thinking', { message: `正在等待文本模型响应… ${elapsedSec} 秒` });
+    }, 8_000);
     try {
       sendEvent('thinking', { message: '正在整理创意…' });
       const result = await sendCreativeAgentMessage(project, conversation, body, controller.signal);
@@ -772,6 +784,7 @@ async function handleApi(req, res, url) {
     } catch (error) {
       if (!closed) sendEvent('error', { error: sanitizeProviderMessage(error?.message || error), retryable: ![400, 404, 422].includes(Number(error?.status)), ...(Array.isArray(error?.missingFields) ? { missingFields: error.missingFields } : {}) });
     } finally {
+      clearInterval(progressTimer);
       if (!closed) res.end();
     }
     return;
@@ -970,7 +983,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`LibTV Studio Standalone running at http://${HOST}:${PORT}`);
+  console.log(`QUill running at http://${HOST}:${PORT}`);
   console.log(`Data: ${DATA}`);
   console.log(`Providers: apimart=${Boolean(runtimeConfig.APIMART_API_KEY)} agnes=${Boolean(runtimeConfig.AGNES_API_KEY)} deepseek=${Boolean(runtimeConfig.DEEPSEEK_API_KEY)} bailian=${Boolean(runtimeConfig.BAILIAN_API_KEY)}`);
   console.log(`FFmpeg: ${HAS_FFMPEG} · Caption font: ${Boolean(FFMPEG_FONT_FILE)}`);

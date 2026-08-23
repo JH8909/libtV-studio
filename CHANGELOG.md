@@ -8,7 +8,7 @@
 - 新增 `standalone/wave1-e2e.mjs`（`pnpm test:wave1`）：覆盖 phase 流转、标签自动生成、标签过滤、PATCH 增删标签、UI guards。
 
 ## 2.3.0 - 2026-08-08
-- Added ComfyUI/LibTV-style node connection interactions:
+- Added ComfyUI/QUill-style node connection interactions:
   - **拖节点到节点自动连线**：拖动一个节点松手时，若其中心落在另一节点上，自动创建连线并按源类型分配角色（图片→视频 = `first-frame`，图片→图片 = `reference-image`，视频→视频 = `reference-video`），无需找端口。
   - **连线光效**：连线分三层渲染（光晕 + 主线 + 点击层）；依赖满足变绿色发光流动线，未满足灰色虚线，失败红色；选中加粗高亮。
   - **连线可选中/断开**：点击连线选中（再点取消），`Delete`/Backspace 或属性面板"删除连线"断开。
@@ -19,7 +19,7 @@
 - UI guards 扩展到 21 项，`standalone/node-interaction-e2e.mjs` 全量通过。
 
 ## 2.2.0 - 2026-08-08
-- Added LibTV-style in-node reference management for Image and Video nodes: a 参考素材 panel that adds assets from the library directly into the node, auto-assigns reference roles by kind and video mode, lets you switch roles (first-frame / last-frame / reference-image / reference-video / reference-audio) and remove references without touching edges.
+- Added QUill-style in-node reference management for Image and Video nodes: a 参考素材 panel that adds assets from the library directly into the node, auto-assigns reference roles by kind and video mode, lets you switch roles (first-frame / last-frame / reference-image / reference-video / reference-audio) and remove references without touching edges.
 - Added best-of-N image generation (`params.variants`, 1-4): one job produces multiple candidates; the node shows a variant filmstrip to pick the keeper, and the selected image is what flows downstream and onto the Timeline. Out-of-range variants are rejected with 400.
 - Added "添加到时间线" on Image nodes (parity with Video nodes) and double-click-to-open on image/video node previews.
 - Added ComfyUI-style whole-workflow execution: the ▶ 运行全部 toolbar button runs all generation nodes in dependency order (text → image → video) and waits for each step, so a connected Image node automatically produces the first-frame for a Video node.
@@ -27,7 +27,7 @@
 - Added `standalone/node-interaction-e2e.mjs` (`pnpm test:nodes`) covering variants, validation, single-output video, presetReferences persistence, and the flow-execution UI surface.
 
 ## 2.1.0 - 2026-08-08
-- Added LibTV-style professional editing layer on the Timeline.
+- Added QUill-style professional editing layer on the Timeline.
 - Added **片段重拍 (anchor-locked segment reshoot)**: a selected video/image clip is re-generated with its source boundary frames extracted as anchor references (`first-frame` + `last-frame`), and the new output replaces the clip in place, keeping timing, track, transform and fades.
 - Added **尾帧续写 (tail-frame continuation)**: the last source frame of a clip becomes the first frame of a continuation segment that is appended right after the clip, the long-video primitive toward `video.extend`.
 - Anchor/tail keyframes are materialized as project image assets (`source: keyframe`) and served through the existing asset pipeline.
@@ -44,7 +44,7 @@
 - Added Agent provider/E2E coverage and restored cross-platform source validation.
 
 ## 1.3.0 - 2026-08-07
-- Rebuilt the Standalone Canvas around the LibTV-style spatial workflow: full-screen dotted board, compact top bar, floating mouse tools and bottom-center canvas controls.
+- Rebuilt the Standalone Canvas around the QUill-style spatial workflow: full-screen dotted board, compact top bar, floating mouse tools and bottom-center canvas controls.
 - Added blank-canvas double-click node catalog and right-click canvas/node context menus.
 - Added explicit Select / Hand / Connect mouse modes with V/H/C shortcuts.
 - Split generic generation nodes into manual Text, AI Text, Image and Video node families.

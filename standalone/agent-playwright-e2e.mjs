@@ -13,6 +13,7 @@ const pngBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADU
 await writeFile(fixturePng, pngBytes);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const results = [];
+let lastFakeChatRequest = null;
 
 function listenAsync(server, host = '127.0.0.1') {
   return new Promise((resolve, reject) => {
@@ -45,6 +46,12 @@ const fake = http.createServer(async (req, res) => {
   for await (const chunk of req) chunks.push(chunk);
   res.setHeader('content-type', 'application/json');
   if (req.method === 'POST' && req.url === '/deepseek/chat/completions') {
+    try {
+      lastFakeChatRequest = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    } catch {
+      lastFakeChatRequest = null;
+    }
+    if (lastFakeChatRequest?.messages?.some((item) => String(item?.content || '').includes('心跳测试'))) await sleep(9_000);
     return res.end(JSON.stringify({
       choices: [{
         message: {
@@ -165,6 +172,15 @@ try {
   await sleep(300);
   const skillDrawerOpen = await page.locator('#skillDrawer').evaluate((el) => !el.classList.contains('hidden-drawer'));
   record('skill drawer opens', skillDrawerOpen);
+  await clickAny('#importSkillBtn');
+  await sleep(150);
+  const importModalOpen = await page.locator('#importSkillModal').evaluate((el) => !el.classList.contains('hidden'));
+  const importInputVisible = await page.locator('#importSkillInput').isVisible();
+  record('import Skill opens a working modal', importModalOpen && importInputVisible);
+  await clickAny('#importSkillCancel');
+  await sleep(150);
+  const importModalClosed = await page.locator('#importSkillModal').evaluate((el) => el.classList.contains('hidden'));
+  record('import Skill modal cancels cleanly', importModalClosed);
   const skillCard = page.locator('[data-skill-id="new-chinese-tvc"]');
   const skillCardCount = await skillCard.count();
   record('skill list renders new-chinese-tvc card', skillCardCount >= 1);
@@ -180,6 +196,14 @@ try {
   const closeVisible = await page.locator('.skill-detail-close').isVisible();
   const introSection = await page.locator('.skill-detail-intro h3').textContent();
   record('skill detail modal shows close icon and 简介', closeVisible && introSection?.includes('简介'));
+  const detailBodyText = await page.locator('#skillDetailBody').textContent();
+  const removedDetailSections = await page.locator('#skillDetailBody .skill-detail-section,#skillDetailBody .skill-detail-list,#skillDetailBody .skill-detail-input-list,#skillDetailBody .skill-detail-rules').count();
+  record('skill detail keeps only introduction content', removedDetailSections === 0 && !/完整说明|固定步骤|规则与限制/.test(detailBodyText || ''), `sections=${removedDetailSections}`);
+  const previewFrame = await page.locator('.skill-detail-preview-stage').evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return { ratio: rect.height ? rect.width / rect.height : 0, portrait: el.classList.contains('is-portrait') };
+  });
+  record('skill detail preview uses fixed landscape frame', previewFrame.ratio > 1.55 && previewFrame.ratio < 2 && !previewFrame.portrait, JSON.stringify(previewFrame));
   await clickAny('.skill-detail-close');
   await sleep(250);
   const modalClosed = await page.locator('#skillDetailModal').evaluate((el) => el.classList.contains('hidden'));
@@ -227,6 +251,12 @@ try {
   await page.waitForSelector('.agent-output-actions', { timeout: 15000 });
   const outputText = await page.locator('.agent-output-text').first().textContent();
   record('starter returns continuous text', outputText?.includes('冷静的夜行者'), outputText || '');
+  record('text request uses bounded output settings', lastFakeChatRequest?.max_tokens === 1536 && lastFakeChatRequest?.temperature === 0.55, JSON.stringify({ max_tokens: lastFakeChatRequest?.max_tokens, temperature: lastFakeChatRequest?.temperature }));
+  await page.locator('#agentPromptInput').fill('心跳测试');
+  await clickAny('#agentSendBtn');
+  await page.waitForFunction(() => [...document.querySelectorAll('.agent-thinking-label')].some((element) => element.textContent.includes('等待文本模型响应')), null, { timeout: 12_000 });
+  record('text request shows live wait status', await page.locator('.agent-thinking-label').filter({ hasText: '等待文本模型响应' }).count() >= 1);
+  await page.waitForSelector('.agent-output-actions', { timeout: 15_000 });
 
   // 5. Model selector
   await clickAny('[data-agent-model-trigger]');
@@ -239,13 +269,14 @@ try {
   const assistantMsgs = await page.locator('.agent-message-assistant').count();
   record('conversation messages rendered', userMsgs >= 1 && assistantMsgs >= 1, `user=${userMsgs}, assistant=${assistantMsgs}`);
 
-  // 7. Continuous output has message actions and follow-ups, without recommendation cards
+  // 7. Continuous output keeps questions and follow-ups in normal message text.
   const creativeCardCount = await page.locator('.agent-creative-card,.agent-reco-card,.agent-card-list').count();
   const actionCount = await page.locator('.agent-output-actions button').count();
   const feedbackCount = await page.locator('[data-agent-feedback]').count();
   const followUpCount = await page.locator('.agent-follow-ups button').count();
   const questionCount = await page.locator('.agent-clarifying-questions p').count();
-  record('continuous output replaces creative cards', creativeCardCount === 0 && actionCount === 2 && feedbackCount === 0 && followUpCount >= 1 && questionCount >= 1, `cards=${creativeCardCount}, actions=${actionCount}, feedback=${feedbackCount}, questions=${questionCount}, followUps=${followUpCount}`);
+  const assistantText = await page.locator('.agent-message-assistant').first().textContent();
+  record('continuous output keeps prompts as text', creativeCardCount === 0 && actionCount === 2 && feedbackCount === 0 && followUpCount === 0 && questionCount === 0 && assistantText?.includes('这支片的目标受众是谁？') && assistantText?.includes('你也可以继续告诉我'), `cards=${creativeCardCount}, actions=${actionCount}, feedback=${feedbackCount}, questions=${questionCount}, followUps=${followUpCount}`);
 
   async function fillAgentInput(value) {
     await page.evaluate((next) => {
@@ -314,6 +345,11 @@ try {
   await sleep(150);
   const sourceMenu = await page.locator('#agentPromptSourceMenu:not(.hidden)').count() > 0;
   record('@ source menu opens', sourceMenu);
+  const sourceOptions = await page.locator('#agentPromptSourceMenu [data-agent-prompt-choice]').count();
+  record('@ menu lists all read-only sources', sourceOptions === 3, `count=${sourceOptions}`);
+  await page.locator('#agentPromptSourceMenu:not(.hidden) [data-agent-prompt-choice]').first().evaluate((element) => element.click());
+  const sourceInserted = await page.locator('#agentPromptInput').inputValue();
+  record('@ source inserts a context token', sourceInserted.includes('@项目上下文'), sourceInserted);
   await fillAgentInput('');
 
   // 17. Skill menu via icon button
@@ -329,7 +365,18 @@ try {
   await fillAgentInput('/');
   await sleep(150);
   const slashMenu = await page.locator('#agentPromptSourceMenu:not(.hidden)').count() > 0;
-  record('/ does not open skill menu', !slashMenu);
+  record('/ opens preset menu without opening Skill menu', slashMenu && await page.locator('#agentSkillChip').evaluate((el) => el.classList.contains('hidden')));
+  const presetNames = ['发散方向', '建立风格', '拆解场景', '设计角色', '润色表达'];
+  const presetInsertions = [];
+  for (const presetName of presetNames) {
+    await fillAgentInput('/');
+    await sleep(100);
+    const option = page.locator('#agentPromptSourceMenu [data-agent-prompt-choice]').filter({ hasText: presetName }).first();
+    const available = await option.count();
+    if (available) await option.click();
+    presetInsertions.push({ presetName, available, value: await page.locator('#agentPromptInput').inputValue() });
+  }
+  record('all slash presets insert their prompts', presetInsertions.every(item => item.available === 1 && item.value.length > 4), JSON.stringify(presetInsertions));
   await fillAgentInput('');
   const workflowAfterReadOnlyChat = await jsonRequest(`/api/projects/${projectId}/workflow`);
   record('read-only chat does not mutate canvas', JSON.stringify(workflowBefore) === JSON.stringify(workflowAfterReadOnlyChat));
@@ -395,32 +442,8 @@ try {
   });
   record('skill menu prefers first-party skill id', selectedSkillId === 'selected');
 
-  // 21b. Confirm mode toggle
-  const confirmLabel = await page.locator('#agentConfirmModeBtn').getAttribute('aria-label');
-  const confirmInControls = await page.locator('.agent-prompt-controls #agentConfirmModeBtn').count();
-  const confirmIconOnly = await page.locator('#agentConfirmModeBtn .agent-confirm-toggle-label').count();
-  record('confirm mode control visible', Boolean(confirmLabel?.includes('手动确认') || confirmLabel?.includes('自动生成')), confirmLabel || '');
-  record('confirm mode sits in prompt controls as icon', confirmInControls === 1 && confirmIconOnly === 0);
-  await page.locator('#agentConfirmModeBtn').click();
-  await page.waitForSelector('#agentConfirmMenu:not(.hidden)', { timeout: 5000 }).catch(() => null);
-  const confirmMenuOpen = await page.locator('#agentConfirmMenu').evaluate((el) => !el.classList.contains('hidden'));
-  record('confirm mode menu opens', confirmMenuOpen);
-  if (confirmMenuOpen) {
-    await page.locator('[data-agent-confirm-mode="auto"]').click({ force: true });
-    await sleep(200);
-  } else {
-    await page.evaluate(() => {
-      const button = document.querySelector('[data-agent-confirm-mode="auto"]');
-      button?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    });
-    await sleep(200);
-  }
-  const autoLabel = await page.locator('#agentConfirmModeBtn').getAttribute('aria-label');
-  record('confirm mode switches to auto', autoLabel?.includes('自动生成'), autoLabel || '');
-  await page.locator('#agentConfirmModeBtn').click();
-  await page.waitForSelector('#agentConfirmMenu:not(.hidden)', { timeout: 3000 }).catch(() => null);
-  await page.evaluate(() => document.querySelector('[data-agent-confirm-mode="manual"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
-  await sleep(150);
+  // 21b. Skills no longer expose a manual confirmation control.
+  record('confirmation control removed', await page.locator('#agentConfirmModeBtn,.agent-approval-card').count() === 0);
 
   // 21b2. Model trigger stays icon-only; menu shows name text
   const modelTriggerText = (await page.locator('.agent-prompt-model-trigger').textContent())?.trim() || '';
@@ -439,41 +462,29 @@ try {
     record('model menu shows brand icon with name', false, 'menu did not open');
   }
 
-  // 21c. Missing required input blocks submit
+  // 21c. Empty optional input never shows a blocking hint
   await fillAgentInput('');
   await page.locator('#agentPromptInput').fill('');
   await clickAny('#agentSendBtn');
   await sleep(400);
-  const missingHint = await page.locator('#agentSkillInputHint').evaluate((el) => !el.classList.contains('hidden') && el.textContent.includes('缺少必填输入'));
-  record('missing required inputs show hint', missingHint);
+  const missingHint = await page.locator('#agentSkillInputHint').evaluate((el) => !el.classList.contains('hidden'));
+  record('empty Skill input has no blocking hint', !missingHint);
 
-  // 22. Approval card dismissed keeps canvas unchanged
-  const workflowBeforeSkill = await jsonRequest(`/api/projects/${projectId}/workflow`);
-  await fillAgentInput('天然玉石、牡丹雕花、东方手工艺');
-  await clickAny('#agentSendBtn');
-  await page.waitForSelector('.agent-approval-card', { timeout: 5000 });
-  await page.locator('.agent-approval-option').filter({ hasText: '暂不执行' }).last().click();
-  await sleep(700);
-  const workflowAfterDismiss = await jsonRequest(`/api/projects/${projectId}/workflow`);
-  record('approval dismiss keeps canvas unchanged', JSON.stringify(workflowBeforeSkill) === JSON.stringify(workflowAfterDismiss));
-
-  // 23. Clear skill chip
+  // 22. Clear skill chip
   await clickAgent('[data-agent-skill-clear]');
   await sleep(200);
   const skillChipCleared = await page.locator('#agentSkillChip').evaluate((el) => el.classList.contains('hidden'));
   record('skill chip clear', skillChipCleared);
 
-  // 24. Approval accepted applies workflow nodes
+  // 23. Sending a Skill applies its workflow directly.
   await chooseSkillFromMenu('new-chinese-tvc');
   await uploadAgentAttachment(fixturePng);
   await fillAgentInput('天然玉石、牡丹雕花、东方手工艺');
   const nodeCountBefore = (await jsonRequest(`/api/projects/${projectId}/workflow`)).nodes?.length || 0;
   await clickAny('#agentSendBtn');
-  await page.waitForSelector('.agent-approval-card', { timeout: 5000 });
-  await page.locator('.agent-approval-option').filter({ hasText: '继续执行' }).last().click();
   await page.waitForFunction(() => document.querySelectorAll('.agent-skill-run-summary').length >= 1, null, { timeout: 20000 });
   await sleep(800);
-  const skillRunEl = page.locator('.agent-skill-run-summary.agent-task-rows').first();
+  const skillRunEl = page.locator('.agent-skill-run-summary.agent-skill-run-compact').first();
   const skillSummary = await skillRunEl.textContent();
   const taskRowCount = await skillRunEl.locator('.agent-task-row').count();
   const skillActionText = await skillRunEl.locator('.agent-skill-run-actions').textContent().catch(() => '');
@@ -481,19 +492,18 @@ try {
   const workflowAfter = await jsonRequest(`/api/projects/${projectId}/workflow`);
   const tagged = (workflowAfter.nodes || []).some((node) => node.data?.skillRunId && node.data?.stepId);
   const skillRuns = await jsonRequest(`/api/projects/${projectId}/skill-runs`);
-  record('approval submit applies nodes', nodeCountAfter > nodeCountBefore, `nodes ${nodeCountBefore} -> ${nodeCountAfter}`);
-  record('skill run summary rendered', skillSummary?.includes('新中式美学TVC') && taskRowCount >= 1, `rows=${taskRowCount}; ${skillSummary || ''}`);
+  record('direct Skill send applies nodes', nodeCountAfter > nodeCountBefore, `nodes ${nodeCountBefore} -> ${nodeCountAfter}`);
+  record('skill run summary rendered as compact status', skillSummary?.includes('新中式美学TVC') && taskRowCount === 0, `rows=${taskRowCount}; ${skillSummary || ''}`);
   const hasLegacySkillLabels = /停止运行|查看产物|\b(succeeded|failed|processing|queued)\b/i.test(skillSummary || '') || /停止运行|查看产物/.test(skillActionText || '');
-  const hasNewSkillLabels = /停止|产物|待开始|进行中|等待确认|已完成|失败|已取消/.test(`${skillSummary || ''}${skillActionText || ''}`);
-  record('skill run uses task-row Chinese labels', !hasLegacySkillLabels && (hasNewSkillLabels || taskRowCount >= 1), `actions=${skillActionText || ''}`);
+  record('skill run keeps only actionable controls', !hasLegacySkillLabels && /画布/.test(skillActionText || ''), `actions=${skillActionText || ''}`);
   record('skill nodes carry skillRunId/stepId', tagged);
   record('skill run persisted via API', (skillRuns.skillRuns || []).length >= 1, `runs=${(skillRuns.skillRuns || []).length}`);
   const tvcRun = (skillRuns.skillRuns || []).find((run) => run.skillId === 'new-chinese-tvc') || skillRuns.skillRuns?.[0];
   const tvcNodeCount = (workflowAfter.nodes || []).filter((node) => node.data?.skillId === 'new-chinese-tvc' || node.data?.skillRunId === tvcRun?.runId).length;
   const hasKeyframeStep = (tvcRun?.steps || []).some((step) => step.id === 'keyframes' && (step.nodeIds || []).length >= 5);
   const hasVideoStep = (tvcRun?.steps || []).some((step) => step.id === 'videos' && (step.nodeIds || []).length >= 5);
-  record('TVC skillRun creates full shot graph', tvcRun?.skillId === 'new-chinese-tvc' && tvcNodeCount >= 12 && hasKeyframeStep && hasVideoStep, `nodes=${tvcNodeCount}, keyframes=${hasKeyframeStep}, videos=${hasVideoStep}, skillId=${tvcRun?.skillId || ''}`);
-  record('manual confirm pauses before keyframes or videos', tvcRun?.pauseAt === 'keyframes' || tvcRun?.status === 'awaiting_confirmation' || ['processing', 'failed', 'succeeded'].includes(tvcRun?.status), `pauseAt=${tvcRun?.pauseAt || 'null'}, status=${tvcRun?.status || ''}`);
+  record('TVC skillRun waits for storyboard generation before compiling media graph', tvcRun?.skillId === 'new-chinese-tvc' && tvcNodeCount >= 5 && !hasKeyframeStep && !hasVideoStep, `nodes=${tvcNodeCount}, keyframes=${hasKeyframeStep}, videos=${hasVideoStep}, skillId=${tvcRun?.skillId || ''}`);
+  record('SkillRun has no confirmation state', !Object.hasOwn(tvcRun || {}, 'pauseAt') && ['queued', 'processing', 'failed', 'succeeded'].includes(tvcRun?.status), `status=${tvcRun?.status || ''}`);
 
   // 25. Close Agent
   await clickAny('#agentCloseBtn');

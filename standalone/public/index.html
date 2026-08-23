@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LibTV Studio</title>
+  <title>QUill</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="/styles.css?v=20260822-latest" />
 </head>
@@ -11,7 +11,7 @@
   <div id="app" class="app-shell">
     <header class="topbar compact-topbar">
       <div class="workspace-crumbs">
-        <button id="workspaceIcon" class="workspace-icon" title="切换画布" aria-label="打开画布列表"><img src="/brand/libtv-logo.png" alt="" aria-hidden="true"></button>
+        <button id="workspaceIcon" class="workspace-icon" title="切换画布" aria-label="打开画布列表"><img src="/brand/quill-logo.png" alt="" aria-hidden="true"></button>
         <div id="projectSelect" class="project-select" aria-label="当前项目"></div>
         <button id="newProjectBtn" class="top-chip" title="新建画布" aria-label="新建画布"><i class="ui-icon" style="--icon:url('/vendor/icons/plus.svg')"></i></button>
         <span id="saveState" class="save-state" data-state="saved" role="status" aria-live="polite"><i class="save-state-dot" aria-hidden="true"></i><span>已保存</span></span>
@@ -193,13 +193,6 @@
             <div class="agent-prompt-controls">
               <button id="agentPromptPlusBtn" class="agent-prompt-control" type="button" aria-label="上传文件" title="上传文件"><i class="ui-icon" style="--icon:url('/vendor/icons/upload.svg')"></i></button>
               <button id="agentSkillBtn" class="agent-prompt-control" type="button" aria-label="选择技能" title="选择技能" aria-expanded="false" aria-haspopup="menu"><i class="ui-icon" style="--icon:url('/vendor/icons/sparkles-2.svg')"></i></button>
-              <span id="agentConfirmBar" class="agent-confirm-wrap">
-                <button id="agentConfirmModeBtn" class="agent-prompt-control agent-confirm-toggle" type="button" aria-label="手动确认" title="确认模式：手动确认" aria-expanded="false" aria-haspopup="menu"><i class="ui-icon" data-agent-confirm-icon style="--icon:url('/vendor/icons/hand-click.svg')"></i></button>
-                <span id="agentConfirmMenu" class="agent-confirm-menu hidden" role="menu">
-                  <button type="button" class="agent-confirm-option active" data-agent-confirm-mode="manual" role="menuitem"><span class="agent-confirm-option-label">手动确认</span></button>
-                  <button type="button" class="agent-confirm-option" data-agent-confirm-mode="auto" role="menuitem"><span class="agent-confirm-option-label">自动生成</span></button>
-                </span>
-              </span>
               <div id="agentModelSelect" class="agent-model-select"></div>
               <button id="agentDictationBtn" class="agent-prompt-control" type="button" aria-label="语音输入" title="语音输入"><i class="ui-icon" style="--icon:url('/vendor/icons/microphone.svg')"></i></button>
               <button id="agentSendBtn" class="agent-send-btn" type="submit" aria-label="发送创意"><i class="ui-icon" style="--icon:url('/vendor/icons/arrow-up.svg')"></i></button>
@@ -237,6 +230,17 @@
       <div class="modal-header"><div><strong>模型 / API</strong><small>APIMart 输入 API Key 后自动拉取可用模型；密钥只保存在本机</small></div><button id="providerModalClose" class="icon-btn" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
       <div id="providerSettingsForm" class="provider-settings-form"></div>
       <div class="modal-footer"><span id="providerSaveStatus" class="muted"></span><button id="providerSaveBtn" class="primary">保存配置</button></div>
+    </section>
+  </div>
+
+  <div id="importSkillModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="importSkillTitle">
+    <section class="create-project-modal import-skill-modal">
+      <div class="modal-header"><strong id="importSkillTitle">导入技能</strong><button id="importSkillModalClose" class="icon-btn" type="button" title="关闭" aria-label="关闭"><i class="ui-icon" style="--icon:url('/vendor/icons/x.svg')"></i></button></div>
+      <form id="importSkillForm">
+      <label class="create-project-field"><span>技能详情/分享链接或 UUID</span><input id="importSkillInput" class="ds-control-input" type="text" autocomplete="off" placeholder="支持 LiblibTV 或即梦 AI 的具体 Skill 链接"></label>
+        <p id="importSkillStatus" class="modal-status" role="status" aria-live="polite"></p>
+        <div class="modal-footer"><button id="importSkillCancel" type="button">取消</button><button id="importSkillConfirm" type="submit" class="primary">导入 Skill</button></div>
+      </form>
     </section>
   </div>
 

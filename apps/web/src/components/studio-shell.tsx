@@ -59,7 +59,7 @@ export function StudioShell() {
 
   return <div style={{ height: "100vh", display: "grid", gridTemplateRows: `52px 1fr ${timelineOpen ? "260px" : "0px"}`, overflow: "hidden" }}>
     <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 14px", borderBottom: "1px solid #252a33", background: "#111318" }}>
-      <strong>LibTV Studio</strong><span style={{ fontSize: 11, opacity: .45 }}>API-first · Project {projectId.slice(0, 8)}</span><span style={{ flex: 1 }} />
+      <strong>QUill</strong><span style={{ fontSize: 11, opacity: .45 }}>API-first · Project {projectId.slice(0, 8)}</span><span style={{ flex: 1 }} />
       <button onClick={() => refreshAssets()}>Refresh assets</button><button onClick={() => setTimelineOpen((x) => !x)}>{timelineOpen ? "Hide" : "Show"} timeline</button>
     </header>
     <section style={{ minHeight: 0, display: "grid", gridTemplateColumns: "210px minmax(0, 1fr)" }}>

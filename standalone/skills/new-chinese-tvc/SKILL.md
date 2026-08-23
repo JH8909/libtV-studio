@@ -9,7 +9,7 @@ metadata:
 
 This is the project-local executable Skill definition for the Agent and Skill Plaza. It is explicitly selected by the user before it can modify the canvas or start generation.
 
-The Skill keeps the LibTV method: establish a continuity bible first, convert it into a five-shot 15-second storyboard, generate a keyframe for every shot, generate each shot from its keyframe, prepare voiceover and music plans, and append successful visual shots to the Timeline.
+The Skill follows the QUill method: establish a continuity bible first, convert it into a five-shot 15-second storyboard, generate a keyframe for every shot, generate each shot from its keyframe, prepare voiceover and music plans, and append successful visual shots to the Timeline.
 
 The fixed shot arc is:
 

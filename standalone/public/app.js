@@ -7,7 +7,7 @@ const els = Object.fromEntries([
   'refreshAssetsBtn','assetList','assetLibraryTabs','assetFilterChips','assetSearchInput','promptLibraryList','clearAssetRunFilter','canvas','canvasWorld','edgesLayer','inspector','jobList','jobSummary','archiveCompletedJobsBtn','fitBtn','zoomOutBtn','zoomInBtn','zoomLabel',
   'connectionToast','timelineBody','timelineRuler','timelineMeta','timelineHint','timelineRefBtn','deleteClipBtn','splitClipBtn','duplicateClipBtn','crossfadeBtn','rippleDeleteBtn',
   'timelineUndoBtn','timelineRedoBtn','addTextClipBtn','timelineZoomOutBtn','timelineZoomInBtn','timelineZoomLabel','canvasUndoBtn','canvasRedoBtn','runAllBtn','previewStage','previewPlayBtn','previewTime','previewFullscreenBtn','previewFullscreenModal','previewFullscreenStage','previewFullscreenPlayBtn','previewFullscreenTime','previewFullscreenCloseBtn','mediaLightbox','mediaLightboxContent','mediaLightboxStage','mediaLightboxPrompt','mediaLightboxClose','assetPromptModal','assetPromptText','assetPromptCopy','assetPromptClose','toastRoot',
-  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','importSkillModal','importSkillForm','importSkillInput','importSkillStatus','importSkillModalClose','importSkillCancel','importSkillConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetLibraryBtn','assetLibraryDrawer','assetLibraryUploadBtn','assetLibraryRefreshBtn','assetLibraryFilterChips','assetLibrarySearchInput','assetLibraryList','skillDrawerBtn','skillDrawer','skillCategoryFilters','skillSearchInput','importSkillBtn','refreshSkillsBtn','skillLibraryList','skillDetailModal','skillDetailBody','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentConversationTitle','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentCloseBtn','agentMessages','agentEmptyState','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentAttachmentPreview','agentPromptPlusBtn','agentSkillBtn','agentSkillChip','agentDictationBtn','agentSendBtn','agentConfirmBar','agentConfirmModeBtn','agentConfirmMenu','agentSkillInputHint'
+  'addNodeBtn','nodeMenu','nodeMenuContent','nodeContextMenu','mouseTools','createProjectModal','createProjectInput','createProjectCancel','createProjectConfirm','deleteProjectModal','deleteProjectMessage','deleteProjectCancel','deleteProjectConfirm','importSkillModal','importSkillForm','importSkillInput','importSkillStatus','importSkillModalClose','importSkillCancel','importSkillConfirm','providerSettingsBtn','providerModal','providerModalClose','providerSettingsForm','providerSaveBtn','providerSaveStatus','assetDrawerBtn','assetDrawer','assetLibraryBtn','assetLibraryDrawer','assetLibraryUploadBtn','assetLibraryRefreshBtn','assetLibraryFilterChips','assetLibrarySearchInput','assetLibraryList','skillDrawerBtn','skillDrawer','skillCategoryFilters','skillSearchInput','importSkillBtn','refreshSkillsBtn','skillLibraryList','skillDetailModal','skillDetailBody','inspectorDrawer','timelineToggleBtn','timelineShell','timelineCloseBtn','helpBtn','helpModal','helpModalClose','textOutputModal','textOutputTitle','textOutputMeta','textOutputTable','textOutputEditor','textOutputContinuityBtn','textOutputStoryboardBtn','textOutputEditBtn','textOutputSaveBtn','textOutputModalClose','textOutputCopyBtn','agentBtn','agentOverlay','agentResizer','agentModelSelect','agentConversationTitle','agentHistoryBtn','agentHistoryMenu','agentNewConversationBtn','agentCloseBtn','agentMessages','agentEmptyState','agentPromptForm','agentPromptInput','agentPromptSourceMenu','agentAttachmentPreview','agentPromptPlusBtn','agentSkillBtn','agentSkillChip','agentDictationBtn','agentSendBtn','agentSkillInputHint'
 ].map(id => [id, document.getElementById(id)]));
 
 const NODE_W = 300;
@@ -28,11 +28,11 @@ const S = {
   selectedNodeId: null, selectedNodeIds: [], selectedEdgeId: null, selectedClipId: null,
   view: { x: 120, y: 80, zoom: 1 },
   canvasHistory: { past: [], future: [] }, timelineHistory: { past: [], future: [] },
-  interaction: null, spaceDown: false, suppressNodeClickId: null, saveTimer: null, saveInFlight: null, saveQueued: false, workflowBase: null, timelineSaveTimer: null, projectSwitching: false, homeMode: false, jobFilter: 'all', archivedJobIds: new Set(), pendingDeleteProjectId: null,
+  interaction: null, spaceDown: false, suppressNodeClickId: null, saveTimer: null, saveInFlight: null, saveQueued: false, workflowSaveError: '', workflowBase: null, timelineSaveTimer: null, timelineSaveInFlight: null, timelineSaveQueued: false, timelineSaveError: '', projectSwitching: false, homeMode: false, jobFilter: 'all', archivedJobIds: new Set(), pendingDeleteProjectId: null,
   timelineZoom: 1, playheadFrame: 0, previewTimer: null, previewActiveKey: '', previewActiveKeyFull: '',
   tool: 'select', menuWorld: null, menuClient: null, providerSettings: {}, providerSettingsData: null, providerSettingsView: 'overview', providerEditId: null, providerConfigured: {}, providerApimartEnabled: [], jobWatchers: new Map(), activeReference: null,
   assetPick:null, assetFilter:{tag:'all',kind:'all',category:'all',query:''}, assetLibraryFilter:{category:'all',query:''}, assetSearchTimer:null, assetLibrarySearchTimer:null, assetRequestSeq:0, assetLibraryTab:'assets', assetUploadCategory:'', assetUploadToLibrary:false, promptLibrary:{categories:[],presets:[]}, skills:[], skillFilter:'all', skillQuery:'', skillDetailId:null, uploadTargetNodeId:null, textOutputNodeId:null, textOutputDirect:null, textOutputOriginal:'', canvasNotice:null, canvasNoticeTimer:null,
-  agent: { conversations: [], conversationId: '', messages: [], modelKey: localStorage.getItem('libtv.agentModel') || '', skillId: '', skillVersion: null, confirmMode: localStorage.getItem('libtv.agentConfirmMode') === 'auto' ? 'auto' : 'manual', confirmMenuOpen: false, attachments: [], busy: false, error: '', modelMenuOpen: false, sourceMenuOpen: false, skillMenuOpen: false, promptMenuSuppressed: false, dictating: false, uploadFromPrompt: false, activeSkillRun: null, skillRuns: [], canceledSkillRuns: new Set(), resumingSkillRuns: new Set() },
+  agent: { conversations: [], conversationId: '', messages: [], modelKey: localStorage.getItem('libtv.agentModel') || '', skillId: '', skillVersion: null, attachments: [], busy: false, error: '', modelMenuOpen: false, sourceMenuOpen: false, skillMenuOpen: false, promptMenuSuppressed: false, dictating: false, uploadFromPrompt: false, activeSkillRun: null, skillRuns: [], canceledSkillRuns: new Set(), resumingSkillRuns: new Set() },
 };
 
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
@@ -57,7 +57,7 @@ function assetCardMeta(a){
 }
 function openAssetPrompt(a){const prompt=assetPrompt(a),returnFocus=document.activeElement;prepareModalOpen(els.assetPromptModal);assetPromptReturnFocus=returnFocus;els.assetPromptText.value=prompt||'上传素材未包含提示词';els.assetPromptCopy.disabled=!prompt;els.assetPromptModal.classList.remove('hidden');requestAnimationFrame(()=>prompt?els.assetPromptCopy.focus():els.assetPromptClose.focus());}
   function closeAssetPrompt({restoreContext=true}={}){els.assetPromptModal.classList.add('hidden');restoreModalSurface(els.assetPromptModal,{restore:restoreContext});restoreInteractionFocus(assetPromptReturnFocus);assetPromptReturnFocus=null;}
-function friendlyError(v){const message=String(v||'');if(['Agnes video image references require PUBLIC_BASE_URL pointing to this Studio','当前图片仅保存在本机，Agnes 视频无法访问。请重新运行 Agnes 图片节点后再生成视频；本地上传图片需在“模型/API → Agnes AI”配置素材公网地址'].includes(v))return '该图片没有 Agnes 可访问的公网地址。请配置素材公网地址，或改用支持内联图片的模型。';if(/fetch failed|failed to fetch|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(message))return '暂时无法连接 Agnes 服务，请检查网络和“模型/API”配置后重试。';if(/video queue is full/i.test(message))return '视频服务当前排队已满，自动重试仍未成功，请稍后点击重试。图片、提示词和参数已保留。';if(/rate limit|rate exceeded|allows\s+\d+\s+requests?\s+per/i.test(message))return 'Agnes 视频接口触发频率限制（当前约每分钟 2 次），请等待限流窗口结束后再重试。图片、提示词和参数已保留。';return v;}
+function friendlyError(v){const message=String(v||'');if(['Agnes video image references require PUBLIC_BASE_URL pointing to this Studio','当前图片仅保存在本机，Agnes 视频无法访问。请重新运行 Agnes 图片节点后再生成视频；本地上传图片需在“模型/API → Agnes AI”配置素材公网地址'].includes(v))return '该图片没有 Agnes 可访问的公网地址。请配置素材公网地址，或改用支持内联图片的模型。';if(/fetch failed|failed to fetch|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up/i.test(message))return '暂时无法连接 Agnes 服务，请检查网络和“模型/API”配置后重试。';if(/service\s*busy|serviceunavailable|server\s*busy|temporar(?:ily)?\s+unavailable|queue\s+(?:is\s+)?full/i.test(message))return '生成服务当前繁忙，自动重试仍未成功。提示词、参考素材和参数已保留，请稍后重试。';if(/rate limit|rate exceeded|allows\s+\d+\s+requests?\s+per/i.test(message))return '生成接口触发频率限制，请等待限流窗口结束后再重试。提示词、参考素材和参数已保留。';return v;}
 function icon(name) { return `<i class="ui-icon${name==='loader-2'?' icon-spin':''}" style="--icon:url('/vendor/icons/${name}.svg')" aria-hidden="true"></i>`; }
 function customVideoPlayerMarkup(src,{autoplay=false,className='',label='视频预览'}={}){return `<div class="custom-video-player ${esc(className)}" data-video-player><video class="node-media node-media-video" src="${esc(src)}" ${autoplay?'autoplay':''} playsinline preload="metadata" aria-label="${esc(label)}"></video><button type="button" class="custom-video-center-play" data-video-action="play" aria-label="播放">${icon('player-play')}</button><div class="custom-video-controls" role="group" aria-label="视频播放控制"><button type="button" data-video-action="play" aria-label="播放">${icon('player-play')}</button><span class="custom-video-time" data-video-time>0:00 / 0:00</span><input type="range" min="0" max="1000" value="0" step="1" data-video-seek aria-label="视频进度"><button type="button" data-video-action="mute" aria-label="静音">${icon('volume')}</button><button type="button" data-video-action="fullscreen" aria-label="全屏播放">${icon('arrows-maximize')}</button></div></div>`;}
 function formatMediaTime(seconds){const value=Number.isFinite(seconds)?Math.max(0,seconds):0,minutes=Math.floor(value/60),secs=Math.floor(value%60);return `${minutes}:${String(secs).padStart(2,'0')}`;}
@@ -85,11 +85,13 @@ function findAsset(assetId){ return S.assets.find(a=>a.id===assetId); }
 const ASSET_DRAG_TYPE='application/x-libtv-asset-id';
 function nodeById(nodeId){ return S.workflow.nodes.find(n=>n.id===nodeId); }
 function selectedNode(){ return nodeById(S.selectedNodeId); }
+function markGenerationNodeStale(n){if(!isGenerationNode(n)||nodeGenerationBusy(n))return false;n.data.stale=true;n.data.error='';if(n.data.status==='succeeded')n.data.status='idle';return true;}
+function invalidateGenerationFlow(nodeId,{includeSelf=true,render=false}={}){const queue=includeSelf?[nodeId]:S.workflow.edges.filter(edge=>edge.source===nodeId).map(edge=>edge.target),seen=new Set();while(queue.length){const id=queue.shift();if(seen.has(id))continue;seen.add(id);const node=nodeById(id);if(markGenerationNodeStale(node)&&render)renderNode(node);for(const edge of S.workflow.edges)if(edge.source===id)queue.push(edge.target);}return seen;}
 function selectedClip(){ return S.timeline.items.find(i=>i.id===S.selectedClipId); }
 function activeReferenceContext(nodeOverride){const preferred=S.activeReference,node=nodeOverride|| (preferred?.nodeId?nodeById(preferred.nodeId):selectedNode()),refs=(node?.data?.presetReferences||[]).map(ref=>normalizeNodeReference(ref)),ref=refs.find(item=>referenceKey(item)===preferred?.key)||refs[0];return node&&ref?{node,ref,key:referenceKey(ref),asset:findAsset(ref.assetId)}:null;}
 function renderReferenceRoleMenu(){const context=activeReferenceContext(),button=els.referenceRoleBtn,menu=els.referenceRoleMenu,options=els.referenceRoleOptions;if(!button||!menu||!options)return;button.disabled=!context;button.setAttribute('aria-expanded',String(!menu.classList.contains('hidden')));options.innerHTML=context?Object.entries(SEMANTIC_REFERENCE_ROLES).map(([value,label])=>`<button type="button" class="reference-role-option ${context.ref.semanticRole===value?'active':''}" data-reference-role="${value}">${icon(value==='continuity'?'link':'tag')}<span>${label}</span></button>`).join(''):'<span class="reference-role-empty">先选中节点中的参考素材</span>';}
 function setActiveReference(node,key){S.activeReference={nodeId:node.id,key};selectNode(node.id);renderNode(node);renderReferenceRoleMenu();}
-function applyReferenceRole(value,nodeId){const context=activeReferenceContext(nodeId?nodeById(nodeId):null);if(!context)return;beginCanvasSnapshot();updateNodeReference(context.node,context.key,{semanticRole:value});scheduleSave();renderNode(context.node);renderInspector();renderReferenceRoleMenu();toast(`参考类型：${SEMANTIC_REFERENCE_ROLES[value]}`);}
+function applyReferenceRole(value,nodeId){const context=activeReferenceContext(nodeId?nodeById(nodeId):null);if(!context)return;beginCanvasSnapshot();updateNodeReferenceByKey(context.node,context.key,{semanticRole:value});invalidateGenerationFlow(context.node.id);scheduleSave();renderNode(context.node);renderInspector();renderReferenceRoleMenu();toast(`参考类型：${SEMANTIC_REFERENCE_ROLES[value]}`);}
 function toggleReferenceRoleMenu(){const context=activeReferenceContext();if(!context)return toast('请先点击节点中的参考素材','info');els.referenceRoleMenu.classList.toggle('hidden');renderReferenceRoleMenu();}
 function timelinePx(){ return BASE_TIMELINE_PX*S.timelineZoom; }
 
@@ -110,7 +112,7 @@ async function init(){
     const [modelData,projectData,promptLibrary,skillData]=await Promise.all([apiWithRetry('/api/models'),apiWithRetry('/api/projects'),apiWithRetry('/api/prompt-library'),apiWithRetry('/api/skills')]);
     S.promptLibrary=promptLibrary;setImagePresetLibrary(promptLibrary);S.skills=skillData.skills||[];
     S.models=(modelData.models||[]).filter(model=>model.providerId!=='mock'); S.projects=projectData.projects||[];
-    if(!S.projects.length){const p=await api('/api/projects',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'My LibTV Project'})});S.projects=[p];}
+    if(!S.projects.length){const p=await api('/api/projects',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'My QUill Project'})});S.projects=[p];}
     renderProjectSelect(); await openProject(S.projects.some(project=>project.id===requestedProjectId)?requestedProjectId:S.projects[0].id); setupGlobalInteractions(); bindAssetFilterChips(); bindAssetLibraryFilters(); bindAssetLibraryTabs(); appInitialized=true;renderBootRecovery();
   } catch(e){ console.error(e); renderBootRecovery(e); toast('工作区加载失败，请点击“重新加载”重试。','error'); }
   finally{initInFlight=false;}
@@ -163,12 +165,14 @@ async function openProject(projectId){
   clearTimeout(S.saveTimer); clearTimeout(S.timelineSaveTimer);
   if (hadPendingCanvas) await saveWorkflow();
   if (hadPendingTimeline) await saveTimeline();
+  if(S.saveInFlight)await S.saveInFlight;if(S.timelineSaveInFlight)await S.timelineSaveInFlight;
+  if(S.workflowSaveError||S.timelineSaveError)throw new Error('当前画布尚未保存成功，请重试后再切换');
   S.projectId=projectId; S.selectedNodeId=S.selectedEdgeId=S.selectedClipId=null;S.selectedNodeIds=[]; S.canvasHistory={past:[],future:[]}; S.timelineHistory={past:[],future:[]};
   try{S.archivedJobIds=new Set(JSON.parse(localStorage.getItem(`libtv.archivedJobs.${projectId}`)||'[]'));}catch{S.archivedJobIds=new Set();}
   const [workflow,timeline,assets,jobs]=await Promise.all([api(`/api/projects/${projectId}/workflow`),api(`/api/projects/${projectId}/timeline`),api(`/api/projects/${projectId}/assets`),api(`/api/projects/${projectId}/generations`)]);
   S.workflow={version:Number(workflow.version||2),nodes:workflow.nodes||[],edges:workflow.edges||[]};
   S.workflow.nodes.filter(isGenerationNode).forEach(n=>{n.data.expanded=false;});
-  S.workflowBase=clone(S.workflow);S.saveQueued=false;
+  S.workflowBase=clone(S.workflow);S.saveQueued=false;S.timelineSaveQueued=false;S.workflowSaveError='';S.timelineSaveError='';updateSaveState();
   S.timeline={fps:timeline.fps||30,width:timeline.width||1280,height:timeline.height||720,items:timeline.items||[],tracks:timeline.tracks||{}};
   S.assets=assets.assets||[]; S.jobs=jobs.generations||[]; S.playheadFrame=0; S.previewActiveKey='';
   const promptMigrated=migratePromptNodes(),presetPromptMigrated=migrateImagePresetPrompts(),layoutMigrated=migrateGenerationNodeLayout(),referencesMigrated=migrateNodeReferences(),aspectMigrated=migrateInheritedAspectRatios(),storyboardLayoutMigrated=arrangeAllStoryboardNodes();
@@ -246,9 +250,9 @@ function modelForKey(key){const [providerId,modelId]=String(key||'').split('::')
 function normalizedImageParams(n){n.data.params??={};const model=modelForKey(n.data.modelKey),c=model?.constraints||{},aspects=c.aspectRatios?.length?c.aspectRatios:['1:1','16:9','9:16','4:3','3:4'],qualities=c.resolutions?.length?c.resolutions:['1K','2K','4K'],quantities=[1,2,4],lockedAspect=n.data.aspectPolicy==='locked'?String(n.data.presetAspectRatio||''):'';if(lockedAspect&&aspects.includes(lockedAspect))n.data.params.aspectRatio=lockedAspect;else if(!aspects.includes(n.data.params.aspectRatio))n.data.params.aspectRatio=aspects.includes('16:9')?'16:9':aspects[0];if(!qualities.includes(n.data.params.quality))n.data.params.quality=qualities.includes('1K')?'1K':qualities[0];if(!quantities.includes(Number(n.data.params.variants)))n.data.params.variants=1;return{aspects,qualities,quantities,lockedAspect};}
 function referenceRoleControl(n){const context=activeReferenceContext(n),label=context?SEMANTIC_REFERENCE_ROLES[context.ref.semanticRole]||'参考类型':'参考类型',optionsHtml=context?Object.entries(SEMANTIC_REFERENCE_ROLES).map(([value,text])=>`<button type="button" data-reference-role="${value}" class="reference-role-option ${context.ref.semanticRole===value?'active':''}">${icon(value==='continuity'?'link':'tag')}<span>${text}</span></button>`).join(''):'<span class="reference-role-empty">先添加或点击参考图片</span>';return `<details class="generator-reference-role-menu"><summary title="参考类型">${icon('adjustments-horizontal')}<span>${label}</span>${icon('chevron-down')}</summary><div class="generator-reference-role-popover">${optionsHtml}</div></details>`;}
 function paramChoice(param,value,selected,label,kind=''){return `<button type="button" class="generator-param-choice ${selected?'active':''}" data-param-choice="${esc(param)}" data-param-value="${esc(value)}"><span>${esc(label)}</span></button>`;}
-function generationParamMenu(n){if(n.type==='imageGen'){const p=normalizedImageParams(n),aspect=n.data.params.aspectRatio,quality=n.data.params.quality,variants=Number(n.data.params.variants||1),ratioValues=p.lockedAspect?[p.lockedAspect]:p.aspects,ratioButtons=ratioValues.map(value=>paramChoice('aspectRatio',value,value===aspect,value,'ratio')).join(''),qualityButtons=p.qualities.map(value=>paramChoice('quality',value,value===quality,value,'quality')).join(''),quantityButtons=p.quantities.map(value=>paramChoice('variants',value,value===variants,`${value}张`,'quantity')).join('');return `<details class="generator-param-menu"><summary title="比例、分辨率、数量">${icon('adjustments-horizontal')}<span>${esc(aspect)} · ${esc(quality)} · ${variants}张</span></summary><div class="generator-param-popover"><div class="param-section"><span>分辨率</span><div class="param-choice-grid quality-grid">${qualityButtons}</div></div><div class="param-section"><span>比例${p.lockedAspect?' · 预设锁定':''}</span><div class="param-choice-grid ratio-grid">${ratioButtons}</div></div><div class="param-section"><span>生成数量</span><div class="param-choice-grid quantity-grid">${quantityButtons}</div></div></div></details>`;}const p=normalizedVideoParams(n),audioLabels={ambient:'环境音',silent:'静音',music:'音乐',voiceover:'口播',full:'完整'},aspect=n.data.params.aspectRatio,duration=n.data.params.duration,resolution=n.data.params.resolution,audio=n.data.params.audioMode;return `<details class="generator-param-menu"><summary title="视频参数">${icon('adjustments-horizontal')}<span>${duration}s · ${esc(aspect)} · ${esc(resolution)}</span></summary><div class="generator-param-popover"><div class="param-section"><span>时长</span><div class="param-choice-grid">${p.durations.map(value=>paramChoice('duration',value,Number(value)===Number(duration),`${value}s`,'duration')).join('')}</div></div><div class="param-section"><span>比例</span><div class="param-choice-grid ratio-grid">${p.aspects.map(value=>paramChoice('aspectRatio',value,value===aspect,value,'ratio')).join('')}</div></div><div class="param-section"><span>分辨率</span><div class="param-choice-grid">${p.resolutions.map(value=>paramChoice('resolution',value,value===resolution,value,'quality')).join('')}</div></div><div class="param-section"><span>声音</span><div class="param-choice-grid">${p.audioModes.map(value=>paramChoice('audioMode',value,value===audio,audioLabels[value]||value,'audio')).join('')}</div></div></div></details>`;}
+function generationParamMenu(n){if(n.type==='imageGen'){const p=normalizedImageParams(n),aspect=n.data.params.aspectRatio,quality=n.data.params.quality,variants=Number(n.data.params.variants||1),ratioValues=p.lockedAspect?[p.lockedAspect]:p.aspects,ratioButtons=ratioValues.map(value=>paramChoice('aspectRatio',value,value===aspect,value,'ratio')).join(''),qualityButtons=p.qualities.map(value=>paramChoice('quality',value,value===quality,value,'quality')).join(''),quantityButtons=p.quantities.map(value=>paramChoice('variants',value,value===variants,`${value}张`,'quantity')).join('');return `<details class="generator-param-menu"><summary title="比例、分辨率、数量">${icon('adjustments-horizontal')}<span>${esc(aspect)} · ${esc(quality)} · ${variants}张</span></summary><div class="generator-param-popover"><div class="param-section"><span>分辨率</span><div class="param-choice-grid quality-grid">${qualityButtons}</div></div><div class="param-section"><span>比例${p.lockedAspect?' · 预设锁定':''}</span><div class="param-choice-grid ratio-grid">${ratioButtons}</div></div><div class="param-section"><span>生成数量</span><div class="param-choice-grid quantity-grid">${quantityButtons}</div></div></div></details>`;}const p=normalizedVideoParams(n),audioLabels={ambient:'环境音',silent:'静音',music:'音乐',voiceover:'口播',full:'完整'},aspect=n.data.params.aspectRatio,duration=n.data.params.duration,resolution=n.data.params.resolution,audio=n.data.params.audioMode,audioSection=p.audioModes.length?`<div class="param-section"><span>声音</span><div class="param-choice-grid">${p.audioModes.map(value=>paramChoice('audioMode',value,value===audio,audioLabels[value]||value,'audio')).join('')}</div></div>`:'';return `<details class="generator-param-menu"><summary title="视频参数">${icon('adjustments-horizontal')}<span>${duration}s · ${esc(aspect)} · ${esc(resolution)}</span></summary><div class="generator-param-popover"><div class="param-section"><span>时长</span><div class="param-choice-grid">${p.durations.map(value=>paramChoice('duration',value,Number(value)===Number(duration),`${value}s`,'duration')).join('')}</div></div><div class="param-section"><span>比例</span><div class="param-choice-grid ratio-grid">${p.aspects.map(value=>paramChoice('aspectRatio',value,value===aspect,value,'ratio')).join('')}</div></div><div class="param-section"><span>分辨率</span><div class="param-choice-grid">${p.resolutions.map(value=>paramChoice('resolution',value,value===resolution,value,'quality')).join('')}</div></div>${audioSection}</div></details>`;}
 function imageParamControls(n){return `<div class="field generator-model"><label>模型</label>${modelSelectMarkup(imageNodeCapability(n),n.data.modelKey)}</div>${generationParamMenu(n)}`;}
-function normalizedVideoParams(n){n.data.params??={};const model=modelForKey(n.data.modelKey),c=model?.constraints||{};const durations=c.durations?.length?c.durations:[5,8,10];const aspects=c.aspectRatios?.length?c.aspectRatios:['16:9','9:16'];const resolutions=c.resolutions?.length?c.resolutions:['720p','1080p'];const audioModes=c.audioModes?.length?c.audioModes:['ambient','silent','music','voiceover','full'];if(!durations.map(Number).includes(Number(n.data.params.duration)))n.data.params.duration=Number(durations[0]);if(!aspects.includes(n.data.params.aspectRatio))n.data.params.aspectRatio=aspects[0];if(!resolutions.includes(n.data.params.resolution))n.data.params.resolution=resolutions[0];if(!audioModes.includes(n.data.params.audioMode))n.data.params.audioMode=audioModes[0];const cap=videoNodeCapability(n);if(model?.providerId==='veo'&&(cap!=='video.generate'||['1080p','4k'].includes(String(n.data.params.resolution).toLowerCase())))n.data.params.duration=8;return{durations,aspects,resolutions,audioModes};}
+function normalizedVideoParams(n){n.data.params??={};const model=modelForKey(n.data.modelKey),c=model?.constraints||{};const durations=c.durations?.length?c.durations:[5,8,10];const aspects=c.aspectRatios?.length?c.aspectRatios:['16:9','9:16'];const resolutions=c.resolutions?.length?c.resolutions:['720p','1080p'];const audioModes=c.audioModes?.length?[...c.audioModes]:[];if(!durations.map(Number).includes(Number(n.data.params.duration)))n.data.params.duration=Number(durations[0]);if(!aspects.includes(n.data.params.aspectRatio))n.data.params.aspectRatio=aspects[0];if(!resolutions.includes(n.data.params.resolution))n.data.params.resolution=resolutions[0];if(audioModes.length){if(!audioModes.includes(n.data.params.audioMode))n.data.params.audioMode=audioModes[0];}else delete n.data.params.audioMode;const cap=videoNodeCapability(n);if(model?.providerId==='veo'&&(cap!=='video.generate'||['1080p','4k'].includes(String(n.data.params.resolution).toLowerCase())))n.data.params.duration=8;return{durations,aspects,resolutions,audioModes};}
 function inheritUpstreamAspectRatio(n){if(!['imageGen','videoGen'].includes(n?.type))return false;if(n.data?.aspectPolicy==='locked'){n.data.params??={};const preferred=String(n.data.presetAspectRatio||n.data.params.aspectRatio||'');const model=modelForKey(n.data.modelKey),supported=model?.constraints?.aspectRatios||[];if(!preferred||supported.length&&!supported.includes(preferred))return false;const changed=n.data.params.aspectRatio!==preferred;n.data.params.aspectRatio=preferred;n.data.inheritedAspectRatio='';return changed;}const capability=n.type==='imageGen'?imageNodeCapability(n):videoNodeCapability(n);if(capability!=='image.edit'&&!['video.image_to_video','video.first_last_frame'].includes(capability))return false;const refs=collectNodeReferences(n),ref=refs.find(item=>item.role==='first-frame'&&findAsset(item.assetId)?.kind==='image')||refs.find(item=>findAsset(item.assetId)?.kind==='image');if(!ref)return false;const asset=findAsset(ref.assetId),source=nodeById(ref.sourceNodeId),sourceAspect=String(source?.data?.params?.aspectRatio||'');const model=modelForKey(n.data.modelKey),defaults=n.type==='imageGen'?['1:1','16:9','9:16','4:3','3:4']:['16:9','9:16'],supported=model?.constraints?.aspectRatios?.length?model.constraints.aspectRatios:defaults;const measured=closestSupportedAspectRatio(asset?.width,asset?.height,supported),inherited=measured||(supported.includes(sourceAspect)?sourceAspect:'');if(!inherited)return false;n.data.params??={};const changed=n.data.params.aspectRatio!==inherited;n.data.params.aspectRatio=inherited;n.data.inheritedAspectRatio=inherited;return changed;}
 function options(values,selected){return values.map(v=>`<option value="${esc(v)}" ${String(v)===String(selected)?'selected':''}>${esc(v)}</option>`).join('');}
 function videoParamControls(n){return `${generationParamMenu(n)}${referenceRoleControl(n)}`;}
@@ -288,11 +292,11 @@ const NODE_ACTIONS=[
   {id:'text.rewrite',nodeTypes:['textGen'],label:'改写/润色',icon:'text-recognition',capability:'text.generate',preset:'rewrite'},
   {id:'image.generate',nodeTypes:['imageGen'],label:'文生图',icon:'photo-plus',capability:'image.generate',forbidReferenceKinds:['image']},
   {id:'image.edit',nodeTypes:['imageGen'],label:'图生图',icon:'photo-edit',capability:'image.edit',requiredReferenceKinds:['image']},
-  {id:'image.region_focus',nodeTypes:['imageGen'],label:'区域聚焦',icon:'focus-2',capability:'image.edit',requiredReferenceKinds:['image']},
-  {id:'video.generate',nodeTypes:['videoGen'],label:'文生视频',icon:'video',capability:'video.generate'},
-  {id:'video.image_to_video',nodeTypes:['videoGen'],label:'首帧视频',icon:'photo-video',capability:'video.image_to_video'},
-  {id:'video.first_last_frame',nodeTypes:['videoGen'],label:'首尾帧视频',icon:'photo-scan',capability:'video.first_last_frame'},
-  {id:'video.reference',nodeTypes:['videoGen'],label:'参考视频',icon:'paperclip',capability:'video.reference'},
+  {id:'image.region_focus',nodeTypes:['imageGen'],label:'区域聚焦',icon:'focus-2',capability:'image.edit',requiredReferenceKinds:['image'],requiredResolvedReferenceKinds:['image']},
+  {id:'video.generate',nodeTypes:['videoGen'],label:'文生视频',icon:'video',capability:'video.generate',forbidAnyReference:true},
+  {id:'video.image_to_video',nodeTypes:['videoGen'],label:'首帧视频',icon:'photo-video',capability:'video.image_to_video',requiredReferenceCounts:{image:1}},
+  {id:'video.first_last_frame',nodeTypes:['videoGen'],label:'首尾帧视频',icon:'photo-scan',capability:'video.first_last_frame',requiredReferenceCounts:{image:2}},
+  {id:'video.reference',nodeTypes:['videoGen'],label:'参考视频',icon:'paperclip',capability:'video.reference',requiredAnyReference:true},
 ];
 const REFERENCE_ROLE_LABELS={'first-frame':'首帧','last-frame':'尾帧','reference-image':'参考图片','reference-video':'参考视频','reference-audio':'参考音频'};
 const SEMANTIC_REFERENCE_ROLES={subject:'主体',style:'风格',composition:'构图',content:'内容',motion:'动作',audio:'声音',continuity:'连续性'};
@@ -319,12 +323,11 @@ function referenceKey(ref){return ref.referenceId||`${ref.assetId}:${ref.role}:$
 function referenceSourceLabel(ref){const range=ref.timelineRange,source=ref.source==='node'?`节点${ref.sourceNodeId?` · ${ref.sourceNodeId.slice(0,6)}`:''}`:ref.source==='timeline'?`时间线${range?` · ${range.startFrame}–${range.endFrame}f`:''}`:'素材库',region=ref.region?` · 区域 ${Math.round(ref.region.x*100)},${Math.round(ref.region.y*100)} ${Math.round(ref.region.width*100)}×${Math.round(ref.region.height*100)}%`:'';return source+region;}
 function semanticRoleOptions(current){return Object.entries(SEMANTIC_REFERENCE_ROLES).map(([value,label])=>`<option value="${value}" ${value===current?'selected':''}>${label}</option>`).join('');}
 function nodeActionsFor(n){return NODE_ACTIONS.filter(action=>action.nodeTypes.includes(n.type));}
-function nodeActionEnabled(n,action){const kinds=new Set([...rawNodeReferences(n).map(ref=>findAsset(ref.assetId)?.kind).filter(Boolean),...pendingReferenceKinds(n)]),currentCapability=n.type==='videoGen'?videoNodeCapability(n):n.type==='imageGen'?imageNodeCapability(n):action.capability;if(action.capability&&action.capability!==currentCapability&&!modelsFor(action.capability).length)return false;return !(action.requiredReferenceKinds||[]).some(kind=>!kinds.has(kind))&&!(action.forbidReferenceKinds||[]).some(kind=>kinds.has(kind));}
+function nodeActionEnabled(n,action){const resolvedKinds=rawNodeReferences(n).map(ref=>findAsset(ref.assetId)?.kind).filter(Boolean),referenceKinds=[...resolvedKinds];for(const edge of S.workflow.edges.filter(item=>item.target===n.id)){const source=nodeById(edge.source);if(nodeOutputAssets(source).length)continue;const kind=source?.type==='imageGen'?'image':source?.type==='videoGen'?'video':null;if(kind)referenceKinds.push(kind);}const kinds=new Set(referenceKinds),resolved=new Set(resolvedKinds),counts=referenceKinds.reduce((map,kind)=>(map[kind]=(map[kind]||0)+1,map),{}),currentCapability=n.type==='videoGen'?videoNodeCapability(n):n.type==='imageGen'?imageNodeCapability(n):action.capability;if(action.capability&&action.capability!==currentCapability&&!modelsFor(action.capability).length)return false;if(action.requiredAnyReference&&!referenceKinds.length)return false;if(action.forbidAnyReference&&referenceKinds.length)return false;if((action.requiredResolvedReferenceKinds||[]).some(kind=>!resolved.has(kind)))return false;if(Object.entries(action.requiredReferenceCounts||{}).some(([kind,count])=>Number(counts[kind]||0)<Number(count)))return false;return !(action.requiredReferenceKinds||[]).some(kind=>!kinds.has(kind))&&!(action.forbidReferenceKinds||[]).some(kind=>kinds.has(kind));}
 function currentNodeActionId(n){const actions=nodeActionsFor(n),saved=actions.find(action=>action.id===n.data.actionId&&nodeActionEnabled(n,action));if(saved)return saved.id;if(n.type==='textGen')return `text.${n.data.preset||'storyboard'}`;if(n.type==='imageGen')return rawNodeReferences(n).some(ref=>ref.region)?'image.region_focus':imageNodeCapability(n);if(n.type==='videoGen')return videoNodeCapability(n);return actions[0]?.id||'';}
-function nodeActionMenu(n){const actions=nodeActionsFor(n),current=currentNodeActionId(n),active=actions.find(action=>action.id===current)||actions[0];return `<details class="generator-mode-menu node-action-menu"><summary>${icon(active?.icon||'wand')}<span>${esc(active?.label||'动作')}</span>${icon('chevron-down')}</summary><div class="generator-mode-popover">${actions.map(action=>`<button data-action="nodeAction" data-node-action="${action.id}" class="${current===action.id?'active':''}" ${nodeActionEnabled(n,action)?'':'disabled'}>${icon(action.icon)}<span>${esc(action.label)}</span></button>`).join('')}</div></details>`;}
 function invalidateTextWorkflowMetadata(n){if(n?.type!=='textGen')return;delete n.data.continuity;delete n.data.storyboardValidation;delete n.data.storyboardCreatedAt;n.data.storyboardStatus='stale';n.data.storyboardSourceHash='';}
 function resetTextGenerationResult(n){if(n?.type!=='textGen')return;invalidateTextWorkflowMetadata(n);n.data.outputText='';n.data.outputAssetIds=[];n.data.variantAssetIds=[];n.data.previousOutputAssetIds=[];n.data.selectedVariantIndex=0;n.data.jobId='';n.data.phase='';n.data.progress=0;n.data.progressStartedAt=null;n.data.error='';}
-function applyNodeAction(n,actionId){const action=nodeActionsFor(n).find(item=>item.id===actionId);if(!action)return;if(!nodeActionEnabled(n,action))return toast('该动作需要先添加匹配的参考素材','error');beginCanvasSnapshot();if(n.type==='textGen'&&action.preset&&n.data.preset!==action.preset)resetTextGenerationResult(n);n.data.actionId=action.id;n.data.error='';n.data.status='idle';if(action.preset)n.data.preset=action.preset;if(n.type==='videoGen'){n.data.forcedCapability=action.capability;ensureNodeModelForCapability(n,action.capability);normalizedVideoParams(n);}if(n.type==='imageGen'){if(action.id==='image.region_focus'){const target=(n.data.presetReferences||[]).find(ref=>findAsset(ref.assetId)?.kind==='image');if(target&&!target.region)target.region={x:.25,y:.25,width:.5,height:.5};}ensureNodeModelForCapability(n,action.capability);normalizedImageParams(n);}scheduleSave();renderNode(n);renderInspector();}
+function applyNodeAction(n,actionId){const action=nodeActionsFor(n).find(item=>item.id===actionId);if(!action)return;if(!nodeActionEnabled(n,action))return toast('该动作需要先添加匹配的参考素材','error');beginCanvasSnapshot();if(n.type==='textGen'&&action.preset&&n.data.preset!==action.preset)resetTextGenerationResult(n);n.data.actionId=action.id;n.data.error='';n.data.status='idle';if(action.preset)n.data.preset=action.preset;if(n.type==='videoGen'){n.data.forcedCapability=action.capability;ensureNodeModelForCapability(n,action.capability);normalizedVideoParams(n);}if(n.type==='imageGen'){if(action.id==='image.region_focus'){const target=rawNodeReferences(n).find(ref=>findAsset(ref.assetId)?.kind==='image');if(target&&!target.region)updateNodeReferenceByKey(n,referenceKey(target),{region:{x:.25,y:.25,width:.5,height:.5}});}ensureNodeModelForCapability(n,action.capability);normalizedImageParams(n);}invalidateGenerationFlow(n.id);scheduleSave();renderNode(n);renderInspector();}
 function generationPlaceholder(iconName,tips){return `<div class="generator-empty"><div class="generator-empty-icon">${icon(iconName)}</div><div class="generator-suggestions"><span>尝试：</span>${tips.map(([name,label])=>`<strong>${icon(name)}${esc(label)}</strong>`).join('')}</div></div>`;}
 const GENERATION_LOADER_DELAYS=[90,180,270,0,90,180,90,180,270];
 function generationLoaderGridMarkup(){return `<span class="generation-pixel-grid" aria-hidden="true">${GENERATION_LOADER_DELAYS.map(delay=>`<span class="generation-pixel" style="animation-delay:${delay}ms"></span>`).join('')}</span>`;}
@@ -340,29 +343,21 @@ function imageGenerationPreview(n){if(nodeGenerationBusy(n))return generationPre
 function videoGenerationPreview(n){if(nodeGenerationBusy(n))return generationPreviewBusy(n,'video');const out=generationPreviewAsset(n,'video');return out?`<div class="node-current-preview">${customVideoPlayerMarkup(out.publicUrl,{label:'当前生成视频'})}</div>`:generationPlaceholder('video',[['video','文生视频'],['photo-video','首帧视频']]);}
 function textGenerationPreview(n){if(nodeGenerationBusy(n))return `<div class="generator-preview-busy text-generation-preview-busy">${generationLoadingState(n)}</div>`;return n.data.outputText?`<textarea class="generator-text-result" data-field="outputText" aria-label="文本结果">${esc(n.data.outputText)}</textarea>`:generationPlaceholder('file-text',[['file-text','分镜脚本'],['bulb','提示词扩写']]);}
 function phaseLabel(phase) {
-  return ({ preparing: '准备素材', submitting: '提交模型', generating: '模型生成中', retrying: '网络重试', downloading: '下载结果', finalizing: '保存结果', rate_limited: '限流等待', provider_busy: '视频服务繁忙' })[phase] || '';
+  return ({ preparing: '准备素材', submitting: '提交模型', generating: '模型生成中', retrying: '网络重试', downloading: '下载结果', finalizing: '保存结果', rate_limited: '限流等待', provider_busy: '生成服务繁忙' })[phase] || '';
 }
 function isRetryWaitPhase(phase){return ['rate_limited','provider_busy'].includes(phase);}
-function retryWaitLabel(phase){return phase==='provider_busy'?'视频服务繁忙，自动重试':'限流等待';}
+function retryWaitLabel(phase){return phase==='provider_busy'?'生成服务繁忙，自动重试':'限流等待';}
 function nodeProgressIsDeterminate(n){return n.data.progressMode==='provider'||n.data.progressMode==='stream';}
 function updateNodeProgressDom(n){const loading=$('.generator-loading',els.canvasWorld?.querySelector(`[data-id="${n.id}"]`));if(!loading)return;const label=$('[data-generation-loading-label]',loading),elapsed=$('[data-generation-loading-elapsed]',loading);if(label)label.textContent=generationLoadingLabel(n);if(elapsed&&n.data.progressStartedAt)elapsed.textContent=generationLoadingElapsedFine(n.data.progressStartedAt);}
 function generationHeader(n,iconName,label){return `<div class="node-header"><div class="node-title">${icon(iconName)}<strong>${esc(label)}</strong></div></div>`;}
 function generationPreviewToggleAttrs(n){const expanded=n.data.expanded===true;return `data-action="togglePreview" tabindex="0" aria-label="生成节点预览" aria-expanded="${expanded}" aria-controls="composer-${esc(n.id)}"`;}
 function hasGeneratedVisual(n){return Boolean(nodeOutputAssets(n).map(findAsset).find(a=>a&&['image','video'].includes(a.kind)));}
-function imagePresetToolbar(n){
-  if(n.type!=='imageGen'||!nodeOutputAssets(n).map(findAsset).some(asset=>asset?.kind==='image'))return'';
-  const disabled=!modelsFor('image.edit').length;
-  return `<div class="image-preset-toolbar" role="group" aria-label="图片预设">${IMAGE_PRESET_CATEGORIES.map(category=>{
-    const presets=imagePresetsForCategory(category.id);if(!presets.length)return'';
-    return `<details class="image-preset-menu"><summary title="${esc(category.label)}预设">${icon(category.icon)}<span>${esc(category.label)}</span>${icon('chevron-down')}</summary><div class="image-preset-popover">${presets.map(preset=>`<button type="button" data-image-preset="${esc(preset.id)}" title="${esc(preset.scene)}" ${disabled?'disabled':''}>${icon(preset.icon)}<b>${esc(preset.label)}</b></button>`).join('')}</div></details>`;
-  }).join('')}</div>`;
-}
-function nodeContextToolbar(n){const out=generationPreviewAsset(n,'image')||generationPreviewAsset(n,'video'),label=out?.kind==='video'?'视频':'图片',presets=imagePresetToolbar(n);return `<div class="node-context-toolbar" role="toolbar" aria-label="节点操作">${presets}${presets?'<span class="node-context-divider" aria-hidden="true"></span>':''}<button data-node-toolbar="duplicate" title="复制节点" aria-label="复制节点">${icon('copy')}</button><button data-node-toolbar="inspect" title="打开属性" aria-label="打开属性">${icon('adjustments-horizontal')}</button>${out?`<button data-action="timelineOutput" title="添加到时间线" aria-label="添加到时间线">${icon('timeline-event-plus')}</button><button data-action="openMediaOutput" title="放大${label}" aria-label="放大${label}">${icon('arrows-maximize')}</button><button data-action="downloadOutput" title="下载${label}" aria-label="下载${label}">${icon('download')}</button>`:''}</div>`;}
+function nodeContextToolbar(n){const out=generationPreviewAsset(n,'image')||generationPreviewAsset(n,'video'),label=out?.kind==='video'?'视频':'图片';return `<div class="node-context-toolbar" role="toolbar" aria-label="节点操作"><button data-node-toolbar="duplicate" title="复制节点" aria-label="复制节点">${icon('copy')}</button><button data-node-toolbar="inspect" title="打开属性" aria-label="打开属性">${icon('adjustments-horizontal')}</button>${out?`<button data-action="timelineOutput" title="添加到时间线" aria-label="添加到时间线">${icon('timeline-event-plus')}</button><button data-action="openMediaOutput" title="放大${label}" aria-label="放大${label}">${icon('arrows-maximize')}</button><button data-action="downloadOutput" title="下载${label}" aria-label="下载${label}">${icon('download')}</button>`:''}</div>`;}
 function referenceRoleOptions(asset, current){
   const kinds = asset?.kind === 'video' ? ['reference-video'] : asset?.kind === 'audio' ? ['reference-audio'] : ['first-frame','last-frame','reference-image'];
   return kinds.map(r=>`<option value="${r}" ${r===current?'selected':''}>${esc(REFERENCE_ROLE_LABELS[r]||r)}</option>`).join('');
 }
-function referenceRegionEditor(ref,isPreset){if(!isPreset||!ref.region)return'';const key=referenceKey(ref),fields=[['x','X'],['y','Y'],['width','W'],['height','H']];return `<div class="node-ref-region" data-ref-region="${esc(key)}">${fields.map(([field,label])=>`<label>${label}<input type="number" min="0" max="100" step="1" data-region-field="${field}" value="${Math.round(Number(ref.region[field]||0)*100)}"></label>`).join('')}</div>`;}
+function referenceRegionEditor(ref,asset){if(!ref.region||asset?.kind!=='image')return'';const key=referenceKey(ref),fields=[['x','X'],['y','Y'],['width','W'],['height','H']],x=Math.round(Number(ref.region.x||0)*100),y=Math.round(Number(ref.region.y||0)*100),width=Math.round(Number(ref.region.width||0)*100),height=Math.round(Number(ref.region.height||0)*100);return `<div class="node-ref-region" data-ref-region="${esc(key)}"><div class="node-ref-region-preview"><img src="${esc(asset.publicUrl)}" alt="区域预览"><span class="node-ref-region-box" style="left:${x}%;top:${y}%;width:${width}%;height:${height}%"></span></div><div class="node-ref-region-fields">${fields.map(([field,label])=>`<label>${label}<input type="number" min="0" max="100" step="1" data-region-field="${field}" value="${Math.round(Number(ref.region[field]||0)*100)}"></label>`).join('')}</div></div>`;}
 function nodeReferenceChips(n){
   const refs = rawNodeReferences(n);
   if (!refs.length) return '';
@@ -371,13 +366,16 @@ function nodeReferenceChips(n){
     const key=referenceKey(r),isPreset=(n.data.presetReferences||[]).some(x=>referenceKey(normalizeNodeReference(x))===key);
     const thumb=a.kind==='image'?`<img src="${esc(a.publicUrl)}" alt="">`:`<span class="node-ref-kind">${a.kind==='video'?'VID':'AUD'}</span>`;
     const remove=isPreset||r.sourceEdgeId?`<button data-ref-remove="${esc(key)}" title="移除参考" aria-label="移除参考">${icon('x')}</button>`:'';
-    const role=REFERENCE_ROLE_LABELS[r.role]||'参考素材',source=referenceSourceLabel(r),active=S.activeReference?.key===key&&S.activeReference?.nodeId===n.id;
-    return `<div class="node-ref ${active?'active':''}" data-ref-select="${esc(key)}" data-asset="${esc(a.id)}" title="${esc(`${a.filename||'未命名素材'} · ${role} · ${source}`)}"><div class="node-ref-thumb">${thumb}<span class="node-ref-role-badge">${esc(role)}</span><span class="node-ref-source-dot source-${esc(r.source||'asset')}" aria-hidden="true"></span></div><div class="node-ref-meta"><strong class="node-ref-name">${esc(a.filename||'未命名素材')}</strong><span class="node-ref-source">${esc(source)}</span></div>${remove}</div>`;
+    const role=REFERENCE_ROLE_LABELS[r.role]||'参考素材',source=referenceSourceLabel(r),active=S.activeReference?.key===key&&S.activeReference?.nodeId===n.id,roleControl=n.type==='videoGen'?`<label class="node-ref-role-control"><span>用途</span><select data-ref-role="${esc(key)}" aria-label="参考用途">${referenceRoleOptions(a,r.role)}</select></label>`:'';
+    return `<div class="node-ref ${active?'active':''}" data-ref-select="${esc(key)}" data-asset="${esc(a.id)}" title="${esc(`${a.filename||'未命名素材'} · ${role} · ${source}`)}"><div class="node-ref-thumb">${thumb}<span class="node-ref-role-badge">${esc(role)}</span><span class="node-ref-source-dot source-${esc(r.source||'asset')}" aria-hidden="true"></span></div><div class="node-ref-meta"><strong class="node-ref-name">${esc(a.filename||'未命名素材')}</strong><span class="node-ref-source">${esc(source)}</span>${roleControl}${referenceRegionEditor(r,a)}</div>${remove}</div>`;
   }).join('')}</div></div>`;
 }
-function referenceAddButton(n){
-  const tip=n.type==='videoGen'?'添加图片 / 视频 / 音频参考（按角色自动匹配）':'添加图片参考（自动切换为图生图）';
-  return `<button class="node-ref-add" data-action="refAdd" title="${tip}" aria-label="添加参考素材">${icon('plus')}<span>参考</span></button>`;
+function promptBarPlusMenu(n){
+  const current=currentNodeActionId(n),actions=nodeActionsFor(n),referenceLabel=n.type==='videoGen'?'添加图片、视频或音频参考':'添加图片参考',reference=['imageGen','videoGen'].includes(n.type)?`<button type="button" data-action="refAdd">${icon('paperclip')}<span>${referenceLabel}</span></button>`:'',imagePresets=n.type==='imageGen'&&nodeOutputAssets(n).map(findAsset).some(asset=>asset?.kind==='image')?`<div class="generator-promptbar-menu-section"><small>图片预设</small>${IMAGE_PRESET_CATEGORIES.flatMap(category=>imagePresetsForCategory(category.id)).map(preset=>`<button type="button" data-image-preset="${esc(preset.id)}" ${modelsFor('image.edit').length?'':'disabled'}>${icon(preset.icon)}<span>${esc(preset.label)}</span></button>`).join('')}</div>`:'';
+  return `<details class="generator-promptbar-plus"><summary aria-label="添加参考和预设" title="添加参考和预设">${icon('plus')}</summary><div class="generator-promptbar-menu">${reference}${actions.length?`<div class="generator-promptbar-menu-section"><small>预设</small>${actions.map(action=>`<button type="button" data-action="nodeAction" data-node-action="${action.id}" class="${current===action.id?'active':''}" ${nodeActionEnabled(n,action)?'':'disabled'}>${icon(action.icon)}<span>${esc(action.label)}</span></button>`).join('')}</div>`:''}${imagePresets}</div></details>`;
+}
+function generationPromptBar(n,{placeholder,settings}){
+  return `<div class="generator-promptbar"><div class="generator-chips">${promptBarPlusMenu(n)}</div><textarea class="generator-prompt" data-field="prompt" placeholder="${esc(placeholder)}">${esc(n.data.prompt||'')}</textarea><div class="generator-controls"><div class="generator-settings">${settings}</div><div class="generator-secondary-actions"></div>${generationFooter(n)}</div></div>`;
 }
 function variantFilmstrip(n){
   const ids=n.data.variantAssetIds||[];
@@ -390,7 +388,7 @@ function generationResultActions(n){
   return '';
 }
 function imagePresetReview(n){
-  return '';
+  return n.data.presetReviewWarning?`<div class="preset-review warning" role="status">${icon('alert-triangle')}<span>${esc(n.data.presetReviewWarning)}</span></div>`:'';
 }
 async function copyTextValue(value,success='已复制文本结果'){
   if(!value)return;
@@ -565,26 +563,41 @@ function createStoryboardScriptFromVideoScript(){
   void generateNode(storyboard.id).then(result=>{if(result?.ok)openTextOutputPage(storyboard);});
   return storyboard;
 }
-function createStoryboardFromScript(){
-  const source=nodeById(S.textOutputNodeId);if(source?.data?.preset==='video_script')return createStoryboardScriptFromVideoScript();
-  const value=els.textOutputEditor?.value||'',parsed=parseStructuredScript(value,source?.data?.preset||'');
+function skillRulePrompt(rules={}){
+  const entries=[['叙事',rules.narrative],['视觉',rules.visual],['灯光',rules.lighting],['镜头',rules.camera],['剪辑',rules.editing],['连续性',rules.continuity],['产品约束',rules.product]]
+    .filter(([,value])=>String(value||'').trim()).map(([label,value])=>`${label}：${String(value).trim()}`);
+  return entries.length?`Skill 固定规则（必须逐镜遵守）：${entries.join('；')}。`:'';
+}
+function validateSkillStoryboardPlan(source,continuity){
+  const rules=source?.data?.skillRules||{};
+  if(!Object.keys(rules).length)return[];
+  const issues=[],shots=continuity?.shots||[],expectedShots=Number(rules.shotCount||0),expectedDuration=Number(rules.durationSec||0),expectedShotDuration=Number(rules.shotDurationSec||0);
+  if(expectedShots&&shots.length!==expectedShots)issues.push(`Skill 要求 ${expectedShots} 镜，当前分镜为 ${shots.length} 镜`);
+  if(expectedDuration&&Math.abs(Number(continuity?.totalDurationSec||0)-expectedDuration)>.25)issues.push(`Skill 要求总时长 ${expectedDuration} 秒，当前为 ${continuity?.totalDurationSec||0} 秒`);
+  if(expectedShotDuration&&shots.some(shot=>Math.abs(Number(shot.durationSec||0)-expectedShotDuration)>.25))issues.push(`Skill 要求每镜约 ${expectedShotDuration} 秒`);
+  if(rules.product&&shots.length){const productShots=[shots[Math.min(2,shots.length-1)],shots.at(-1)].filter(Boolean);if(productShots.some((shot)=>!/(产品|商品|珠宝|玉|包|瓶|盒|佩戴|使用)/.test(`${shot.visual} ${shot.imagePrompt} ${shot.videoPrompt}`)))issues.push('Skill 要求产品在关键特写和收尾镜头清晰出现');}
+  return issues;
+}
+function createStoryboardFromScript(sourceOverride=null,{closeOutput=true}={}){
+  const source=sourceOverride||nodeById(S.textOutputNodeId);if(source?.data?.preset==='video_script')return createStoryboardScriptFromVideoScript();
+  const value=sourceOverride?String(source.data?.outputText||''):els.textOutputEditor?.value||'',parsed=parseStructuredScript(value,source?.data?.preset||'');
   if(!source||!parsed?.rows.length)return toast('当前文本不是可执行分镜表格','error');
-  const continuity=analyzeScriptContinuity(parsed);source.data.continuity=continuity;source.data.storyboardValidation={...continuity,validatedAt:new Date().toISOString()};
-  if(continuity?.hasBlockingIssues){scheduleSave();refreshTextOutputTable();return toast('分镜脚本还有必须修正的问题，请先处理连续性报告中的红色提示','error');}
+  const continuity=analyzeScriptContinuity(parsed),skillIssues=validateSkillStoryboardPlan(source,continuity);source.data.continuity=continuity;source.data.storyboardValidation={...continuity,skillIssues,validatedAt:new Date().toISOString()};
+  if(continuity?.hasBlockingIssues||skillIssues.length){scheduleSave();if(!sourceOverride)refreshTextOutputTable();return toast(skillIssues[0]||'分镜脚本还有必须修正的问题，请先处理连续性报告中的红色提示','error');}
   const sourceHash=scriptFingerprint(`${STORYBOARD_SCHEMA_VERSION}:${value}`),existing=(source.data.storyboardNodeIds||[]).map(nodeById).filter(Boolean);
-  if(existing.length&&source.data.storyboardSourceHash===sourceHash){const changed=arrangeStoryboardNodes(existing);if(changed)scheduleSave();S.selectedNodeId=existing[0].id;S.selectedNodeIds=[existing[0].id];closeTextOutputPage();renderAll();settleStoryboardLayout(source.id);requestAnimationFrame(()=>fitNodes(existing.slice(0,2)));return toast(`已定位 ${existing.length/2} 个分镜`,'info');}
+  if(existing.length&&source.data.storyboardSourceHash===sourceHash){const changed=arrangeStoryboardNodes(existing);if(changed)scheduleSave();S.selectedNodeId=existing[0].id;S.selectedNodeIds=[existing[0].id];if(closeOutput)closeTextOutputPage();renderAll();settleStoryboardLayout(source.id);requestAnimationFrame(()=>fitNodes(existing.slice(0,2)));toast(`已定位 ${existing.length/2} 个分镜`,'info');return existing;}
   if(existing.length)existing.forEach(node=>{node.data.storyboardStatus='superseded';});
-  const indexOf=label=>parsed.headers.findIndex(header=>header.includes(label)),shotIndex=indexOf('镜号'),stageIndex=indexOf('阶段'),visualIndex=indexOf('画面'),imagePromptIndex=indexOf('图片提示词'),videoPromptIndex=indexOf('视频提示词'),copyIndex=indexOf('文案'),durationIndex=indexOf('时长'),audioIndex=indexOf('音效'),cell=(row,index)=>index>=0?row[index]:'',storyboardAspect=source.data.aspectRatio||source.data.params?.aspectRatio||'9:16',base=findOpenNodePosition(),nodes=[],edges=[];
+  const indexOf=label=>parsed.headers.findIndex(header=>header.includes(label)),shotIndex=indexOf('镜号'),stageIndex=indexOf('阶段'),visualIndex=indexOf('画面'),imagePromptIndex=indexOf('图片提示词'),videoPromptIndex=indexOf('视频提示词'),copyIndex=indexOf('文案'),durationIndex=indexOf('时长'),audioIndex=indexOf('音效'),cell=(row,index)=>index>=0?row[index]:'',storyboardAspect=source.data.aspectRatio||source.data.params?.aspectRatio||'9:16',base=findOpenNodePosition(),nodes=[],edges=[],skillRunId=String(source.data?.skillRunId||''),skillRules=skillRulePrompt(source.data?.skillRules),productNodeId=String(source.data?.skillProductAssetNodeId||'');
   beginCanvasSnapshot();
   parsed.rows.forEach((row,index)=>{
     const shotContinuity=continuityPrompt(continuity,index),shotState=continuity.shots[index],shotEntities=Object.values(shotState.entities).flat();
-    const shot=String(cell(row,shotIndex)||index+1).trim()||String(index+1),stage=String(cell(row,stageIndex)).trim(),visual=String(cell(row,visualIndex)).trim(),imagePrompt=String(cell(row,imagePromptIndex)).trim(),videoPrompt=String(cell(row,videoPromptIndex)).trim(),copy=String(cell(row,copyIndex)).trim(),audio=String(cell(row,audioIndex)).trim(),seconds=Math.max(1,Math.round(shotState.durationSec)),rowIndex=index,position={x:Math.round(base.x/10)*10,y:Math.round((base.y+rowIndex*420)/10)*10},visualPrompt=buildImageDirectPrompt({shot,stage,raw:imagePrompt,visual,continuity:shotContinuity}),motionPrompt=buildVideoDirectPrompt({shot,seconds,stage,raw:videoPrompt,visual,copy,audio,continuity:shotContinuity});
-    const common={storyboardShot:shot,storyboardShotIndex:index,storyboardDurationSec:seconds,storyboardStage:stage,storyboardSourceId:source.id,storyboardSourceScriptId:source.data.sourceScriptNodeId||source.id,storyboardSourcePreset:source.data.preset,continuityEntities:shotEntities,continuityShot:shotState,storyboardStatus:'approved'};
-    const image={id:id(),type:'imageGen',position,data:{modelKey:firstModelKey('image.generate'),prompt:visualPrompt,status:'idle',progress:0,params:{aspectRatio:storyboardAspect,quality:'1K',variants:1},expanded:false,workflowStage:'storyboard-keyframe',...common,layoutWidth:GENERATION_NODE_W}};
-    const video={id:id(),type:'videoGen',position:{x:position.x+nodeWidth(image)+NODE_GAP_X,y:position.y},data:{modelKey:firstModelKey('video.image_to_video')||firstModelKey('video.generate'),prompt:motionPrompt,status:'idle',progress:0,params:{duration:seconds,aspectRatio:storyboardAspect,resolution:'720p'},expanded:false,workflowStage:'storyboard-video',forcedCapability:'video.image_to_video',actionId:'video.image_to_video',...common,layoutWidth:GENERATION_NODE_W}};
-    nodes.push(image,video);edges.push({id:id(),source:source.id,target:image.id,role:'storyboard-shot'},{id:id(),source:image.id,target:video.id,role:'first-frame'});
+    const shot=String(cell(row,shotIndex)||index+1).trim()||String(index+1),stage=String(cell(row,stageIndex)).trim(),visual=String(cell(row,visualIndex)).trim(),imagePrompt=String(cell(row,imagePromptIndex)).trim(),videoPrompt=String(cell(row,videoPromptIndex)).trim(),copy=String(cell(row,copyIndex)).trim(),audio=String(cell(row,audioIndex)).trim(),seconds=Math.max(1,Math.round(shotState.durationSec)),rowIndex=index,position={x:Math.round(base.x/10)*10,y:Math.round((base.y+rowIndex*420)/10)*10},visualPrompt=[buildImageDirectPrompt({shot,stage,raw:imagePrompt,visual,continuity:shotContinuity}),skillRules].filter(Boolean).join('。'),motionPrompt=[buildVideoDirectPrompt({shot,seconds,stage,raw:videoPrompt,visual,copy,audio,continuity:shotContinuity}),skillRules].filter(Boolean).join('。');
+    const common={skillId:source.data?.skillId||'',...(skillRunId?{skillRunId}:{}),storyboardShot:shot,storyboardShotIndex:index,storyboardDurationSec:seconds,storyboardStage:stage,storyboardSourceId:source.id,storyboardSourceScriptId:source.data.sourceScriptNodeId||source.id,storyboardSourcePreset:source.data.preset,continuityEntities:shotEntities,continuityShot:shotState,storyboardStatus:'approved'};
+    const image={id:id(),type:'imageGen',position,data:{modelKey:firstModelKey('image.generate'),prompt:visualPrompt,status:'idle',progress:0,params:{aspectRatio:storyboardAspect,quality:'1K',variants:1},expanded:false,workflowStage:skillRunId?'skill-keyframe':'storyboard-keyframe',...(skillRunId?{stepId:'keyframes'}:{}),...common,layoutWidth:GENERATION_NODE_W}};
+    const video={id:id(),type:'videoGen',position:{x:position.x+nodeWidth(image)+NODE_GAP_X,y:position.y},data:{modelKey:firstModelKey('video.image_to_video')||firstModelKey('video.generate'),prompt:motionPrompt,status:'idle',progress:0,params:{duration:seconds,aspectRatio:storyboardAspect,resolution:'720p'},expanded:false,workflowStage:skillRunId?'skill-video':'storyboard-video',...(skillRunId?{stepId:'videos'}:{}),forcedCapability:'video.image_to_video',actionId:'video.image_to_video',...common,layoutWidth:GENERATION_NODE_W}};
+    nodes.push(image,video);edges.push({id:id(),source:source.id,target:image.id,role:'storyboard-shot'},{id:id(),source:image.id,target:video.id,role:'first-frame'});if(productNodeId)edges.push({id:id(),source:productNodeId,target:image.id,role:'reference-image'});
   });
-  S.workflow.nodes.push(...nodes);S.workflow.edges.push(...edges);source.data.storyboardStatus='approved';source.data.storyboardSourceHash=sourceHash;source.data.storyboardNodeIds=nodes.map(node=>node.id);source.data.storyboardNodePairs=continuity.shots.map((shot,index)=>({shot:String(shot.shot),imageNodeId:nodes[index*2]?.id,videoNodeId:nodes[index*2+1]?.id,durationSec:shot.durationSec}));source.data.storyboardCreatedAt=new Date().toISOString();source.data.storyboardStage='nodes-created';S.selectedNodeId=nodes[0]?.id||null;S.selectedNodeIds=nodes[0]?[nodes[0].id]:[];S.selectedEdgeId=null;scheduleSave();closeTextOutputPage();renderAll();settleStoryboardLayout(source.id);requestAnimationFrame(()=>fitNodes(nodes.slice(0,2)));toast(`已建立 ${parsed.rows.length} 个分镜：先确认图片，再生成视频`);
+  S.workflow.nodes.push(...nodes);S.workflow.edges.push(...edges);source.data.storyboardStatus='approved';source.data.storyboardSourceHash=sourceHash;source.data.storyboardNodeIds=nodes.map(node=>node.id);source.data.storyboardNodePairs=continuity.shots.map((shot,index)=>({shot:String(shot.shot),imageNodeId:nodes[index*2]?.id,videoNodeId:nodes[index*2+1]?.id,durationSec:shot.durationSec}));source.data.storyboardCreatedAt=new Date().toISOString();source.data.storyboardStage='nodes-created';source.data.skillPlanVersion=sourceHash;S.selectedNodeId=nodes[0]?.id||null;S.selectedNodeIds=nodes[0]?[nodes[0].id]:[];S.selectedEdgeId=null;scheduleSave();if(closeOutput)closeTextOutputPage();renderAll();settleStoryboardLayout(source.id);requestAnimationFrame(()=>fitNodes(nodes.slice(0,2)));toast(`已建立 ${parsed.rows.length} 个分镜：先确认图片，再生成视频`);return nodes;
 }
 function refreshTextOutputTable(){
   if(!els.textOutputTable)return;
@@ -610,7 +623,7 @@ function textOutputDraftValue(){
   const tableLines=[markdownTableLine(parsed.headers),markdownTableLine(parsed.headers.map(()=>'---')),...rows.map(markdownTableLine)];
   return [...parsed.lines.slice(0,parsed.start),...tableLines,...parsed.lines.slice(parsed.end)].join('\n');
 }
-function syncTextOutputNode(value){const n=nodeById(S.textOutputNodeId);if(!n)return;if(n.data.outputText!==value)invalidateTextWorkflowMetadata(n);n.data.outputText=value;const preview=els.canvasWorld.querySelector(`[data-id="${n.id}"] .generator-text-result`);if(preview&&preview!==els.textOutputEditor)preview.value=value;scheduleSave();renderInspector();}
+function syncTextOutputNode(value){const n=nodeById(S.textOutputNodeId);if(!n)return;if(n.data.outputText!==value){invalidateTextWorkflowMetadata(n);invalidateGenerationFlow(n.id,{includeSelf:false});}n.data.outputText=value;const preview=els.canvasWorld.querySelector(`[data-id="${n.id}"] .generator-text-result`);if(preview&&preview!==els.textOutputEditor)preview.value=value;scheduleSave();renderInspector();}
 function saveTextOutputEdits(){const value=textOutputDraftValue();els.textOutputEditor.value=value;syncTextOutputNode(value);S.textOutputOriginal=value;setTextOutputEditing(false);refreshTextOutputTable();toast('脚本已保存');}
 function toggleTextOutputEditing(){const page=els.textOutputModal?.querySelector('.text-output-page');if(page?.classList.contains('is-editing')){els.textOutputEditor.value=S.textOutputOriginal;setTextOutputEditing(false);return;}S.textOutputOriginal=els.textOutputEditor.value;setTextOutputEditing(true);}
 function openTextOutputPage(n){if(!n?.data?.outputText)return;const returnFocus=document.activeElement;prepareModalOpen(els.textOutputModal);textOutputReturnFocus=returnFocus;S.textOutputNodeId=n.id;S.textOutputDirect=null;S.textOutputOriginal=n.data.outputText;els.textOutputTitle.textContent=textOutputTitle(n);els.textOutputEditor.value=n.data.outputText;els.textOutputModal.classList.remove('hidden');setTextOutputEditing(false);if(els.textOutputTable){els.textOutputTable.scrollTop=0;els.textOutputTable.scrollLeft=0;}requestAnimationFrame(()=>els.textOutputEditBtn?.focus());}
@@ -622,8 +635,9 @@ async function downloadSkillExample(url,filename='skill-example'){const target=S
 function inferReferenceRole(n,asset){
   if(n.type==='imageGen')return 'reference-image';
   const cap=videoNodeCapability(n);
+  if(cap==='video.reference')return asset.kind==='image'?'reference-image':asset.kind==='video'?'reference-video':'reference-audio';
   if(cap==='video.first_last_frame'){const hasFirst=collectNodeReferences(n).some(r=>r.role==='first-frame');return hasFirst?'last-frame':'first-frame';}
-  if(asset.kind==='image')return 'first-frame';
+  if(asset.kind==='image')return rawNodeReferences(n).some(ref=>findAsset(ref.assetId)?.kind==='image')?'last-frame':'first-frame';
   if(asset.kind==='video')return 'reference-video';
   return 'reference-audio';
 }
@@ -633,47 +647,55 @@ function pickReferenceAsset(nodeId,asset){
   const role=inferReferenceRole(n,asset);
   n.data.presetReferences=[...(n.data.presetReferences||[])].filter(r=>!(r.assetId===asset.id&&r.role===role));
   n.data.presetReferences.push(normalizeNodeReference({referenceId:id(),assetId:asset.id,role,source:'asset',label:asset.filename}));
-  if(n.type==='imageGen')ensureNodeModelForCapability(n,imageNodeCapability(n));
-  if(n.type==='videoGen')normalizedVideoParams(n);
+  if(n.type==='imageGen')syncImageTargetCapability(n);
+  if(n.type==='videoGen')syncVideoTargetCapability(n);
   inheritUpstreamAspectRatio(n);
+  invalidateGenerationFlow(n.id);
   scheduleSave();renderNode(n);renderInspector();renderReferenceRoleMenu();
   toast(`已添加参考：${asset.filename}`);
 }
 function updateNodeReference(n,key,patch){n.data.presetReferences=(n.data.presetReferences||[]).map(ref=>referenceKey(normalizeNodeReference(ref))===key?normalizeNodeReference({...ref,...patch}):ref);}
+function updateNodeReferenceByKey(n,key,patch){const preset=(n.data.presetReferences||[]).some(ref=>referenceKey(normalizeNodeReference(ref))===key);if(preset)return updateNodeReference(n,key,patch);const ref=rawNodeReferences(n).find(item=>referenceKey(item)===key),edge=ref?.sourceEdgeId?S.workflow.edges.find(item=>item.id===ref.sourceEdgeId):null;if(edge)Object.assign(edge,patch);}
+function syncVideoTargetCapability(n){if(n?.type!=='videoGen')return;const next=inferredVideoCapability(rawNodeReferences(n));n.data.forcedCapability=next;n.data.actionId=next;n.data.error='';ensureNodeModelForCapability(n,next);normalizedVideoParams(n);}
 function removeNodeReference(n,key){
   if(!(n.data.presetReferences||[]).some(r=>referenceKey(normalizeNodeReference(r))===key))return;
   beginCanvasSnapshot();
   n.data.presetReferences=(n.data.presetReferences||[]).filter(r=>referenceKey(normalizeNodeReference(r))!==key);
   if(S.activeReference?.nodeId===n.id&&S.activeReference?.key===key)S.activeReference=null;
+  if(n.type==='imageGen')syncImageTargetCapability(n);if(n.type==='videoGen')syncVideoTargetCapability(n);invalidateGenerationFlow(n.id);
   scheduleSave();renderNode(n);renderInspector();renderReferenceRoleMenu();
 }
-function removeReference(n,key){const preset=(n.data.presetReferences||[]).some(r=>referenceKey(normalizeNodeReference(r))===key);if(preset)return removeNodeReference(n,key);const ref=rawNodeReferences(n).find(item=>referenceKey(item)===key),edge=ref?.sourceEdgeId?S.workflow.edges.find(item=>item.id===ref.sourceEdgeId):null;if(!edge)return;beginCanvasSnapshot();S.workflow.edges=S.workflow.edges.filter(item=>item.id!==edge.id);if(n.type==='imageGen')syncImageTargetCapability(n);if(S.activeReference?.nodeId===n.id&&S.activeReference?.key===key)S.activeReference=null;scheduleSave();renderNode(n);renderEdges();renderInspector();renderReferenceRoleMenu();}
+function removeReference(n,key){const preset=(n.data.presetReferences||[]).some(r=>referenceKey(normalizeNodeReference(r))===key);if(preset)return removeNodeReference(n,key);const ref=rawNodeReferences(n).find(item=>referenceKey(item)===key),edge=ref?.sourceEdgeId?S.workflow.edges.find(item=>item.id===ref.sourceEdgeId):null;if(!edge)return;beginCanvasSnapshot();S.workflow.edges=S.workflow.edges.filter(item=>item.id!==edge.id);if(n.type==='imageGen')syncImageTargetCapability(n);if(n.type==='videoGen')syncVideoTargetCapability(n);invalidateGenerationFlow(n.id);if(S.activeReference?.nodeId===n.id&&S.activeReference?.key===key)S.activeReference=null;scheduleSave();renderNode(n);renderEdges();renderInspector();renderReferenceRoleMenu();}
 function selectVariant(n,assetId){
   if((n.data.outputAssetIds||[])[0]===assetId)return;
   beginCanvasSnapshot();
   n.data.selectedVariantIndex=(n.data.variantAssetIds||[]).indexOf(assetId);
   n.data.outputAssetIds=[assetId];
+  invalidateGenerationFlow(n.id,{includeSelf:false});
   scheduleSave();renderNode(n);renderEdges();
 }
 function nodeTemplate(n){
   const input=['textGen','imageGen','videoGen'].includes(n.type)?'<span class="handle in" data-handle="in" title="输入"></span>':'';
   const output=['prompt','textGen','asset','imageGen','videoGen'].includes(n.type)||(n.type==='upload'&&n.data.assetId)?'<span class="handle out" data-handle="out" title="拖动连接"></span>':'';
-  const contextToolbar=isGenerationNode(n)&&hasGeneratedVisual(n)&&n.data.expanded===true&&S.selectedNodeIds.includes(n.id)?nodeContextToolbar(n):'';
+  const contextToolbar=isGenerationNode(n)&&n.data.expanded===true&&S.selectedNodeIds.includes(n.id)&&(hasGeneratedVisual(n)||n.type==='textGen')?nodeContextToolbar(n):'';
   if(n.type==='textGen'){
     n.data.preset??='storyboard';
     const preview=textGenerationPreview(n);
-    return `${input}${output}${contextToolbar}${generationHeader(n,'file-text','文本')}<div class="node-body"><section class="generator-preview generator-text-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}<section class="generator-composer" id="composer-${n.id}"><div class="generator-chips">${nodeActionMenu(n)}</div><textarea class="generator-prompt" data-field="prompt" placeholder="描述希望生成的文本内容，留空则读取上游文本">${esc(n.data.prompt||'')}</textarea><div class="generator-controls"><div class="generator-settings"><div class="field generator-model"><label>模型</label>${modelSelectMarkup('text.generate',n.data.modelKey)}</div></div><div class="generator-secondary-actions"></div>${generationFooter(n)}</div></section></div>`;
+    const promptBar=generationPromptBar(n,{placeholder:'描述希望生成的文本内容，留空则读取上游文本',settings:`<div class="field generator-model"><label>模型</label>${modelSelectMarkup('text.generate',n.data.modelKey)}</div>`});
+    return `${input}${output}${contextToolbar}${generationHeader(n,'file-text','文本')}<div class="node-body"><section class="generator-preview generator-text-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}<section class="generator-composer" id="composer-${n.id}">${promptBar}</section></div>`;
   }
   if(n.type==='imageGen'){
     n.data.params??={aspectRatio:'16:9',quality:'1K'};ensureNodeModelForCapability(n,imageNodeCapability(n));
     const preview=imageGenerationPreview(n);
-    const promptPlaceholder=n.data.imagePresetId?(imagePresetById(n.data.imagePresetId)?.promptPlaceholder||'可选：补充需要调整的细节'):(imageNodeCapability(n)==='image.edit'?'描述需要修改的内容，保留主体一致性':'描述希望生成的画面内容，@引用素材');
-    return `${input}${output}${contextToolbar}${generationHeader(n,'photo-plus','图片')}<div class="node-body"><section class="generator-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}${imagePresetReview(n)}${variantFilmstrip(n)}<section class="generator-composer" id="composer-${n.id}"><div class="generator-chips">${referenceAddButton(n)}${nodeActionMenu(n)}</div>${nodeReferenceChips(n)}<textarea class="generator-prompt" data-field="prompt" placeholder="${esc(promptPlaceholder)}">${esc(n.data.prompt||'')}</textarea><div class="generator-controls"><div class="generator-settings">${imageParamControls(n)}</div><div class="generator-secondary-actions"></div>${generationFooter(n)}</div></section></div>`;
+    const promptPlaceholder=n.data.imagePresetId?(imagePresetById(n.data.imagePresetId)?.promptPlaceholder||'可选：补充需要调整的细节'):(imageNodeCapability(n)==='image.edit'?'描述需要修改的内容，保留主体一致性':'描述希望生成的画面内容；输入 @ 选择参考素材');
+    const promptBar=generationPromptBar(n,{placeholder:promptPlaceholder,settings:imageParamControls(n)});
+    return `${input}${output}${contextToolbar}${generationHeader(n,'photo-plus','图片')}<div class="node-body"><section class="generator-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}${imagePresetReview(n)}${variantFilmstrip(n)}<section class="generator-composer" id="composer-${n.id}">${nodeReferenceChips(n)}${promptBar}</section></div>`;
   }
   if(n.type==='videoGen'){
     const cap=videoNodeCapability(n);ensureNodeModelForCapability(n,cap);
     const preview=videoGenerationPreview(n);
-    return `${input}${output}${contextToolbar}${generationHeader(n,'video','视频')}<div class="node-body"><section class="generator-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}<section class="generator-composer" id="composer-${n.id}"><div class="generator-chips">${referenceAddButton(n)}${nodeActionMenu(n)}</div>${nodeReferenceChips(n)}<textarea class="generator-prompt" data-field="prompt" placeholder="描述镜头、动作、运镜和音效，@引用素材">${esc(n.data.prompt||'')}</textarea><div class="generator-controls"><div class="generator-settings"><div class="field generator-model"><label>模型</label>${modelSelectMarkup(cap,n.data.modelKey)}</div>${videoParamControls(n)}</div><div class="generator-secondary-actions"></div>${generationFooter(n)}</div></section></div>`;
+    const promptBar=generationPromptBar(n,{placeholder:'描述镜头、动作、运镜和音效；输入 @ 选择参考素材',settings:`<div class="field generator-model"><label>模型</label>${modelSelectMarkup(cap,n.data.modelKey)}</div>${videoParamControls(n)}`});
+    return `${input}${output}${contextToolbar}${generationHeader(n,'video','视频')}<div class="node-body"><section class="generator-preview" ${generationPreviewToggleAttrs(n)}>${preview}</section>${generationResultActions(n)}<section class="generator-composer" id="composer-${n.id}">${nodeReferenceChips(n)}${promptBar}</section></div>`;
   }
   if(n.type==='upload'){
     const a=findAsset(n.data.assetId),uploading=n.data.status==='uploading';
@@ -691,9 +713,9 @@ function nodeTemplate(n){
   return '<div class="node-header">Unknown node</div>';
 }
 function providerAttemptLabel(n){const attempt=Number(n.data.providerAttempt||0),max=Number(n.data.providerMaxAttempts||0);return attempt&&max?` · 请求 ${attempt}/${max}`:'';}
-function generationFooter(n){const state=n.data.status||'idle',busy=['queued','processing','running'].includes(state),label=state==='failed'?'重试':['succeeded','canceled'].includes(state)?'重新生成':'生成';return `<div class="node-actions generation-actions">${busy?`<button class="generator-cancel" data-action="cancelGeneration" title="取消任务" aria-label="取消任务">${icon('square-x')}<span>取消</span></button>`:`<button class="primary generator-submit" data-action="generate" title="${label}" aria-label="${label}">${icon('arrow-up')}<span>${label}</span></button>`}</div>`;}
+function generationFooter(n){const busy=['queued','processing','running'].includes(n.data.status||'idle');return `<div class="node-actions generation-actions">${busy?`<button class="generator-cancel" data-action="cancelGeneration" aria-label="取消">${icon('square-x')}</button>`:`<button class="primary generator-submit" data-action="generate" aria-label="运行">${icon('arrow-up')}</button>`}</div>`;}
 function collapseComposerFromPreview(n){if(!isGenerationNode(n))return;n.data.expanded=false;S.activeReference=null;S.selectedNodeId=null;S.selectedNodeIds=[];S.selectedEdgeId=null;S.selectedClipId=null;scheduleSave();renderNode(n);renderEdges();renderInspector();renderTimelineSelectionButtons();renderReferenceRoleMenu();}
-function toggleComposerFromPreview(n){if(!isGenerationNode(n))return;if(n.data.expanded===true)return collapseComposerFromPreview(n);const previous=selectedNode();if(previous&&previous.id!==n.id)collapseNodeComposer(previous);selectNode(n.id,{render:false});n.data.expanded=true;scheduleSave();renderNode(n);updateView();updateCanvasSelectionDom();renderEdges();renderInspector();renderTimelineSelectionButtons();renderReferenceRoleMenu();}
+function toggleComposerFromPreview(n){n=nodeById(n?.id)||n;if(!isGenerationNode(n))return;if(n.data.expanded===true)return collapseComposerFromPreview(n);const previous=selectedNode();if(previous&&previous.id!==n.id)collapseNodeComposer(previous);selectNode(n.id,{render:false});n.data.expanded=true;scheduleSave();renderNode(n);updateView();updateCanvasSelectionDom();renderEdges();renderInspector();renderTimelineSelectionButtons();renderReferenceRoleMenu();}
 const POINTER_DRAG_THRESHOLD=4;
 function pointerSelectionMode(e){return{add:e.shiftKey,toggle:e.ctrlKey||e.metaKey,subtract:e.altKey};}
 function mergeNodeSelection(current,ids,mode){const next=new Set(mode.add||mode.toggle||mode.subtract?current:[]);for(const id of ids){if(mode.subtract)next.delete(id);else if(mode.toggle){if(next.has(id))next.delete(id);else next.add(id);}else next.add(id);}return[...next];}
@@ -715,11 +737,11 @@ function commitMarqueeSelection(it,e){const box=selectionWorldBox(it,e),hitNodes
 function finishNodePointer(it){if(it.type==='pending-node'){commitNodeSelection(mergeNodeSelection(it.selectionBefore,[it.nodeId],it.mode));S.suppressNodeClickId=it.nodeId;}else if(it.type==='node-drag'){it.items.forEach(item=>item.el?.classList.remove('dragging'));S.suppressNodeClickId=it.nodeId;scheduleSave();}}
 function releaseInteractionPointer(it){try{it.captureTarget?.releasePointerCapture?.(it.pointerId);}catch{}}
 function bindNode(el,n){
-  if(['queued','processing','running'].includes(n.data.status)){ $$('textarea,select,input',el).forEach(control=>control.disabled=true); $$('.app-select,.app-select-option,.generator-mode-menu summary,.node-advanced summary,.generator-param-menu summary,.generator-param-choice,.image-preset-menu summary',el).forEach(control=>{control.setAttribute('aria-disabled','true');control.addEventListener('click',e=>e.preventDefault());}); }
+  if(['queued','processing','running'].includes(n.data.status)){ $$('textarea,select,input',el).forEach(control=>control.disabled=true); $$('.app-select,.app-select-option,.generator-promptbar-plus summary,.generator-param-menu summary,.generator-param-choice,.image-preset-menu summary',el).forEach(control=>{control.setAttribute('aria-disabled','true');control.addEventListener('click',e=>e.preventDefault());}); }
   const header=$('.node-header',el); header?.addEventListener('pointerdown',e=>beginNodePointer(e,n,header,el));
   $$('.handle',el).forEach(h=>h.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();if(h.dataset.handle==='out')startConnectionDrag(e,n,h);}));
   // 节点上右键无操作（菜单已统一移植到画布空白处右键）
-  el.addEventListener('click',e=>{e.stopPropagation();if(S.suppressNodeClickId===n.id){S.suppressNodeClickId=null;return;}if(S.interaction)return;if(e.target.closest('textarea,input,select,[contenteditable="true"]'))return;const imagePreset=e.target.closest('[data-image-preset]')?.dataset.imagePreset;if(imagePreset)return applyImagePreset(n,imagePreset);const toolbar=e.target.closest('[data-node-toolbar]')?.dataset.nodeToolbar;if(toolbar==='duplicate')return duplicateNode(n);if(toolbar==='inspect'){selectNode(n.id);return showDrawer('inspectorDrawer');}const action=e.target.closest('[data-action]')?.dataset.action;if(action==='delete')return deleteNode(n.id);if(action==='chooseUpload')return chooseUploadFiles(n.id);if(action==='togglePreview')return toggleComposerFromPreview(n);if(action==='generate')return generateNode(n.id);if(action==='cancelGeneration')return cancelNodeGeneration(n);if(action==='openTextOutput')return openTextOutputPage(n);if(action==='copyOutput')return copyNodeOutput(n);if(action==='openMediaOutput')return openMediaLightbox(nodeOutputAssets(n).map(findAsset).find(a=>['image','video'].includes(a?.kind)));if(action==='downloadOutput')return downloadNodeOutput(n);if(action==='timelineOutput')return addAssetToTimeline(nodeOutputAssets(n)[0],{sourceNodeId:n.id});if(action==='nodeAction')return applyNodeAction(n,e.target.closest('[data-node-action]').dataset.nodeAction);if(action==='refAdd'){S.assetPick={nodeId:n.id};showDrawer('assetDrawer');toast('点击素材库中的素材，添加为节点参考');return;}if(action==='refRemove'){const key=e.target.closest('[data-ref-remove]')?.dataset.refRemove;if(key)removeReference(n,key);return;}if(action==='variant'){const aid=e.target.closest('[data-variant]')?.dataset.variant;if(aid)selectVariant(n,aid);return;}if(e.target.closest('button,summary,details'))return;if(S.tool==='select')commitNodeSelection(mergeNodeSelection(S.selectedNodeIds,[n.id],pointerSelectionMode(e)));});
+  el.addEventListener('click',e=>{e.stopPropagation();if(S.suppressNodeClickId===n.id&&!e.target.closest('[data-action],button,summary,details,input,select,textarea')){S.suppressNodeClickId=null;return;}if(S.suppressNodeClickId===n.id)S.suppressNodeClickId=null;if(S.interaction)return;if(e.target.closest('textarea,input,select,[contenteditable="true"]'))return;const imagePreset=e.target.closest('[data-image-preset]')?.dataset.imagePreset;if(imagePreset)return applyImagePreset(n,imagePreset);const toolbar=e.target.closest('[data-node-toolbar]')?.dataset.nodeToolbar;if(toolbar==='duplicate')return duplicateNode(n);if(toolbar==='inspect'){selectNode(n.id);return showDrawer('inspectorDrawer');}const action=e.target.closest('[data-action]')?.dataset.action;if(action==='delete')return deleteNode(n.id);if(action==='chooseUpload')return chooseUploadFiles(n.id);if(action==='togglePreview')return toggleComposerFromPreview(n);if(action==='generate')return generateNode(n.id);if(action==='cancelGeneration')return cancelNodeGeneration(n);if(action==='openTextOutput')return openTextOutputPage(n);if(action==='copyOutput')return copyNodeOutput(n);if(action==='openMediaOutput')return openMediaLightbox(nodeOutputAssets(n).map(findAsset).find(a=>['image','video'].includes(a?.kind)));if(action==='downloadOutput')return downloadNodeOutput(n);if(action==='timelineOutput')return addAssetToTimeline(nodeOutputAssets(n)[0],{sourceNodeId:n.id});if(action==='nodeAction')return applyNodeAction(n,e.target.closest('[data-node-action]').dataset.nodeAction);if(action==='refAdd'){S.assetPick={nodeId:n.id};showDrawer('assetDrawer');toast('点击素材库中的素材，添加为节点参考');return;}if(action==='refRemove'){const key=e.target.closest('[data-ref-remove]')?.dataset.refRemove;if(key)removeReference(n,key);return;}if(action==='variant'){const aid=e.target.closest('[data-variant]')?.dataset.variant;if(aid)selectVariant(n,aid);return;}if(e.target.closest('button,summary,details'))return;if(S.tool==='select')commitNodeSelection(mergeNodeSelection(S.selectedNodeIds,[n.id],pointerSelectionMode(e)));});
   $('[data-action="togglePreview"]',el)?.addEventListener('keydown',e=>{if(e.target!==e.currentTarget||!['Enter',' '].includes(e.key))return;e.preventDefault();e.stopPropagation();toggleComposerFromPreview(n);requestAnimationFrame(()=>els.canvasWorld?.querySelector(`[data-id="${n.id}"] [data-action="togglePreview"]`)?.focus());});
   if(n.type==='upload'){
     el.addEventListener('dragover',e=>{if(!hasDraggedFiles(e))return;e.preventDefault();e.stopPropagation();el.classList.add('file-drag-active');});
@@ -736,13 +758,12 @@ function bindNode(el,n){
   $$('[data-ref-remove]',el).forEach(button=>button.addEventListener('click',e=>{e.stopPropagation();removeReference(n,button.dataset.refRemove);}));
   $$('.generator-param-popover',el).forEach(popover=>{popover.addEventListener('pointerdown',e=>e.stopPropagation());popover.addEventListener('wheel',e=>e.stopPropagation(),{passive:true});});
   $$('[data-reference-role]',el).forEach(option=>option.addEventListener('click',e=>{e.stopPropagation();applyReferenceRole(option.dataset.referenceRole,n.id);closeDetailsMenu(option.closest('details'));}));
-  $$('[data-ref-role]',el).forEach(sel=>sel.addEventListener('change',()=>{beginCanvasSnapshot();updateNodeReference(n,sel.dataset.refRole,{role:sel.value});scheduleSave();renderNode(n);renderInspector();}));
-  $$('[data-ref-region] input',el).forEach(control=>control.addEventListener('change',()=>{const editor=control.closest('[data-ref-region]'),values=Object.fromEntries($$('[data-region-field]',editor).map(input=>[input.dataset.regionField,Number(input.value)/100]));beginCanvasSnapshot();updateNodeReference(n,editor.dataset.refRegion,{region:values});scheduleSave();renderNode(n);renderInspector();}));
-  const applyNodeField=(field,value)=>{if(n.type==='textGen'&&field==='outputText'&&n.data.outputText!==value)invalidateTextWorkflowMetadata(n);n.data[field]=value;if(field==='modelKey'&&['videoGen','imageGen'].includes(n.type)){if(n.type==='videoGen')normalizedVideoParams(n);else normalizedImageParams(n);inheritUpstreamAspectRatio(n);scheduleSave();renderNode(n);renderInspector();return;}scheduleSave();renderInspector();};
-  $$('[data-field]',el).forEach(control=>{if(control.matches('.app-select'))return;control.addEventListener('pointerdown',e=>e.stopPropagation());const evt=control.tagName==='SELECT'?'change':'input';control.addEventListener(evt,()=>{applyNodeField(control.dataset.field,control.value);if(control.tagName==='SELECT')control.blur();});});
+  $$('[data-ref-role]',el).forEach(sel=>sel.addEventListener('change',()=>{beginCanvasSnapshot();updateNodeReferenceByKey(n,sel.dataset.refRole,{role:sel.value});if(n.type==='videoGen')syncVideoTargetCapability(n);invalidateGenerationFlow(n.id);scheduleSave();renderNode(n);renderInspector();}));
+  $$('[data-ref-region]',el).forEach(editor=>{const updatePreview=()=>{const values=Object.fromEntries($$('[data-region-field]',editor).map(input=>[input.dataset.regionField,Math.max(0,Math.min(100,Number(input.value)||0))])),box=$('.node-ref-region-box',editor);if(box)Object.assign(box.style,{left:`${values.x}%`,top:`${values.y}%`,width:`${Math.min(values.width,100-values.x)}%`,height:`${Math.min(values.height,100-values.y)}%`});return values;};$$('[data-region-field]',editor).forEach(control=>{control.addEventListener('input',updatePreview);control.addEventListener('change',()=>{const values=updatePreview();beginCanvasSnapshot();updateNodeReferenceByKey(n,editor.dataset.refRegion,{region:{x:values.x/100,y:values.y/100,width:Math.max(1,Math.min(values.width,100-values.x))/100,height:Math.max(1,Math.min(values.height,100-values.y))/100}});invalidateGenerationFlow(n.id);scheduleSave();renderNode(n);renderInspector();});});});
+  const applyNodeField=(field,value)=>{const changed=n.data[field]!==value;if(!changed)return;if(n.type==='textGen'&&field==='outputText')invalidateTextWorkflowMetadata(n);n.data[field]=value;const invalidated=invalidateGenerationFlow(n.id,{includeSelf:field!=='outputText'});for(const nodeId of invalidated)if(nodeId!==n.id){const downstream=nodeById(nodeId);if(downstream)renderNode(downstream);}if(field==='modelKey'&&['videoGen','imageGen'].includes(n.type)){if(n.type==='videoGen')normalizedVideoParams(n);else normalizedImageParams(n);inheritUpstreamAspectRatio(n);scheduleSave();renderNode(n);renderInspector();return;}scheduleSave();renderInspector();};
+  $$('[data-field]',el).forEach(control=>{if(control.matches('.app-select'))return;control.addEventListener('pointerdown',e=>e.stopPropagation());const evt=control.tagName==='SELECT'?'change':'input';control.addEventListener(evt,()=>{if(control.dataset.field==='prompt'&&['imageGen','videoGen'].includes(n.type)){const cursor=control.selectionStart||0;if(cursor>0&&control.value[cursor-1]==='@'){control.value=control.value.slice(0,cursor-1)+control.value.slice(cursor);control.setSelectionRange(cursor-1,cursor-1);S.assetPick={nodeId:n.id};showDrawer('assetDrawer');toast('请选择要引用的素材');}}applyNodeField(control.dataset.field,control.value);if(control.tagName==='SELECT')control.blur();});});
   $$('[data-app-select-option]',el).forEach(option=>option.addEventListener('click',e=>{e.stopPropagation();const menu=appSelectMenuForOption(option);if(!applyAppSelectOption(menu,option,{close:true,restoreFocus:false}))return;const field=menu.dataset.field;applyNodeField(field,menu.dataset.value);requestAnimationFrame(()=>els.canvasWorld?.querySelector(`[data-id="${n.id}"] .app-select[data-field="${field}"]>summary`)?.focus());}));
-  $$('[data-param]',el).forEach(control=>{const k=control.dataset.param,defaults={duration:5,resolution:'720p',aspectRatio:'16:9',quality:'2K',temperature:0.7,seed:'',negativePrompt:'',variants:1};control.value=String(n.data.params?.[k]??defaults[k]??'');control.addEventListener('pointerdown',e=>e.stopPropagation());control.addEventListener('change',()=>{const numeric=['duration','temperature','seed','variants'].includes(k);const value=numeric?(control.value===''?'':Number(control.value)):control.value;n.data.params={...(n.data.params||{}),[k]:value};if(control.tagName==='SELECT')control.blur();if(n.type==='videoGen'&&['duration','resolution','aspectRatio'].includes(k))normalizedVideoParams(n);scheduleSave();if(n.type==='videoGen')renderNode(n);});});
-  $$('[data-param-choice]',el).forEach(control=>control.addEventListener('click',e=>{e.stopPropagation();const k=control.dataset.paramChoice,value=['duration','variants'].includes(k)?Number(control.dataset.paramValue):control.dataset.paramValue;if(n.type==='imageGen'&&k==='aspectRatio'&&n.data.aspectPolicy==='locked'&&String(n.data.presetAspectRatio||'')!==String(value))return toast('该预设已锁定画幅，不能修改比例','info');n.data.params={...(n.data.params||{}),[k]:value};if(n.type==='imageGen')normalizedImageParams(n);if(n.type==='videoGen')normalizedVideoParams(n);scheduleSave();renderNode(n);}));
+  $$('[data-param-choice]',el).forEach(control=>control.addEventListener('click',e=>{e.stopPropagation();const k=control.dataset.paramChoice,value=['duration','variants'].includes(k)?Number(control.dataset.paramValue):control.dataset.paramValue;if(n.type==='imageGen'&&k==='aspectRatio'&&n.data.aspectPolicy==='locked'&&String(n.data.presetAspectRatio||'')!==String(value))return toast('该预设已锁定画幅，不能修改比例','info');n.data.params={...(n.data.params||{}),[k]:value};if(n.type==='imageGen')normalizedImageParams(n);if(n.type==='videoGen')normalizedVideoParams(n);invalidateGenerationFlow(n.id);scheduleSave();renderNode(n);}));
 }
 function syncCanvasSelection(){clearTimeout(S.selectionSyncTimer);if(!S.projectId)return;S.selectionSyncTimer=setTimeout(()=>api(`/api/projects/${S.projectId}/canvas/selection`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({nodeIds:S.selectedNodeIds,edgeIds:S.selectedEdgeId?[S.selectedEdgeId]:[]})}).catch(()=>{}),120);}
 function updateCanvasSelectionDom(){$$('.node',els.canvasWorld).forEach(el=>el.classList.toggle('selected',S.selectedNodeIds.includes(el.dataset.id)));syncCanvasSelection();}
@@ -753,16 +774,16 @@ function selectEdge(edgeId){S.selectedEdgeId=edgeId;S.selectedNodeId=null;S.sele
 function beginCanvasSnapshot(){S.canvasHistory.past.push(clone(S.workflow));if(S.canvasHistory.past.length>60)S.canvasHistory.past.shift();S.canvasHistory.future=[];updateUndoButtons();}
 function canvasUndo(){const prev=S.canvasHistory.past.pop();if(!prev)return;S.canvasHistory.future.push(clone(S.workflow));S.workflow=prev;S.selectedNodeId=S.selectedEdgeId=null;S.selectedNodeIds=[];scheduleSave();renderCanvas();renderEdges();renderInspector();updateUndoButtons();}
 function canvasRedo(){const next=S.canvasHistory.future.pop();if(!next)return;S.canvasHistory.past.push(clone(S.workflow));S.workflow=next;S.selectedNodeId=S.selectedEdgeId=null;S.selectedNodeIds=[];scheduleSave();renderCanvas();renderEdges();renderInspector();updateUndoButtons();}
-function deleteNode(nodeId){const n=nodeById(nodeId);if(n?.data?.jobId)S.jobWatchers.get(n.data.jobId)?.();beginCanvasSnapshot();S.workflow.nodes=S.workflow.nodes.filter(n=>n.id!==nodeId);S.workflow.edges=S.workflow.edges.filter(e=>e.source!==nodeId&&e.target!==nodeId);S.selectedNodeIds=S.selectedNodeIds.filter(id=>id!==nodeId);if(S.selectedNodeId===nodeId)S.selectedNodeId=S.selectedNodeIds[0]||null;scheduleSave();renderCanvas();renderEdges();renderInspector();}
+function deleteNode(nodeId){const n=nodeById(nodeId);if(n?.data?.jobId)S.jobWatchers.get(n.data.jobId)?.();const targets=[...new Set(S.workflow.edges.filter(edge=>edge.source===nodeId).map(edge=>edge.target))];beginCanvasSnapshot();S.workflow.nodes=S.workflow.nodes.filter(n=>n.id!==nodeId);S.workflow.edges=S.workflow.edges.filter(e=>e.source!==nodeId&&e.target!==nodeId);for(const targetId of targets){const target=nodeById(targetId);if(target?.type==='imageGen')syncImageTargetCapability(target);if(target?.type==='videoGen')syncVideoTargetCapability(target);invalidateGenerationFlow(targetId);}S.selectedNodeIds=S.selectedNodeIds.filter(id=>id!==nodeId);if(S.selectedNodeId===nodeId)S.selectedNodeId=S.selectedNodeIds[0]||null;scheduleSave();renderCanvas();renderEdges();renderInspector();}
 function deleteSelectedNodes(){const ids=new Set(S.selectedNodeIds);if(!ids.size)return;if(ids.size===1)return deleteNode([...ids][0]);beginCanvasSnapshot();for(const node of S.workflow.nodes)if(ids.has(node.id)&&node.data?.jobId)S.jobWatchers.get(node.data.jobId)?.();S.workflow.nodes=S.workflow.nodes.filter(node=>!ids.has(node.id));S.workflow.edges=S.workflow.edges.filter(edge=>!ids.has(edge.source)&&!ids.has(edge.target));S.selectedNodeIds=[];S.selectedNodeId=null;scheduleSave();renderCanvas();renderEdges();renderInspector();}
-function deleteSelectedEdge(){if(!S.selectedEdgeId)return;const edge=S.workflow.edges.find(e=>e.id===S.selectedEdgeId),target=edge?nodeById(edge.target):null;beginCanvasSnapshot();S.workflow.edges=S.workflow.edges.filter(e=>e.id!==S.selectedEdgeId);if(target?.type==='imageGen')syncImageTargetCapability(target);S.selectedEdgeId=null;scheduleSave();renderEdges();renderCanvas();renderInspector();}
+function deleteSelectedEdge(){if(!S.selectedEdgeId)return;const edge=S.workflow.edges.find(e=>e.id===S.selectedEdgeId),target=edge?nodeById(edge.target):null;beginCanvasSnapshot();S.workflow.edges=S.workflow.edges.filter(e=>e.id!==S.selectedEdgeId);if(target?.type==='imageGen')syncImageTargetCapability(target);if(target?.type==='videoGen')syncVideoTargetCapability(target);if(target)invalidateGenerationFlow(target.id);S.selectedEdgeId=null;scheduleSave();renderEdges();renderCanvas();renderInspector();}
 function clearConnectionTargets(){$$('.node.connection-target',els.canvasWorld).forEach(el=>el.classList.remove('connection-target'));}
 function startConnectionDrag(e,node,handle){beginCanvasSnapshot();selectNode(node.id,{render:false});clearConnectionTargets();S.interaction={type:'connect',pointerId:e.pointerId,sourceId:node.id,x:e.clientX,y:e.clientY};handle.setPointerCapture?.(e.pointerId);els.connectionToast.textContent='拖到目标节点左侧输入端口';els.connectionToast.classList.remove('hidden');renderEdges();}
 function finishConnection(clientX,clientY){const it=S.interaction;if(!it||it.type!=='connect')return;const hit=document.elementFromPoint(clientX,clientY),targetNode=hit?.closest?.('.node'),targetId=targetNode?.dataset.id;S.interaction=null;els.connectionToast.classList.add('hidden');clearConnectionTargets();if(targetId&&targetId!==it.sourceId)createEdge(it.sourceId,targetId);else{S.canvasHistory.past.pop();updateUndoButtons();showNodeMenu(clientX,clientY,screenToWorld(clientX,clientY),{sourceId:it.sourceId});}renderEdges();}
 function connectionOutputKind(n){if(!n)return null;if(n.type==='imageGen')return'image';if(n.type==='videoGen')return'video';if(['asset','upload'].includes(n.type))return findAsset(n.data.assetId)?.kind||null;return nodeOutputText(n)?'text':null;}
 function syncImageTargetCapability(targetNode){if(targetNode?.type!=='imageGen')return;const cap=imageNodeCapability(targetNode);targetNode.data.actionId=cap==='image.edit'?'image.edit':'image.generate';targetNode.data.error='';ensureNodeModelForCapability(targetNode,cap);}
 function syncTargetCapabilityForConnection(sourceNode,targetNode){const kind=connectionOutputKind(sourceNode);if(targetNode.type==='imageGen'){if(kind==='image'){targetNode.data.actionId='image.edit';targetNode.data.error='';ensureNodeModelForCapability(targetNode,'image.edit');}else syncImageTargetCapability(targetNode);return;}if(targetNode.type!=='videoGen')return;const current=videoNodeCapability(targetNode);let next=current;if(kind==='image'){const imageInputs=S.workflow.edges.filter(e=>e.target===targetNode.id).map(e=>nodeById(e.source)).filter(n=>connectionOutputKind(n)==='image').length;if(current==='video.generate')next='video.image_to_video';else if(current==='video.image_to_video'&&imageInputs)next='video.first_last_frame';}else if(['video','audio'].includes(kind))next='video.reference';if(next!==current){targetNode.data.forcedCapability=next;targetNode.data.actionId=next;ensureNodeModelForCapability(targetNode,next);normalizedVideoParams(targetNode);}}
-function createEdge(source,target){if(source===target)return toast('不能连接节点自身','error');const s=nodeById(source),t=nodeById(target);if(!s||!t)return;if(!['textGen','imageGen','videoGen'].includes(t.type))return toast('目标节点不接受输入','error');if(t.type==='textGen'&&!['prompt','textGen'].includes(s.type))return toast('文本生成节点只接受文本输入','error');if(S.workflow.edges.some(e=>e.source===source&&e.target===target)){S.canvasHistory.past.pop();updateUndoButtons();return toast('这两个节点已经连接','error');}if(wouldCreateCycle(source,target)){S.canvasHistory.past.pop();updateUndoButtons();return toast('此连接会形成循环','error');}syncTargetCapabilityForConnection(s,t);S.workflow.edges.push({id:id(),source,target,role:defaultEdgeRole(s,t)});inheritUpstreamAspectRatio(t);scheduleSave();renderCanvas();renderEdges();renderInspector();}
+function createEdge(source,target){if(source===target)return toast('不能连接节点自身','error');const s=nodeById(source),t=nodeById(target);if(!s||!t)return;if(!['textGen','imageGen','videoGen'].includes(t.type))return toast('目标节点不接受输入','error');if(t.type==='textGen'&&!['prompt','textGen'].includes(s.type))return toast('文本生成节点只接受文本输入','error');if(S.workflow.edges.some(e=>e.source===source&&e.target===target)){S.canvasHistory.past.pop();updateUndoButtons();return toast('这两个节点已经连接','error');}if(wouldCreateCycle(source,target)){S.canvasHistory.past.pop();updateUndoButtons();return toast('此连接会形成循环','error');}syncTargetCapabilityForConnection(s,t);S.workflow.edges.push({id:id(),source,target,role:defaultEdgeRole(s,t)});inheritUpstreamAspectRatio(t);invalidateGenerationFlow(t.id);scheduleSave();renderCanvas();renderEdges();renderInspector();}
 function wouldCreateCycle(source,target){const adj=new Map();for(const e of S.workflow.edges){if(!adj.has(e.source))adj.set(e.source,[]);adj.get(e.source).push(e.target);}const seen=new Set();function reachesSource(n){if(n===source)return true;if(seen.has(n))return false;seen.add(n);return (adj.get(n)||[]).some(reachesSource);}return reachesSource(target);}
 function defaultEdgeRole(sourceNode,targetNode){if(targetNode.type==='imageGen'){const a=nodeOutputAssets(sourceNode).map(findAsset).find(Boolean);return a?.kind==='image'?'reference-image':undefined;}if(targetNode.type!=='videoGen')return undefined;const assets=nodeOutputAssets(sourceNode).map(findAsset).filter(Boolean);const kind=assets[0]?.kind;if(kind==='image'){const imageEdges=S.workflow.edges.filter(e=>e.target===targetNode.id).filter(e=>nodeOutputAssets(nodeById(e.source)).some(aid=>findAsset(aid)?.kind==='image'));if(targetNode.data.forcedCapability==='video.first_last_frame')return imageEdges.length?'last-frame':'first-frame';if(targetNode.data.forcedCapability==='video.reference')return 'reference-image';return imageEdges.length?'reference-image':'first-frame';}if(kind==='video')return 'reference-video';if(kind==='audio')return 'reference-audio';return undefined;}
 function portWorld(node,kind){if(node.type==='upload'||node.type==='asset'){const w=nodeWidth(node),h=nodeHeight(node);return{x:node.position.x+(kind==='out'?w:0),y:node.position.y+h/2};}const previewSize=isGenerationNode(node)?generationPreviewSize(node):null,width=previewSize?.width||nodeWidth(node),inset=isGenerationNode(node)?(GENERATION_NODE_W-width)/2:0,y=previewSize?38+previewSize.height/2:PORT_Y;return{x:node.position.x+inset+(kind==='out'?width:0),y:node.position.y+y};}
@@ -877,11 +898,11 @@ function nodeOutputText(n){if(!n)return'';if(n.type==='prompt')return String(n.d
 function collectIncomingText(n){return S.workflow.edges.filter(e=>e.target===n.id&&!['storyboard-shot','asset-reference'].includes(e.role)).map(e=>nodeById(e.source)).filter(Boolean).map(nodeOutputText).filter(t=>t.trim()).join('\n\n').trim();}
 function collectNodePrompt(n){return [collectIncomingText(n),String(n.data.prompt||'').trim()].filter(Boolean).join('\n\n').trim();}
 function collectGenerationPrompt(n){return composePresetRequestPrompt(n.data.presetSystemPrompt,collectNodePrompt(n),n.data.presetSourcePrompt);}
-function rawNodeReferences(n){const refs=(n.data.presetReferences||[]).map(ref=>normalizeNodeReference(ref));for(const e of S.workflow.edges.filter(e=>e.target===n.id)){const src=nodeById(e.source);if(!src)continue;for(const aid of nodeOutputAssets(src)){const a=findAsset(aid);if(!a)continue;refs.push(normalizeNodeReference({assetId:a.id,role:e.role||(n.type==='imageGen'?'reference-image':a.kind==='image'?'first-frame':a.kind==='video'?'reference-video':'reference-audio'),source:'node',sourceNodeId:src.id,sourceEdgeId:e.id,label:a.filename}));}}return dedupeRefs(refs);}
+function rawNodeReferences(n){const refs=(n.data.presetReferences||[]).map(ref=>normalizeNodeReference(ref));for(const e of S.workflow.edges.filter(e=>e.target===n.id)){const src=nodeById(e.source);if(!src)continue;for(const aid of nodeOutputAssets(src)){const a=findAsset(aid);if(!a)continue;refs.push(normalizeNodeReference({assetId:a.id,role:e.role||(n.type==='imageGen'?'reference-image':a.kind==='image'?'first-frame':a.kind==='video'?'reference-video':'reference-audio'),semanticRole:e.semanticRole,region:e.region,source:'node',sourceNodeId:src.id,sourceEdgeId:e.id,label:a.filename}));}}return dedupeRefs(refs);}
 function collectNodeReferences(n){const refs=rawNodeReferences(n);if(n.type!=='videoGen')return refs;const cap=videoNodeCapability(n),images=refs.filter(r=>findAsset(r.assetId)?.kind==='image');if(cap==='video.generate')return[];if(cap==='video.image_to_video'){const first=images.find(r=>r.role==='first-frame')||images[0];return first?[{...first,role:'first-frame'}]:[];}if(cap==='video.first_last_frame'){const first=images.find(r=>r.role==='first-frame')||images[0],last=images.find(r=>r.role==='last-frame')||images.find(r=>r!==first);return dedupeRefs([first&&{...first,role:'first-frame'},last&&{...last,role:'last-frame'}].filter(Boolean));}return refs.map(r=>({...r,role:findAsset(r.assetId)?.kind==='image'?'reference-image':findAsset(r.assetId)?.kind==='video'?'reference-video':'reference-audio'}));}
 function dedupeRefs(refs){const seen=new Set();return refs.filter(r=>{const k=r.referenceId||`${r.assetId}:${r.role}:${r.sourceNodeId||r.timelineItemId||r.source||''}:${JSON.stringify(r.region||null)}:${JSON.stringify(r.timelineRange||null)}`;if(seen.has(k))return false;seen.add(k);return true;});}
 function imageNodeCapability(n){return collectNodeReferences(n).some(r=>findAsset(r.assetId)?.kind==='image')||pendingReferenceKinds(n).has('image')?'image.edit':'image.generate';}
-function inferredVideoCapability(refs){if(refs.some(r=>r.role==='last-frame'))return 'video.first_last_frame';if(refs.some(r=>findAsset(r.assetId)?.kind==='image'))return 'video.image_to_video';if(refs.some(r=>['reference-video','reference-audio'].includes(r.role)||['video','audio'].includes(findAsset(r.assetId)?.kind)))return 'video.reference';return 'video.generate';}
+function inferredVideoCapability(refs){if(refs.some(r=>r.role==='last-frame'))return 'video.first_last_frame';if(refs.some(r=>['reference-image','reference-video','reference-audio'].includes(r.role)||['video','audio'].includes(findAsset(r.assetId)?.kind)))return 'video.reference';if(refs.some(r=>findAsset(r.assetId)?.kind==='image'))return 'video.image_to_video';return 'video.generate';}
 function pendingReferenceKinds(n){
   const kinds=new Set();
   for(const e of S.workflow.edges.filter(e=>e.target===n.id)){
@@ -904,7 +925,7 @@ function videoNodeCapability(n){
 function videoCapabilityLabel(cap){return ({'video.generate':'文生视频','video.image_to_video':'首帧视频','video.first_last_frame':'首尾帧视频','video.reference':'参考视频','video.extend':'视频延长','video.edit':'视频编辑'})[cap]||cap;}
 function setVideoCapability(n,cap){return applyNodeAction(n,cap);}
 function missingDepNodes(n){
-  if(n.type==='imageGen'&&imageNodeCapability(n)==='image.edit')return S.workflow.edges.filter(e=>e.target===n.id).map(e=>nodeById(e.source)).filter(src=>src?.type==='imageGen'&&src.data.status!=='succeeded');
+  if(n.type==='imageGen'&&imageNodeCapability(n)==='image.edit')return S.workflow.edges.filter(e=>e.target===n.id).map(e=>nodeById(e.source)).filter(src=>src?.type==='imageGen'&&(src.data.status!=='succeeded'||src.data.stale));
   if(n.type!=='videoGen') return [];
   const cap=videoNodeCapability(n);
   if(cap==='video.generate') return [];
@@ -915,7 +936,7 @@ function missingDepNodes(n){
     const kind=src.type==='imageGen'?'image':src.type==='videoGen'?'video':null;
     if(kind&&need.has(kind)) producers.push(src);
   }
-  return producers.filter(p=>p.data.status!=='succeeded');
+  return producers.filter(p=>p.data.status!=='succeeded'||p.data.stale);
 }
 function canAutoConnect(src,tgt){
   if(src.id===tgt.id) return false;
@@ -939,7 +960,7 @@ function edgeState(e){
   const s=nodeById(e.source); if(!s) return 'pending';
   if(s.type==='prompt') return 'done';
   if(['asset','upload'].includes(s.type)) return findAsset(s.data.assetId)?'done':'pending';
-  if(isGenerationNode(s)) return s.data.status==='succeeded'?'done':s.data.status==='failed'?'failed':'pending';
+  if(isGenerationNode(s)) return s.data.status==='succeeded'&&!s.data.stale?'done':s.data.status==='failed'?'failed':'pending';
   return 'pending';
 }
 function ensureNodeModelForCapability(n,cap){const [p,m]=(n.data.modelKey||'').split('::');if(!S.models.some(x=>x.providerId===p&&x.modelId===m&&x.capabilities.includes(cap)))n.data.modelKey=firstModelKey(cap)||(n.type==='videoGen'?firstModelKey('video.generate'):n.type==='imageGen'?firstModelKey('image.generate'):firstModelKey('text.generate'));}
@@ -969,12 +990,14 @@ async function generateNode(nodeId){
   const validation=n.type==='videoGen'?videoNodeValidationError(n):n.type==='imageGen'?imageNodeValidationError(n):'';
   if(validation){ n.data.error=validation; renderNode(n); setCanvasNotice(n,validation); return null; }
   if(n.data.jobId) S.jobWatchers.get(n.data.jobId)?.();
-  n.data.previousOutputAssetIds=[...nodeOutputAssets(n)];n.data.jobId='';n.data.status='queued';n.data.phase='queued';n.data.progress=0;n.data.progressStartedAt=Date.now();n.data.error='';n.data.providerAttempt=0;n.data.providerMaxAttempts=0;n.data.variantAssetIds=[];n.data.selectedVariantIndex=undefined;renderNode(n);
+  n.data.previousOutputAssetIds=[...nodeOutputAssets(n)];n.data.jobId='';n.data.status='queued';n.data.stale=false;n.data.phase='queued';n.data.progress=0;n.data.progressStartedAt=Date.now();n.data.error='';n.data.providerAttempt=0;n.data.providerMaxAttempts=0;n.data.variantAssetIds=[];n.data.selectedVariantIndex=undefined;renderNode(n);
   try{
     const params={...(n.data.params||{})}; if(n.type==='textGen'){const sourceContext=collectNodePrompt(n);n.data.contextFingerprint=scriptFingerprint(sourceContext);params.system=[n.data.system||textSystemForPreset(n.data.preset),textContextGuard(n,sourceContext)].filter(Boolean).join('\n\n');}
     const job=await api('/api/generations',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:S.projectId,capability,providerId,modelId,prompt,params,references:collectNodeReferences(n),requestId:crypto.randomUUID(),sourceNodeId:n.id})});
     n.data.jobId=job.id; scheduleSave(); watchJob(n,job.id);
-    return await waitForNodeJob(n,job.id);
+    const result=await waitForNodeJob(n,job.id);
+    if(result.job)await applyJobUpdate(n,result.job);
+    return result;
   }catch(e){ const message=friendlyError(e.message); n.data.status='failed'; n.data.error=message; renderNode(n); setCanvasNotice(n,message); return null; }
 }
 async function cancelNodeGeneration(n){if(!n?.data?.jobId)return;try{const job=await api(`/api/generations/${n.data.jobId}/cancel`,{method:'POST'});await applyJobUpdate(n,{...job,outputs:[]});}catch(e){toast(`取消失败：${e.message}`,'error');}}
@@ -986,7 +1009,7 @@ function topoOrderGenerationNodes(){
   const state=new Map(),order=[];
   const visit=id=>{const s=state.get(id);if(s==='done'||s==='visiting')return;state.set(id,'visiting');for(const t of adj.get(id))visit(t);state.set(id,'done');order.push(id);};
   for(const n of g)visit(n.id);
-  return order.map(id=>g.find(n=>n.id===id));
+  return order.reverse().map(id=>g.find(n=>n.id===id));
 }
 function waitForNodeJob(n,jobId){
   return new Promise(resolve=>{
@@ -1006,11 +1029,13 @@ async function runAllNodes(skillRun=null){
   let ok=0,fail=0;
   toast(`开始运行工作流：${order.length} 个节点，按依赖顺序执行`);
   for(const n of order){
-    if(n.data.status==='succeeded'){ok++;continue;}
+    if(n.data.status==='succeeded'&&!n.data.stale){ok++;continue;}
     const r=await generateNode(n.id);
     if(r&&r.ok)ok++;else fail++;
   }
   if(Array.isArray(skillRun?.videoNodeIds)&&fail===0)await appendSkillVideosToTimeline(skillRun);
+  renderCanvas();
+  renderEdges();
   toast(`工作流运行完成：成功 ${ok}，失败 ${fail}`,fail?'error':'info');
 }
 async function patchSkillRun(runId,patch){
@@ -1041,7 +1066,7 @@ async function runSkillNodes(nodes){
   const order=topoOrderGenerationNodes().filter(node=>nodes.some(item=>item.id===node.id));
   const queue=order.length?order:nodes;
   for(const n of queue){
-    if(n.data.status==='succeeded'){ok++;continue;}
+    if(n.data.status==='succeeded'&&!n.data.stale){ok++;continue;}
     const r=await generateNode(n.id);
     if(r&&r.ok)ok++;else fail++;
   }
@@ -1061,12 +1086,21 @@ function upsertAgentSkillRunMessage(skillRun){
   }
   renderAgentMessages();
 }
-async function continueSkillRun(runId,phase){
-  const skillRun=S.agent.activeSkillRun&&(S.agent.activeSkillRun.runId===runId||S.agent.activeSkillRun.id===runId)?S.agent.activeSkillRun:await api(`/api/projects/${encodeURIComponent(S.projectId)}/skill-runs/${encodeURIComponent(runId)}`);
-  skillRun.pauseAt=null;
-  await patchSkillRun(runId,{pauseAt:null,status:'processing'});
-  upsertAgentSkillRunMessage(skillRun);
-  await runSkillWorkflow(skillRun,{fromPhase:phase});
+async function compileApprovedSkillStoryboard(skillRun){
+  const runId=skillRun?.runId||skillRun?.id;
+  const source=S.workflow.nodes.find(node=>node.type==='textGen'&&node.data?.skillRunId===runId&&node.data?.workflowStage==='storyboard');
+  if(!source?.data?.outputText)return toast('请先生成并检查分镜脚本','error'),null;
+  const nodes=createStoryboardFromScript(source,{closeOutput:false});
+  if(!Array.isArray(nodes)||!nodes.length)return null;
+  const keyframeIds=nodes.filter(node=>node.type==='imageGen').map(node=>node.id),videoIds=nodes.filter(node=>node.type==='videoGen').map(node=>node.id);
+  const steps=(skillRun.steps||[]).map(step=>step.id==='keyframes'?{...step,nodeIds:keyframeIds,shotIds:nodes.filter(node=>node.type==='imageGen').map(node=>node.data?.shotId||node.data?.storyboardShot).filter(Boolean),status:'queued',error:null}:step.id==='videos'?{...step,nodeIds:videoIds,shotIds:nodes.filter(node=>node.type==='videoGen').map(node=>node.data?.shotId||node.data?.storyboardShot).filter(Boolean),status:'queued',error:null}:step);
+  const createdNodeIds=[...new Set([...(skillRun.createdNodeIds||[]),...nodes.map(node=>node.id)])];
+  const patch={steps,createdNodeIds,videoNodeIds:videoIds,inputValues:{planVersion:source.data.skillPlanVersion||source.data.storyboardSourceHash||'',approvedStoryboardNodeId:source.id}};
+  const persisted=await patchSkillRun(runId,patch);
+  const next={...skillRun,...patch,...(persisted||{})};
+  S.agent.skillRuns=(S.agent.skillRuns||[]).map(run=>(run.runId||run.id)===runId?next:run);
+  upsertAgentSkillRunMessage(next);
+  return next;
 }
 async function cancelSkillRun(runId){
   if(!runId)return;
@@ -1096,13 +1130,16 @@ async function runSkillWorkflow(skillRun,{fromPhase=null}={}){
   const runId=skillRun.runId||skillRun.id;
   const phases=skillRunPhaseOrder(skillRun);
   const startIndex=fromPhase?Math.max(0,phases.indexOf(fromPhase)):0;
-  const manual=skillRun.confirmMode==='manual';
   let failTotal=0;
-  skillRun.pauseAt=null;
   for(let index=startIndex;index<phases.length;index+=1){
     if(S.agent.canceledSkillRuns?.has(runId))return;
     const phase=phases[index];
-    const nodes=skillRunNodesForPhase(skillRun,phase);
+    let nodes=skillRunNodesForPhase(skillRun,phase);
+    if(phase==='keyframes'&&!nodes.length&&skillRun.skillId==='new-chinese-tvc'){
+      skillRun=await compileApprovedSkillStoryboard(skillRun);
+      if(!skillRun)return;
+      nodes=skillRunNodesForPhase(skillRun,phase);
+    }
     if(!nodes.length)continue;
     toast(`Skill 步骤：${skillRunStepLabel(phase)}（${nodes.length}）`);
     const {ok,fail}=await runSkillNodes(nodes);
@@ -1113,29 +1150,16 @@ async function runSkillWorkflow(skillRun,{fromPhase=null}={}){
     await patchSkillRun(runId,{steps:skillRun.steps,status:fail?'failed':'processing',error:fail?`${skillRunStepLabel(phase)}失败`:null});
     upsertAgentSkillRunMessage(skillRun);
     if(fail){toast(`${skillRunStepLabel(phase)}失败，可单镜重试`,'error');return;}
-    if(manual&&phase==='storyboard'){
-      skillRun.pauseAt='keyframes';skillRun.status='awaiting_confirmation';
-      await patchSkillRun(runId,{pauseAt:'keyframes',status:'awaiting_confirmation'});
-      upsertAgentSkillRunMessage(skillRun);
-      toast('分镜已完成，请确认后再生成关键帧');
-      return;
-    }
-    if(manual&&phase==='keyframes'){
-      skillRun.pauseAt='videos';skillRun.status='awaiting_confirmation';
-      await patchSkillRun(runId,{pauseAt:'videos',status:'awaiting_confirmation'});
-      upsertAgentSkillRunMessage(skillRun);
-      toast('关键帧已完成，请确认后再生成批量视频');
-      return;
-    }
   }
   if(Array.isArray(skillRun.videoNodeIds)&&failTotal===0)await appendSkillVideosToTimeline(skillRun);
   const timelineStep=(skillRun.steps||[]).find(step=>step.id==='timeline');
   if(timelineStep)timelineStep.status=failTotal?'failed':'succeeded';
-  const synced=await patchSkillRun(runId,{pauseAt:null,steps:skillRun.steps,status:failTotal?'failed':'succeeded',error:failTotal?'存在失败步骤':null});
+  const synced=await patchSkillRun(runId,{steps:skillRun.steps,status:failTotal?'failed':'succeeded',error:failTotal?'存在失败步骤':null});
   upsertAgentSkillRunMessage(synced||skillRun);
   toast(failTotal?`SkillRun 完成：有 ${failTotal} 个失败节点`:'SkillRun 已完成并写入时间线',failTotal?'error':'info');
 }
-async function applyJobUpdate(n,job){const terminal=['succeeded','failed','canceled'];if(n.data.jobId!==job.id||!nodeById(n.id)||terminal.includes(n.data.status))return true;if(n.data.status==='processing'&&job.status==='queued'&&!isRetryWaitPhase(job.phase))return false;const hadText=Boolean(n.data.outputText);n.data.status=job.status;n.data.phase=job.phase;n.data.progressMode=job.progressMode||'phase';n.data.progressStartedAt=terminal.includes(job.status)?null:(n.data.progressStartedAt||Date.now());n.data.nextAttemptAt=job.nextAttemptAt||null;n.data.providerAttempt=job.providerAttempt||0;n.data.providerMaxAttempts=job.providerMaxAttempts||0;n.data.progress=terminal.includes(job.status)?Number(job.progress||0):Math.max(Number(n.data.progress||0),Number(job.progress||0));n.data.error=job.error||'';if(n.type==='textGen'&&job.outputText!=null){n.data.outputText=job.outputText;const preview=els.canvasWorld.querySelector(`[data-id="${n.id}"] .generator-text-result`);if(preview)preview.value=job.outputText;else if(!hadText&&job.outputText)renderNode(n);}upsertJob(job);renderJobs();if(!terminal.includes(job.status)){updateNodeProgressDom(n);return false;}n.data.jobId='';if(job.status==='succeeded'){if(job.outputText!=null)n.data.outputText=job.outputText;const outs=(job.outputs||[]).map(o=>o.id);n.data.variantAssetIds=outs.length>1?outs:[];n.data.selectedVariantIndex=0;n.data.previousOutputAssetIds=[];n.data.outputAssetIds=outs.slice(0,1);n.data.expanded=false;await saveWorkflow();setCanvasNotice(null);await refreshAssets();if(n.type==='videoGen'&&n.data.storyboardSourceId)appendStoryboardVideosToTimeline(n.data.storyboardSourceId,{notify:true});const output=findAsset(outs[0]);if(n.data.imagePresetId&&output){const preset=imagePresetById(n.data.imagePresetId),expected=String(preset?.aspectRatio||'').split(':').map(Number),actual=Number(output.width)/Number(output.height);n.data.presetReviewWarning=expected.length===2&&expected.every(Boolean)&&actual>0&&Math.abs(Math.log(actual/(expected[0]/expected[1])))>.18?'输出比例与预设版式不一致，请检查宫格完整性':'';}renderNode(n);renderEdges();for(const e of S.workflow.edges.filter(e=>e.source===n.id)){const t=nodeById(e.target);if(t&&isGenerationNode(t))renderNode(t);}scheduleSave();return true;}renderNode(n);scheduleSave();if(job.status==='failed')setCanvasNotice(n,job.error||'生成失败');else toast(friendlyError(job.error)||(job.status==='canceled'?'任务已取消':job.status),job.status==='failed'?'error':'info');return true;}
+function syncGenerationJobNode(n){const current=nodeById(n?.id);if(!current||current===n)return current||n;for(const key of ['status','phase','progressMode','progressStartedAt','nextAttemptAt','providerAttempt','providerMaxAttempts','progress','error','jobId','stale','outputText','variantAssetIds','selectedVariantIndex','previousOutputAssetIds','outputAssetIds']){const value=n.data[key];current.data[key]=value&&typeof value==='object'?clone(value):value;}return current;}
+async function applyJobUpdate(n,job){const terminal=['succeeded','failed','canceled'];n=nodeById(n?.id);if(!n||n.data.jobId!==job.id||terminal.includes(n.data.status))return true;if(n.data.status==='processing'&&job.status==='queued'&&!isRetryWaitPhase(job.phase))return false;const hadText=Boolean(n.data.outputText);n.data.status=job.status;n.data.phase=job.phase;n.data.progressMode=job.progressMode||'phase';n.data.progressStartedAt=terminal.includes(job.status)?null:(n.data.progressStartedAt||Date.now());n.data.nextAttemptAt=job.nextAttemptAt||null;n.data.providerAttempt=job.providerAttempt||0;n.data.providerMaxAttempts=job.providerMaxAttempts||0;n.data.progress=terminal.includes(job.status)?Number(job.progress||0):Math.max(Number(n.data.progress||0),Number(job.progress||0));n.data.error=job.error||'';if(n.type==='textGen'&&job.outputText!=null){n.data.outputText=job.outputText;const preview=els.canvasWorld.querySelector(`[data-id="${n.id}"] .generator-text-result`);if(preview)preview.value=job.outputText;else if(!hadText&&job.outputText)renderNode(n);}upsertJob(job);renderJobs();if(!terminal.includes(job.status)){updateNodeProgressDom(n);return false;}n.data.jobId='';if(job.status==='succeeded'){n.data.stale=false;if(job.outputText!=null)n.data.outputText=job.outputText;const outs=(job.outputs||[]).map(o=>o.id);n.data.variantAssetIds=outs.length>1?outs:[];n.data.selectedVariantIndex=0;n.data.previousOutputAssetIds=[];n.data.outputAssetIds=outs.slice(0,1);n.data.expanded=false;invalidateGenerationFlow(n.id,{includeSelf:false});await saveWorkflow();n=syncGenerationJobNode(n);setCanvasNotice(null);await refreshAssets();if(n.type==='videoGen'&&n.data.storyboardSourceId)appendStoryboardVideosToTimeline(n.data.storyboardSourceId,{notify:true});const output=findAsset(outs[0]);if(n.data.imagePresetId&&output){const preset=imagePresetById(n.data.imagePresetId),expected=String(preset?.aspectRatio||'').split(':').map(Number),actual=Number(output.width)/Number(output.height);n.data.presetReviewWarning=expected.length===2&&expected.every(Boolean)&&actual>0&&Math.abs(Math.log(actual/(expected[0]/expected[1])))>.18?'输出比例与预设版式不一致，请检查宫格完整性':'';}renderNode(n);renderEdges();for(const e of S.workflow.edges.filter(e=>e.source===n.id)){const t=nodeById(e.target);if(t&&isGenerationNode(t))renderNode(t);}scheduleSave();return true;}n=syncGenerationJobNode(n);renderNode(n);scheduleSave();if(job.status==='failed')setCanvasNotice(n,job.error||'生成失败');else toast(friendlyError(job.error)||(job.status==='canceled'?'任务已取消':job.status),job.status==='failed'?'error':'info');return true;}
 function watchJob(n,jobId){S.jobWatchers.get(jobId)?.();let es=null,timer=null,ticker=null,stopped=false;n.data.progressStartedAt??=Date.now();const stop=()=>{if(stopped)return;stopped=true;es?.close();if(timer)clearTimeout(timer);if(ticker)clearInterval(ticker);S.jobWatchers.delete(jobId);};const poll=async()=>{if(stopped)return;try{const job=await api(`/api/generations/${jobId}`);if(await applyJobUpdate(n,job))return stop();timer=setTimeout(poll,1000);}catch(e){if(nodeById(n.id)&&n.data.jobId===jobId){n.data.status='failed';n.data.jobId='';n.data.progressStartedAt=null;n.data.error=`任务状态恢复失败：${e.message}`;renderNode(n);}stop();}};ticker=setInterval(()=>{if(!stopped&&nodeById(n.id)&&n.data.jobId===jobId&&nodeGenerationBusy(n))updateNodeProgressDom(n);},100);es=new EventSource(`/api/generations/${jobId}/events`);es.addEventListener('generation',async ev=>{const job=JSON.parse(ev.data);if(await applyJobUpdate(n,job))stop();});es.onerror=()=>{es?.close();es=null;if(!stopped)timer=setTimeout(poll,600);};S.jobWatchers.set(jobId,stop);}
 function resumeNodeJobs(){for(const n of S.workflow.nodes)if(n.data?.jobId&&['queued','processing','running'].includes(n.data.status))watchJob(n,n.data.jobId);}
 function upsertJob(job){const i=S.jobs.findIndex(j=>j.id===job.id);if(i>=0)S.jobs[i]=job;else S.jobs.unshift(job);}
@@ -1170,7 +1194,7 @@ function skillDetailDeliverables(skill){
 function skillCopyFields(skill){
   const cardSummary=String(skill.cardSummary||'').trim();
   const howToRaw=String(skill.howToUse||'').trim();
-  const howToUse=howToRaw?howToRaw.replace(/^先在 Agent 中选择该 Skill，再/,'').replace(/^先在创意助手中选择该技能，再/,'').replace(/；发送后执行固定的画布工作流。?$/,'，确认后自动写入画布。'):'在创意助手中选择技能，补充素材和卖点后发送即可执行。';
+  const howToUse=howToRaw?howToRaw.replace(/^先在 Agent 中选择该 Skill，再/,'').replace(/^先在创意助手中选择该技能，再/,'').replace(/；发送后执行固定的画布工作流。?$/,'，发送后自动写入画布并开始执行。'):'在创意助手中选择技能，补充素材和卖点后发送即可执行。';
   const detailLead=String(skill.description||'').trim();
   let cardBlurb=cardSummary;
   if(!cardBlurb){
@@ -1215,29 +1239,11 @@ function skillDetailPreviewSlide(item,index){
   if(item.type==='video')return `<div class="skill-detail-preview-slide${active}" data-skill-preview-index="${index}" data-media-type="video" data-media-url="${esc(item.url)}" data-media-label="${esc(item.label)}"><div class="skill-detail-preview-mount"></div></div>`;
   return `<div class="skill-detail-preview-slide${active}" data-skill-preview-index="${index}" data-media-type="image"><img src="${esc(item.url)}" alt="${esc(item.label)}" draggable="false"></div>`;
 }
-function skillDetailList(items,empty='暂无内容'){
-  const values=(items||[]).filter(Boolean);
-  return values.length?`<ul class="skill-detail-list">${values.map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:`<p class="skill-detail-empty">${esc(empty)}</p>`;
-}
-function skillDetailInputList(skill){
-  const inputs=Array.isArray(skill?.inputs)?skill.inputs:[];
-  if(!inputs.length)return'<p class="skill-detail-empty">该 Skill 使用 Agent 自由输入。</p>';
-  return `<div class="skill-detail-input-list">${inputs.map(input=>{const accept=Array.isArray(input.accept)&&input.accept.length?` · ${input.accept.join(' / ')}`:'';const required=input.required?'必填':'可选';const defaultValue=input.default!=null?` · 默认 ${input.default}`:'';return`<div class="skill-detail-input-row"><strong>${esc(input.label||input.id||'输入')}</strong><span>${esc(required)}${esc(accept)}${esc(defaultValue)}</span><small>${esc(input.placeholder||'')}</small></div>`;}).join('')}</div>`;
-}
-function skillDetailRules(skill){
-  const entries=Object.entries(skill?.rules||{}).filter(([,value])=>value!==undefined&&value!==null&&value!=='');
-  if(!entries.length)return'<p class="skill-detail-empty">暂无额外限制。</p>';
-  return `<dl class="skill-detail-rules">${entries.map(([key,value])=>`<div><dt>${esc(key)}</dt><dd>${esc(Array.isArray(value)?value.join('、'):value)}</dd></div>`).join('')}</dl>`;
-}
 function skillDetailSyncOrientation(stage,slide){
-  if(!stage||!slide)return;
-  const video=slide.querySelector('video'),img=slide.querySelector('img');
-  let portrait=slide.dataset.orientation==='portrait';
-  if(video?.videoWidth&&video.videoHeight)portrait=video.videoHeight>video.videoWidth*1.02;
-  else if(img?.naturalWidth&&img.naturalHeight)portrait=img.naturalHeight>img.naturalWidth*1.02;
-  slide.dataset.orientation=portrait?'portrait':'landscape';
-  stage.classList.toggle('is-portrait',portrait);
-  stage.classList.toggle('is-landscape',!portrait);
+  if(!stage)return;
+  stage.classList.add('is-landscape');
+  stage.classList.remove('is-portrait');
+  if(slide)slide.dataset.orientation='landscape';
 }
 function skillDetailUnmountSlideMedia(slide){
   if(!slide||slide.dataset.mediaType!=='video')return;
@@ -1285,8 +1291,7 @@ function bindSkillDetailPreview(root,items){
 function renderSkillDetail(skill){
   if(!els.skillDetailBody)return;
   const previewItems=skillPreviewItems(skill),introRows=skillDetailIntroRows(skill),introMarkup=introRows.length?`<section class="skill-detail-intro"><h3>简介</h3><dl class="skill-detail-facts">${introRows.map(row=>`<div class="skill-detail-fact"><dt>${esc(row.label)}</dt><dd>${esc(row.value)}</dd></div>`).join('')}</dl></section>`:'',pagerMarkup=previewItems.length>1?`<div class="skill-detail-preview-pager" data-skill-preview-pager><button type="button" class="skill-detail-preview-nav" data-skill-preview-prev aria-label="上一个示例">${icon('chevron-left')}</button><span class="skill-detail-preview-count" data-skill-preview-count>1/${previewItems.length}</span><button type="button" class="skill-detail-preview-nav" data-skill-preview-next aria-label="下一个示例">${icon('chevron-right')}</button></div>`:'';
-  const tags=(skill.tags||[]).filter(Boolean),description=String(skill.description||'').trim(),howToUse=String(skill.howToUse||'').trim(),detailMarkup=`<section class="skill-detail-section"><h3>完整说明</h3><p class="skill-detail-copy">${esc(description||'该 Skill 没有补充说明。')}</p>${howToUse?`<p class="skill-detail-copy"><strong>使用方式：</strong>${esc(howToUse)}</p>`:''}${tags.length?`<div class="skill-detail-tags">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div>`:''}</section><section class="skill-detail-section"><h3>固定步骤</h3>${skillDetailList(skill.fixedSteps)}</section><section class="skill-detail-section"><h3>输入</h3>${skillDetailInputList(skill)}</section><section class="skill-detail-section"><h3>输出</h3>${skillDetailList(skill.outputs)}</section><section class="skill-detail-section"><h3>规则与限制</h3>${skillDetailRules(skill)}</section>`;
-  els.skillDetailBody.innerHTML=`<div class="skill-detail-view"><header class="skill-detail-header"><div class="skill-detail-heading"><div class="skill-detail-heading-copy"><h2 id="skillDetailTitle">${esc(skill.name)}</h2><p class="skill-detail-subtitle">${esc(skillDetailSpecs(skill))}</p></div><div class="skill-detail-actions"><button type="button" class="skill-detail-use" data-skill-detail-use>${icon('player-play')}<span>使用技能</span></button><button type="button" class="icon-btn skill-detail-close" title="关闭" aria-label="关闭技能详情">${icon('x')}</button></div></div></header><div class="skill-detail-scroll"><div class="skill-detail-preview">${pagerMarkup}<div class="skill-detail-preview-stage is-landscape">${previewItems.map((item,index)=>skillDetailPreviewSlide(item,index)).join('')}</div></div>${introMarkup}${detailMarkup}</div></div>`;
+  els.skillDetailBody.innerHTML=`<div class="skill-detail-view"><header class="skill-detail-header"><div class="skill-detail-heading"><div class="skill-detail-heading-copy"><h2 id="skillDetailTitle">${esc(skill.name)}</h2><p class="skill-detail-subtitle">${esc(skillDetailSpecs(skill))}</p></div><div class="skill-detail-actions"><button type="button" class="skill-detail-use" data-skill-detail-use>${icon('player-play')}<span>使用技能</span></button><button type="button" class="icon-btn skill-detail-close" title="关闭" aria-label="关闭技能详情">${icon('x')}</button></div></div></header><div class="skill-detail-scroll"><div class="skill-detail-preview">${pagerMarkup}<div class="skill-detail-preview-stage is-landscape">${previewItems.map((item,index)=>skillDetailPreviewSlide(item,index)).join('')}</div></div>${introMarkup}</div></div>`;
   const detailView=els.skillDetailBody.querySelector('.skill-detail-view');
   detailView?.querySelector('[data-skill-detail-use]')?.addEventListener('click',()=>useSkillFromPlaza(skill.id));
   detailView?.querySelector('.skill-detail-close')?.addEventListener('click',()=>closeSkillDetail());
@@ -1327,12 +1332,12 @@ function renderSkillLibrary(){
 }
 function skillSourceLabel(skill){
   if(skill?.source?.provider)return `${skill.source.provider} 导入 · v${Number(skill.version||1)}`;
-  return `LibTV 内置 · v${Number(skill?.version||1)}`;
+  return `QUill 内置 · v${Number(skill?.version||1)}`;
 }
 function useSkillFromPlaza(skillId){
   const skill=(S.skills||[]).find(item=>item.id===skillId);if(!skill)return;
   closeSkillDetail();
-  S.agent.skillId=skill.id;S.agent.skillVersion=Number(skill.version||1);S.agent.sourceMenuOpen=false;S.agent.skillMenuOpen=false;S.agent.modelMenuOpen=false;S.agent.confirmMenuOpen=false;hideDrawer('skillDrawer');openAgent();renderAgentPromptMenu();requestAnimationFrame(()=>els.agentPromptInput?.focus());
+  S.agent.skillId=skill.id;S.agent.skillVersion=Number(skill.version||1);S.agent.sourceMenuOpen=false;S.agent.skillMenuOpen=false;S.agent.modelMenuOpen=false;hideDrawer('skillDrawer');openAgent();renderAgentPromptMenu();requestAnimationFrame(()=>els.agentPromptInput?.focus());
 }
 let importSkillInFlight=false;
 function openImportSkillModal(){
@@ -1342,11 +1347,11 @@ function openImportSkillModal(){
   els.importSkillModal?.classList.remove('hidden');
   requestAnimationFrame(()=>els.importSkillInput?.focus());
 }
-async function importSkillFromLiblib(event){
+async function importSkillFromSource(event){
   event?.preventDefault();
   if(importSkillInFlight)return;
   const url=String(els.importSkillInput?.value||'').trim();
-  if(!url){if(els.importSkillStatus){els.importSkillStatus.textContent='请粘贴 LiblibTV 分享链接或 UUID。';els.importSkillStatus.classList.add('error-text');}els.importSkillInput?.focus();return;}
+  if(!url){if(els.importSkillStatus){els.importSkillStatus.textContent='请粘贴具体 Skill 的详情/分享链接或 UUID。';els.importSkillStatus.classList.add('error-text');}els.importSkillInput?.focus();return;}
   importSkillInFlight=true;
   const button=els.importSkillBtn;
   if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
@@ -1498,7 +1503,7 @@ function renderTimelineSelectionButtons(){const has=Boolean(selectedClip()),empt
 function renderInspector(){
   const n=selectedNode(),clip=selectedClip();
   if(S.selectedNodeIds.length>1){els.inspector.className='inspector empty-state';els.inspector.textContent=`已选择 ${S.selectedNodeIds.length} 个节点，可一起拖动或删除`;return;}
-  if(S.selectedEdgeId){const e=S.workflow.edges.find(x=>x.id===S.selectedEdgeId);const src=e?nodeById(e.source):null,tgt=e?nodeById(e.target):null;const outAsset=nodeOutputAssets(src||{}).map(findAsset).find(Boolean);const roles=outAsset?.kind==='image'?['first-frame','last-frame','reference-image']:outAsset?.kind==='video'?['reference-video']:outAsset?.kind==='audio'?['reference-audio']:[];const role=e.role||defaultEdgeRole(src,tgt);els.inspector.className='inspector';els.inspector.innerHTML=`<h3>Connection</h3><dl><dt>Source</dt><dd>${esc(e?.source)}</dd><dt>Target</dt><dd>${esc(e?.target)}</dd></dl>${tgt?.type==='videoGen'&&roles.length?`<label class="field"><span>Reference role</span>${appSelectMarkup({value:role,options:roles.map(value=>({value,label:value})),className:'inspector-app-select',dataSelectId:'edgeRoleSelect',ariaLabel:'参考类型'})}</label>`:''}<button id="deleteEdgeBtn" class="danger">删除连线</button>`;$$('[data-app-select-option]',els.inspector).forEach(option=>option.addEventListener('click',()=>{const menu=appSelectMenuForNode(option);if(!applyAppSelectOption(menu,option,{close:true,restoreFocus:false}))return;beginCanvasSnapshot();e.role=menu.dataset.value;scheduleSave();renderCanvas();renderEdges();renderInspector();}));$('#deleteEdgeBtn')?.addEventListener('click',deleteSelectedEdge);return;}
+  if(S.selectedEdgeId){const e=S.workflow.edges.find(x=>x.id===S.selectedEdgeId);const src=e?nodeById(e.source):null,tgt=e?nodeById(e.target):null;const outAsset=nodeOutputAssets(src||{}).map(findAsset).find(Boolean);const roles=outAsset?.kind==='image'?['first-frame','last-frame','reference-image']:outAsset?.kind==='video'?['reference-video']:outAsset?.kind==='audio'?['reference-audio']:[];const role=e.role||defaultEdgeRole(src,tgt);els.inspector.className='inspector';els.inspector.innerHTML=`<h3>Connection</h3><dl><dt>Source</dt><dd>${esc(e?.source)}</dd><dt>Target</dt><dd>${esc(e?.target)}</dd></dl>${tgt?.type==='videoGen'&&roles.length?`<label class="field"><span>Reference role</span>${appSelectMarkup({value:role,options:roles.map(value=>({value,label:value})),className:'inspector-app-select',dataSelectId:'edgeRoleSelect',ariaLabel:'参考类型'})}</label>`:''}<button id="deleteEdgeBtn" class="danger">删除连线</button>`;$$('[data-app-select-option]',els.inspector).forEach(option=>option.addEventListener('click',()=>{const menu=appSelectMenuForNode(option);if(!applyAppSelectOption(menu,option,{close:true,restoreFocus:false}))return;beginCanvasSnapshot();e.role=menu.dataset.value;if(tgt?.type==='videoGen')syncVideoTargetCapability(tgt);if(tgt)invalidateGenerationFlow(tgt.id);scheduleSave();renderCanvas();renderEdges();renderInspector();}));$('#deleteEdgeBtn')?.addEventListener('click',deleteSelectedEdge);return;}
   if(n){els.inspector.className='inspector';els.inspector.innerHTML=`<h3>${esc(n.type)}</h3><dl><dt>Node ID</dt><dd>${esc(n.id)}</dd><dt>Position</dt><dd>${Math.round(n.position.x)}, ${Math.round(n.position.y)}</dd><dt>Inputs</dt><dd>${S.workflow.edges.filter(e=>e.target===n.id).length}</dd><dt>Outputs</dt><dd>${S.workflow.edges.filter(e=>e.source===n.id).length}</dd>${n.data.jobId?`<dt>Job</dt><dd>${esc(n.data.jobId)}</dd>`:''}</dl>`;return;}
   if(clip&&clip.kind==='text'){const st=clip.textStyle||{fontSize:44,color:'#ffffff',x:50,y:84,background:false};els.inspector.className='inspector';els.inspector.innerHTML=`<h3>Caption</h3><label class="field"><span>文字</span><textarea id="captionText">${esc(clip.text||'')}</textarea></label><div class="inspector-grid"><label>Start<input data-ci="startFrame" type="number" min="0" value="${clip.startFrame}"></label><label>Duration<input data-ci="durationInFrames" type="number" min="1" value="${clip.durationInFrames}"></label><label>Font size<input data-ts="fontSize" type="number" min="12" max="160" value="${st.fontSize||44}"></label><label>Color<input id="captionColor" type="color" value="${esc(st.color||'#ffffff')}"></label><label>X %<input data-ts="x" type="number" min="0" max="100" value="${st.x??50}"></label><label>Y %<input data-ts="y" type="number" min="0" max="100" value="${st.y??84}"></label><label>Opacity<input data-ci="opacity" type="number" min="0" max="1" step="0.05" value="${clip.opacity??1}"></label><label>Fade in<input data-ci="fadeInFrames" type="number" min="0" value="${clip.fadeInFrames||0}"></label><label>Fade out<input data-ci="fadeOutFrames" type="number" min="0" value="${clip.fadeOutFrames||0}"></label></div>`;$('#captionText')?.addEventListener('input',ev=>{clip.text=ev.target.value;clip.name=ev.target.value.slice(0,30)||'字幕';scheduleTimelineSave();renderTimeline();renderPreview();});$('#captionColor')?.addEventListener('input',ev=>{clip.textStyle={...(clip.textStyle||{}),color:ev.target.value};scheduleTimelineSave();renderPreview();});$$('[data-ci]',els.inspector).forEach(inp=>inp.addEventListener('change',()=>{beginTimelineSnapshot();clip[inp.dataset.ci]=Number(inp.value);scheduleTimelineSave();renderTimeline();renderPreview();}));$$('[data-ts]',els.inspector).forEach(inp=>inp.addEventListener('change',()=>{beginTimelineSnapshot();clip.textStyle={...(clip.textStyle||{}),[inp.dataset.ts]:Number(inp.value)};scheduleTimelineSave();renderPreview();}));return;}
   if(clip){const a=findAsset(clip.sourceAssetId);els.inspector.className='inspector';const t=clip.transform||{x:0,y:0,scale:1};els.inspector.innerHTML=`<h3>${esc(clip.name)}</h3><div class="inspector-grid"><label>Start<input data-ci="startFrame" type="number" min="0" value="${clip.startFrame}"></label><label>Duration<input data-ci="durationInFrames" type="number" min="1" value="${clip.durationInFrames}"></label><label>Source In<input data-ci="sourceInFrame" type="number" min="0" value="${clip.sourceInFrame||0}"></label><label>Speed<input data-ci="playbackRate" type="number" min="0.25" max="4" step="0.05" value="${clip.playbackRate||1}"></label><label>Volume<input data-ci="volume" type="number" min="0" max="2" step="0.05" value="${clip.volume??1}"></label><label>Opacity<input data-ci="opacity" type="number" min="0" max="1" step="0.05" value="${clip.opacity??1}"></label><label>X %<input data-ti="x" type="number" step="1" value="${t.x||0}"></label><label>Y %<input data-ti="y" type="number" step="1" value="${t.y||0}"></label><label>Scale<input data-ti="scale" type="number" min="0.1" max="4" step="0.05" value="${t.scale||1}"></label><label>Fade in<input data-ci="fadeInFrames" type="number" min="0" value="${clip.fadeInFrames||0}"></label><label>Fade out<input data-ci="fadeOutFrames" type="number" min="0" value="${clip.fadeOutFrames||0}"></label></div><dl><dt>Track</dt><dd>${esc(clip.track)}</dd><dt>Asset</dt><dd>${esc(a?.id||'-')}</dd><dt>Source Out</dt><dd>${clip.sourceOutFrame||'-'}</dd></dl>${editSectionHtml(clip)}`;$$('[data-ci]',els.inspector).forEach(inp=>inp.addEventListener('change',()=>{beginTimelineSnapshot();const k=inp.dataset.ci;clip[k]=Number(inp.value);if(['durationInFrames','playbackRate','sourceInFrame'].includes(k))clip.sourceOutFrame=(clip.sourceInFrame||0)+Math.round(clip.durationInFrames*(clip.playbackRate||1));scheduleTimelineSave();renderTimeline();renderInspector();renderPreview();}));$$('[data-ti]',els.inspector).forEach(inp=>inp.addEventListener('change',()=>{beginTimelineSnapshot();clip.transform={...(clip.transform||{}),[inp.dataset.ti]:Number(inp.value)};scheduleTimelineSave();renderPreview();}));$('#reshootBtn',els.inspector)?.addEventListener('click',()=>runClipEdit('reshoot'));$('#extendBtn',els.inspector)?.addEventListener('click',()=>runClipEdit('extend'));return;}
@@ -1586,7 +1591,7 @@ function renderJobs(){
 function updateUndoButtons(){if(els.canvasUndoBtn)els.canvasUndoBtn.disabled=!S.canvasHistory.past.length;if(els.canvasRedoBtn)els.canvasRedoBtn.disabled=!S.canvasHistory.future.length;if(els.timelineUndoBtn)els.timelineUndoBtn.disabled=!S.timelineHistory.past.length;if(els.timelineRedoBtn)els.timelineRedoBtn.disabled=!S.timelineHistory.future.length;}
 
 
-/* ---------------- LibTV menus / tools / provider settings ---------------- */
+/* ---------------- QUill menus / tools / provider settings ---------------- */
 const NODE_CATALOG=[
   {id:'text.ai',icon:'sparkles',title:'文本',create:(pos)=>addTextGen('rewrite',{},pos)},
   {id:'image.generate',icon:'photo-plus',title:'图片',create:(pos)=>addImage({},pos)},
@@ -1595,7 +1600,7 @@ const NODE_CATALOG=[
   {id:'asset.history',icon:'history',title:'历史',create:()=>showDrawer('assetDrawer')},
 ];
 function hideMenus(){els.nodeMenu?.classList.add('hidden');els.nodeContextMenu?.classList.add('hidden');S.menuConnectSourceId=null;}
-const INTERACTION_DETAILS_SELECTOR='.app-select,.generator-mode-menu,.generator-composer .node-advanced,.generator-param-menu,.image-preset-menu,.generator-reference-role-menu';
+const INTERACTION_DETAILS_SELECTOR='.app-select,.generator-promptbar-plus,.generator-param-menu,.image-preset-menu,.generator-reference-role-menu';
 const modalReturnFocus=new WeakMap();
 const modalReturnContext=new WeakMap();
 function visibleModalSurface(){return [els.assetDrawer,els.assetLibraryDrawer,els.skillDrawer,els.inspectorDrawer].find(drawer=>drawer&&!drawer.classList.contains('hidden-drawer'))?.id||'';}
@@ -1608,8 +1613,8 @@ function dismissTransientMenus(event){
   closeControlDropdowns(detailsMenu);
   if(!target.closest('.node-menu')&&!target.closest('.context-menu')&&!target.closest('#addNodeBtn'))hideMenus();
   if(els.referenceRoleMenu&&!els.referenceRoleMenu.classList.contains('hidden')&&!target.closest('#referenceRoleMenu')&&!target.closest('#referenceRoleBtn')){els.referenceRoleMenu.classList.add('hidden');renderReferenceRoleMenu();}
-  if(S.agent.skillMenuOpen||S.agent.sourceMenuOpen||S.agent.modelMenuOpen||S.agent.confirmMenuOpen){
-    if(!target.closest('#agentPromptSourceMenu,.agent-prompt-model-menu,#agentSkillBtn,[data-agent-model-trigger],#agentConfirmBar,#agentConfirmModeBtn,#agentConfirmMenu')){closeAgentPromptMenus();renderAgentModelSelect();renderAgentConfirmMode();renderAgentPromptMenu();}
+  if(S.agent.skillMenuOpen||S.agent.sourceMenuOpen||S.agent.modelMenuOpen){
+    if(!target.closest('#agentPromptSourceMenu,.agent-prompt-model-menu,#agentSkillBtn,[data-agent-model-trigger]')){closeAgentPromptMenus();renderAgentModelSelect();renderAgentPromptMenu();}
   }
   if(els.agentHistoryMenu&&!els.agentHistoryMenu.classList.contains('hidden')&&!target.closest('#agentHistoryMenu')&&!target.closest('#agentHistoryBtn'))els.agentHistoryMenu.classList.add('hidden');
   if(agentPromptToken(els.agentPromptInput?.value)&&!target.closest('#agentPromptSourceMenu')&&!target.closest('#agentPromptInput')){S.agent.promptMenuSuppressed=true;renderAgentPromptMenu();}
@@ -1661,7 +1666,7 @@ function renderNodeMenu(){
   $$('[data-node-menu-id]',els.nodeMenuContent).forEach(btn=>btn.addEventListener('click',()=>{const item=NODE_CATALOG.find(entry=>entry.id===btn.dataset.nodeMenuId),sourceId=S.menuConnectSourceId,world=S.menuWorld;hideMenus();const created=item?.create(world);if(sourceId&&created?.id){createEdge(sourceId,created.id);toast('已创建节点并自动连接');}}));
 }
 function duplicateNode(n){beginCanvasSnapshot();const c=clone(n);c.id=id();c.position={x:n.position.x+36,y:n.position.y+36};c.data={...c.data,status:'idle',progress:0,jobId:null,error:''};S.workflow.nodes.push(c);S.selectedNodeId=c.id;S.selectedNodeIds=[c.id];scheduleSave();renderCanvas();renderEdges();renderInspector();}
-function disconnectNode(n){beginCanvasSnapshot();S.workflow.edges=S.workflow.edges.filter(e=>e.source!==n.id&&e.target!==n.id);scheduleSave();renderCanvas();renderEdges();renderInspector();}
+function disconnectNode(n){beginCanvasSnapshot();const targets=[...new Set(S.workflow.edges.filter(e=>e.source===n.id).map(e=>e.target))];S.workflow.edges=S.workflow.edges.filter(e=>e.source!==n.id&&e.target!==n.id);for(const targetId of targets){const target=nodeById(targetId);if(target?.type==='imageGen')syncImageTargetCapability(target);if(target?.type==='videoGen')syncVideoTargetCapability(target);invalidateGenerationFlow(targetId);}invalidateGenerationFlow(n.id);scheduleSave();renderCanvas();renderEdges();renderInspector();}
 function showCanvasContextMenu(x,y,{nodeId=null,edgeId=null,world=null}={}){
   hideMenus();
   const node=nodeId?nodeById(nodeId):null,gen=S.workflow.nodes.filter(isGenerationNode),items=[];
@@ -1729,6 +1734,7 @@ const PROVIDER_FIELDS=[
 ];
 const AGNES_MODEL_FIELDS=[['文本','AGNES_TEXT_MODEL'],['图片','AGNES_IMAGE_MODEL'],['视频','AGNES_VIDEO_MODEL']];
 const APIMART_MODEL_GROUPS=[['text','文本'],['image','图片'],['video','视频']];
+const PROVIDER_MODEL_NONE='__none__';
 const PROVIDER_MODEL_FIELDS={
   agnes:AGNES_MODEL_FIELDS.map(([title,key])=>[title,key,[]]),
   deepseek:[['文本','DEEPSEEK_TEXT_MODEL',['deepseek-v4-pro','deepseek-v4-flash']]],
@@ -1736,28 +1742,30 @@ const PROVIDER_MODEL_FIELDS={
 };
 function apimartModelType(model){if(model.capabilities?.some(value=>value.startsWith('video.')))return'video';if(model.capabilities?.some(value=>value.startsWith('image.')))return'image';return'text';}
 function agnesModelOptions(data,type){const capability=type==='agent'?'text.generate':type==='image'?'image.generate':type==='video'?'video.generate':'text.generate';return(data.agnesModels||[]).filter(model=>model.capabilities?.includes(capability)).map(model=>model.modelId);}
-function modelSelectHtml(key,value,items){const options=[...new Set([value,...items].filter(Boolean))].map(item=>({value:item,label:item}));return appSelectMarkup({value,options,className:'provider-app-select',dataProviderKey:key,dsControl:true});}
-function apimartMultiSelectLabel(items,enabledSet){const selected=items.filter(id=>enabledSet.has(id));if(!selected.length)return'选择模型';if(selected.length===1)return selected[0];return`${selected.length} 个已选`;}
-function providerApimartMultiSelect(type,items,enabledSet){const label=apimartMultiSelectLabel(items,enabledSet),options=items.map(item=>`<button type="button" role="option" class="app-select-option provider-apimart-option ${enabledSet.has(item)?'active':''}" data-apimart-toggle="${esc(type)}" data-apimart-model-id="${esc(item)}" aria-selected="${enabledSet.has(item)}">${esc(item)}</button>`).join('');return`<details class="app-select ds-control provider-app-select provider-apimart-multi" data-apimart-group="${esc(type)}"><summary aria-expanded="false"><span class="app-select-value">${esc(label)}</span>${icon('chevron-down')}</summary><div class="app-select-popover provider-apimart-popover" role="listbox">${options}</div></details>`;}
-function updateApimartMultiSelectMenu(menu){if(!menu)return;const enabled=new Set(S.providerApimartEnabled),items=apimartSelectOptions(menu).map(btn=>btn.dataset.apimartModelId),valueLabel=menu.querySelector('.app-select-value');if(valueLabel)valueLabel.textContent=apimartMultiSelectLabel(items,enabled);apimartSelectOptions(menu).forEach(btn=>{const active=enabled.has(btn.dataset.apimartModelId);btn.classList.toggle('active',active);btn.setAttribute('aria-selected',String(active));});}
+function modelSelectHtml(key,value,items){const options=[{value:PROVIDER_MODEL_NONE,label:'无'},...[...new Set([value,...items].filter(item=>item&&item!==PROVIDER_MODEL_NONE))].map(item=>({value:item,label:item}))];return appSelectMarkup({value,options,className:'provider-app-select',dataProviderKey:key,dsControl:true});}
+function providerModelLabel(value){return value===PROVIDER_MODEL_NONE?'无':value||'无';}
+function apimartMultiSelectLabel(items,enabledSet){const selected=items.filter(id=>enabledSet.has(id));if(!selected.length)return'无';if(selected.length===1)return selected[0];return`${selected.length} 个已选`;}
+function providerApimartMultiSelect(type,items,enabledSet){const label=apimartMultiSelectLabel(items,enabledSet),noneActive=!items.some(item=>enabledSet.has(item)),options=`<button type="button" role="option" class="app-select-option provider-apimart-option ${noneActive?'active':''}" data-apimart-clear="${esc(type)}" aria-selected="${noneActive}">无</button>`+items.map(item=>`<button type="button" role="option" class="app-select-option provider-apimart-option ${enabledSet.has(item)?'active':''}" data-apimart-toggle="${esc(type)}" data-apimart-model-id="${esc(item)}" aria-selected="${enabledSet.has(item)}">${esc(item)}</button>`).join('');return`<details class="app-select ds-control provider-app-select provider-apimart-multi" data-apimart-group="${esc(type)}"><summary aria-expanded="false"><span class="app-select-value">${esc(label)}</span>${icon('chevron-down')}</summary><div class="app-select-popover provider-apimart-popover" role="listbox">${options}</div></details>`;}
+function updateApimartMultiSelectMenu(menu){if(!menu)return;const enabled=new Set(S.providerApimartEnabled),items=apimartSelectOptions(menu).map(btn=>btn.dataset.apimartModelId),valueLabel=menu.querySelector('.app-select-value'),noneActive=!items.some(item=>enabled.has(item));if(valueLabel)valueLabel.textContent=apimartMultiSelectLabel(items,enabled);menu.querySelector('[data-apimart-clear]')?.classList.toggle('active',noneActive);menu.querySelector('[data-apimart-clear]')?.setAttribute('aria-selected',String(noneActive));apimartSelectOptions(menu).forEach(btn=>{const active=enabled.has(btn.dataset.apimartModelId);btn.classList.toggle('active',active);btn.setAttribute('aria-selected',String(active));});}
 function toggleApimartModel(modelId){const enabled=new Set(S.providerApimartEnabled);if(enabled.has(modelId))enabled.delete(modelId);else enabled.add(modelId);S.providerApimartEnabled=[...enabled];}
+function clearApimartModelGroup(type){const disabled=new Set(S.apimartModels.filter(model=>apimartModelType(model)===type).map(model=>model.modelId));S.providerApimartEnabled=S.providerApimartEnabled.filter(id=>!disabled.has(id));}
 function providerById(id){return PROVIDER_FIELDS.find(p=>p.id===id);}
 function applyProviderSettingsData(data,{resetApimart=false}={}){S.providerSettingsData=data;S.providerSettings={...(data.settings||{})};S.apimartModels=data.apimartModels||[];S.providerConfigured=data.configured||{};if(resetApimart||!S.providerApimartEnabled.length)S.providerApimartEnabled=[...(data.enabledApimartModelIds||[])];}
 function syncProviderFormToState(){$$('[data-provider-key]',els.providerSettingsForm).forEach(i=>{const value=controlValue(i).trim(),key=i.dataset.providerKey;if(i.type==='password'){if(value)S.providerSettings[key]=value;return;}if(value)S.providerSettings[key]=value;else delete S.providerSettings[key];});}
-function providerStatusLabel(provider,data){const configured=Boolean(data.configured?.[provider.id]);if(provider.id==='apimart'&&configured){const enabled=(S.providerApimartEnabled.length?S.providerApimartEnabled:(data.enabledApimartModelIds||[])).length;return`已配置 · 启用 ${enabled} / ${data.apimartModels?.length||0} 个`;}return configured?'已配置':'未配置';}
-function providerModelSummaryItems(provider,data){if(provider.id==='apimart'){const models=data.apimartModels||[],enabled=new Set(S.providerApimartEnabled.length?S.providerApimartEnabled:(data.enabledApimartModelIds||[]));return APIMART_MODEL_GROUPS.map(([type,title])=>{const items=models.filter(model=>apimartModelType(model)===(type==='agent'?'text':type)).map(model=>model.modelId),selected=items.filter(id=>enabled.has(id)),value=selected.length?(selected.length===1?selected[0]:`${selected.length} 个已启用`):'未选择';return{title,value,count:items.length};});}return(PROVIDER_MODEL_FIELDS[provider.id]||[]).map(([title,key])=>({title,value:S.providerSettings[key]||'—',count:''}));}
+function providerStatusLabel(provider,data){const configured=Boolean(data.configured?.[provider.id]);if(provider.id==='apimart'&&configured){const enabled=S.providerApimartEnabled.length;return`已配置 · 启用 ${enabled} / ${data.apimartModels?.length||0} 个`;}return configured?'已配置':'未配置';}
+function providerModelSummaryItems(provider,data){if(provider.id==='apimart'){const models=data.apimartModels||[],enabled=new Set(S.providerApimartEnabled);return APIMART_MODEL_GROUPS.map(([type,title])=>{const items=models.filter(model=>apimartModelType(model)===(type==='agent'?'text':type)).map(model=>model.modelId),selected=items.filter(id=>enabled.has(id)),value=selected.length?(selected.length===1?selected[0]:`${selected.length} 个已启用`):'无';return{title,value,count:items.length};});}return(PROVIDER_MODEL_FIELDS[provider.id]||[]).map(([title,key])=>({title,value:providerModelLabel(S.providerSettings[key]),count:''}));}
 function providerFieldGrid(provider){return`<div class="provider-field-grid">${provider.fields.map(([key,label,type])=>`<label class="provider-field"><span class="provider-field-label">${esc(label)}</span><input class="ds-control-input" data-provider-key="${key}" type="${type}" value="${esc(type==='password'?'':(S.providerSettings[key]||''))}" placeholder="${type==='password'?(S.providerConfigured[provider.id]?'留空保持现有密钥':'输入 API Key'):''}"></label>`).join('')}</div>`;}
 function providerModelRow(title,selectHtml,count='',{readonly=false}={}){if(readonly)return`<div class="provider-model-row is-readonly"><span class="provider-model-kind">${esc(title)}${count?`<em>${esc(String(count))}</em>`:''}</span><span class="provider-model-value">${esc(selectHtml)}</span></div>`;return`<div class="provider-model-row"><span class="provider-model-kind">${esc(title)}${count?`<em>${esc(String(count))}</em>`:''}</span><div class="provider-model-control">${selectHtml}</div></div>`;}
-function staticProviderModelsBody(providerId,data,{readonly=false}={}){const fields=PROVIDER_MODEL_FIELDS[providerId]||[];if(!fields.length)return'';const rows=fields.map(([title,key,options])=>{const dynamic=providerId==='agnes'?agnesModelOptions(data,title==='图片'?'image':title==='视频'?'video':'text'):options,value=S.providerSettings[key]||'';return readonly?providerModelRow(title,value||'—'):providerModelRow(title,modelSelectHtml(key,value,dynamic));}).join('');return`<div class="provider-model-list">${rows}</div>`;}
-function apimartModelsBody(data,{readonly=false}={}){const models=data.apimartModels||[],enabled=new Set(S.providerApimartEnabled.length?S.providerApimartEnabled:(data.enabledApimartModelIds||[]));if(!models.length)return`<div class="provider-model-empty">${data.configured?.apimart?'未拉取到模型，请重新保存 API Key。':'输入 API Key 并保存后，可在这里按分类选择模型。'}</div>`;return`<div class="provider-model-list">${APIMART_MODEL_GROUPS.map(([type,title])=>{const items=models.filter(model=>apimartModelType(model)===(type==='agent'?'text':type)).map(model=>model.modelId),selected=items.filter(id=>enabled.has(id));return items.length?providerModelRow(title,readonly?(selected.length?(selected.length===1?selected[0]:`${selected.length} 个已启用`):'未选择'):providerApimartMultiSelect(type,items,enabled),items.length,{readonly}):'';}).join('')}</div>`;}
+function staticProviderModelsBody(providerId,data,{readonly=false}={}){const fields=PROVIDER_MODEL_FIELDS[providerId]||[];if(!fields.length)return'';const rows=fields.map(([title,key,options])=>{const dynamic=providerId==='agnes'?agnesModelOptions(data,title==='图片'?'image':title==='视频'?'video':'text'):options,value=S.providerSettings[key]||'';return readonly?providerModelRow(title,providerModelLabel(value)):providerModelRow(title,modelSelectHtml(key,value,dynamic));}).join('');return`<div class="provider-model-list">${rows}</div>`;}
+function apimartModelsBody(data,{readonly=false}={}){const models=data.apimartModels||[],enabled=new Set(S.providerApimartEnabled);if(!models.length)return`<div class="provider-model-empty">${data.configured?.apimart?'未拉取到模型，请重新保存 API Key。':'输入 API Key 并保存后，可在这里按分类选择模型。'}</div>`;return`<div class="provider-model-list">${APIMART_MODEL_GROUPS.map(([type,title])=>{const items=models.filter(model=>apimartModelType(model)===(type==='agent'?'text':type)).map(model=>model.modelId),selected=items.filter(id=>enabled.has(id));return items.length?providerModelRow(title,readonly?(selected.length?(selected.length===1?selected[0]:`${selected.length} 个已启用`):'无'):providerApimartMultiSelect(type,items,enabled),items.length,{readonly}):'';}).join('')}</div>`;}
 function providerModelsBlock(provider,data,{readonly=false}={}){return provider.id==='apimart'?apimartModelsBody(data,{readonly}):staticProviderModelsBody(provider.id,data,{readonly});}
 function renderProviderOverviewRow(provider,data){const configured=Boolean(data.configured?.[provider.id]),models=providerModelSummaryItems(provider,data),modelHtml=models.length?`<div class="provider-model-list provider-model-list--readonly">${models.map(item=>providerModelRow(item.title,item.value,item.count,{readonly:true})).join('')}</div>`:'';return`<article class="provider-overview-item"><button type="button" class="provider-overview-head" data-action="providerEdit" data-provider-id="${provider.id}"><span class="provider-overview-title"><span class="provider-status-dot ${configured?'on':''}"></span>${esc(provider.name)}</span><span class="provider-overview-meta"><span>${providerStatusLabel(provider,data)}</span>${icon('chevron-right')}</span></button>${configured?`<div class="provider-overview-body">${modelHtml}</div>`:`<div class="provider-overview-body is-minimal"><p class="provider-overview-hint">输入 API Key 后即可启用 · <span data-action="providerEdit" data-provider-id="${provider.id}">去配置</span></p></div>`}</article>`;}
 function renderProviderOverviewView(data){return`<div class="provider-overview">${PROVIDER_FIELDS.map(provider=>renderProviderOverviewRow(provider,data)).join('')}</div>`;}
 function renderProviderEditor(provider,data){const models=providerModelsBlock(provider,data),modelHint=provider.id==='apimart'?'<p class="provider-model-hint">每个分类可多选；保存后，已选模型会出现在节点生成器的模型列表中。</p>':provider.id==='agnes'&&!data.configured?.agnes?'<p class="provider-model-hint">保存 API Key 后，Agnes 可用模型会自动出现在下方下拉中。</p>':'',modelsSection=models?`<section class="provider-editor-section"><h4 class="provider-section-label">默认模型</h4>${modelHint}${models}</section>`:'';return`<div class="provider-editor"><header class="provider-editor-head"><div><h3 class="provider-editor-title">${esc(provider.name)}</h3><p class="provider-editor-status">${providerStatusLabel(provider,data)}</p></div></header><section class="provider-editor-section"><h4 class="provider-section-label">连接</h4>${providerFieldGrid(provider)}</section>${modelsSection}</div>`;}
 function renderProviderDetailView(data){const active=providerById(S.providerEditId)||PROVIDER_FIELDS[0];return`<div class="provider-detail-shell"><aside class="provider-nav" aria-label="服务商"><button type="button" class="provider-back" data-action="providerOverview">${icon('arrow-left')}<span>全部服务商</span></button>${PROVIDER_FIELDS.map(provider=>`<button type="button" class="provider-nav-item ${provider.id===active.id?'active':''}" data-action="providerNav" data-provider-id="${provider.id}"><span class="provider-status-dot ${data.configured?.[provider.id]?'on':''}"></span><span>${esc(provider.name)}</span></button>`).join('')}</aside>${renderProviderEditor(active,data)}</div>`;}
 function bindProviderSelectMenus(){$$('[data-app-select-option]',els.providerSettingsForm).forEach(option=>{if(option.dataset.providerBound)return;option.dataset.providerBound='1';option.addEventListener('click',e=>{e.stopPropagation();const menu=appSelectMenuForOption(option);if(!applyAppSelectOption(menu,option))return;syncProviderFormToState();syncProviderSaveUi();});});}
-function bindApimartSelectMenus(){$$('[data-apimart-toggle]',els.providerSettingsForm).forEach(toggle=>{if(toggle.dataset.apimartBound)return;toggle.dataset.apimartBound='1';toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const menu=appSelectMenuForNode(toggle);toggleApimartModel(toggle.dataset.apimartModelId);updateApimartMultiSelectMenu(menu);syncProviderSaveUi();});});}
-function providerSavePlan(){syncProviderFormToState();const patch={};Object.entries(S.providerSettings).forEach(([key,value])=>{const text=String(value||'').trim();if(text)patch[key]=text;});const apimartChoices=[...new Set(S.providerApimartEnabled.map(value=>String(value||'').trim()).filter(Boolean))],pullApimart=!apimartChoices.length||Object.hasOwn(patch,'APIMART_API_KEY'),savingApimartChoices=apimartChoices.length>0&&!Object.hasOwn(patch,'APIMART_API_KEY'),apimartRelevant=Boolean(patch.APIMART_API_KEY||S.providerConfigured?.apimart||S.providerEditId==='apimart'||apimartChoices.length);return{patch,apimartChoices,pullApimart,savingApimartChoices,apimartRelevant};}
+function bindApimartSelectMenus(){$$('[data-apimart-toggle]',els.providerSettingsForm).forEach(toggle=>{if(toggle.dataset.apimartBound)return;toggle.dataset.apimartBound='1';toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const menu=appSelectMenuForNode(toggle);toggleApimartModel(toggle.dataset.apimartModelId);updateApimartMultiSelectMenu(menu);syncProviderSaveUi();});});$$('[data-apimart-clear]',els.providerSettingsForm).forEach(button=>{if(button.dataset.apimartBound)return;button.dataset.apimartBound='1';button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const menu=appSelectMenuForNode(button);clearApimartModelGroup(button.dataset.apimartClear);updateApimartMultiSelectMenu(menu);syncProviderSaveUi();});});}
+function providerSavePlan(){syncProviderFormToState();const patch={};Object.entries(S.providerSettings).forEach(([key,value])=>{const text=String(value||'').trim();if(text)patch[key]=text;});const apimartChoices=[...new Set(S.providerApimartEnabled.map(value=>String(value||'').trim()).filter(Boolean))],editingApimart=S.providerEditId==='apimart';if(editingApimart)patch.APIMART_ENABLED_MODELS=apimartChoices.join(',');const pullApimart=Object.hasOwn(patch,'APIMART_API_KEY'),savingApimartChoices=editingApimart&&!pullApimart,apimartRelevant=Boolean(patch.APIMART_API_KEY||S.providerConfigured?.apimart||editingApimart);return{patch,apimartChoices,pullApimart,savingApimartChoices,apimartRelevant};}
 function providerSaveButtonLabel(plan=providerSavePlan()){if(plan.pullApimart&&plan.apimartRelevant)return'保存并拉取模型';if(plan.savingApimartChoices)return'保存选择';return'保存配置';}
 function providerSavePendingLabel(plan=providerSavePlan()){if(plan.pullApimart&&plan.apimartRelevant)return'正在保存并拉取模型…';if(plan.savingApimartChoices)return'正在保存选择…';return'正在保存…';}
 function providerSaveDoneLabel(result,plan){if(plan.pullApimart&&(result.configured?.apimart||Object.hasOwn(plan.patch,'APIMART_API_KEY')))return`模型配置已保存，APIMart 已拉取 ${result.apimartModels?.length||0} 个，启用 ${result.enabledApimartModelIds?.length||0} 个`;return'模型配置已保存';}
@@ -1765,7 +1773,7 @@ function syncProviderSaveUi(){if(els.providerSaveBtn)els.providerSaveBtn.textCon
 function wireProviderSettingsUi(){if(els.providerSettingsForm.dataset.wired)return;els.providerSettingsForm.dataset.wired='1';els.providerSettingsForm.addEventListener('input',e=>{if(e.target.matches('[data-provider-key]'))syncProviderSaveUi();});els.providerSettingsForm.addEventListener('click',e=>{const target=e.target.closest('[data-action="providerEdit"],[data-action="providerOverview"],[data-action="providerNav"]');if(!target)return;e.preventDefault();if(target.dataset.action==='providerOverview'){syncProviderFormToState();S.providerSettingsView='overview';S.providerEditId=null;renderProviderSettings();return;}syncProviderFormToState();S.providerSettingsView='detail';S.providerEditId=target.dataset.providerId||S.providerEditId;renderProviderSettings();});}
 function renderProviderSettings(data){if(data)applyProviderSettingsData(data,{resetApimart:Boolean(data.enabledApimartModelIds||data.apimartModels)});data=S.providerSettingsData||{settings:{},configured:{},apimartModels:[],enabledApimartModelIds:[]};if(S.providerSettingsView==='detail'&&!S.providerEditId)S.providerEditId=PROVIDER_FIELDS[0].id;els.providerSettingsForm.classList.toggle('is-detail',S.providerSettingsView==='detail');els.providerModal?.classList.toggle('is-provider-detail',S.providerSettingsView==='detail');els.providerSettingsForm.innerHTML=S.providerSettingsView==='detail'?renderProviderDetailView(data):renderProviderOverviewView(data);bindProviderSelectMenus();bindApimartSelectMenus();wireProviderSettingsUi();syncProviderSaveUi();}
 async function openProviderSettings(){prepareModalOpen(els.providerModal);const loadId=++providerSettingsLoadId;S.providerSettingsView='overview';S.providerEditId=null;S.providerApimartEnabled=[];els.providerSettingsForm.classList.remove('is-detail');els.providerModal?.classList.remove('is-provider-detail');els.providerSettingsForm.innerHTML='<div class="empty-state provider-settings-loading" role="status">正在加载配置…</div>';els.providerSaveStatus.textContent='';els.providerSaveBtn.disabled=true;els.providerModal.classList.remove('hidden');requestAnimationFrame(()=>els.providerModalClose?.focus());try{const data=await api('/api/provider-settings');if(loadId!==providerSettingsLoadId||els.providerModal.classList.contains('hidden'))return;renderProviderSettings(data);els.providerSaveStatus.textContent='';els.providerSaveBtn.disabled=false;}catch(e){if(loadId!==providerSettingsLoadId||els.providerModal.classList.contains('hidden'))return;els.providerSettingsForm.innerHTML='<div class="empty-state provider-settings-loading">配置加载失败</div>';els.providerSaveStatus.textContent='配置加载失败';toast(e.message,'error');}}
-async function saveProviderSettings(){const plan=providerSavePlan(),{patch,apimartChoices,pullApimart}=plan;if(apimartChoices.length)patch.APIMART_ENABLED_MODELS=apimartChoices.join(',');['TEXT','IMAGE','VIDEO'].forEach(type=>delete patch[`APIMART_${type}_MODEL`]);if(pullApimart)patch.APIMART_REFRESH_MODELS='1';els.providerSaveStatus.textContent=providerSavePendingLabel(plan);try{const result=await api('/api/provider-settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(patch)});S.models=result.models||[];S.providerApimartEnabled=[...(result.enabledApimartModelIds||[])];renderProviderSettings(result);els.providerSaveStatus.textContent=providerSaveDoneLabel(result,plan);renderCanvas();renderEdges();}catch(e){els.providerSaveStatus.textContent=e.message;toast(e.message,'error');}}
+async function saveProviderSettings(){const plan=providerSavePlan(),{patch,pullApimart}=plan;['TEXT','IMAGE','VIDEO'].forEach(type=>delete patch[`APIMART_${type}_MODEL`]);if(pullApimart)patch.APIMART_REFRESH_MODELS='1';els.providerSaveStatus.textContent=providerSavePendingLabel(plan);try{const result=await api('/api/provider-settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(patch)});S.models=result.models||[];S.providerApimartEnabled=[...(result.enabledApimartModelIds||[])];renderProviderSettings(result);els.providerSaveStatus.textContent=providerSaveDoneLabel(result,plan);renderCanvas();renderEdges();}catch(e){els.providerSaveStatus.textContent=e.message;toast(e.message,'error');}}
 
 /* ---------------- Native creative Agent ---------------- */
 function agentModels(){return S.models.filter(model=>model.capabilities?.includes('text.generate'));}
@@ -1783,15 +1791,14 @@ const AGENT_PROMPT_COMMANDS=[
   {name:'润色表达',desc:'让现有创意更清晰、更有感染力',insert:'帮我润色这段创意表达'},
 ];
 function agentSkillItems(){return(S.skills||[]).slice().sort((a,b)=>Number(Boolean(a.source?.provider))-Number(Boolean(b.source?.provider))||String(a.name||'').localeCompare(String(b.name||''),'zh')).map(skill=>({name:skill.name,desc:'',title:skillCardBlurb(skill)||String(skill.description||'').trim()||skill.name,skillId:skill.id}));}
-function agentPromptToken(value){const match=/(^|\s)(@)([\w\u4e00-\u9fff-]*)$/.exec(String(value||''));return match?{kind:match[2],query:match[3].toLowerCase(),start:match.index+match[1].length}:null;}
-function closeAgentPromptMenus({keep}={}){if(keep!=='source')S.agent.sourceMenuOpen=false;if(keep!=='skill')S.agent.skillMenuOpen=false;if(keep!=='model')S.agent.modelMenuOpen=false;if(keep!=='confirm')S.agent.confirmMenuOpen=false;}
+function agentPromptToken(value){const match=/(^|\s)([@/])([\w\u4e00-\u9fff-]*)$/.exec(String(value||''));return match?{kind:match[2],query:match[3].toLowerCase(),start:match.index+match[1].length}:null;}
+function closeAgentPromptMenus({keep}={}){if(keep!=='source')S.agent.sourceMenuOpen=false;if(keep!=='skill')S.agent.skillMenuOpen=false;if(keep!=='model')S.agent.modelMenuOpen=false;}
 function agentModelIconName(model){return modelBrandIconName(model);}
 function agentModelIcon(model){return modelBrandIcon(model,'agent-model-icon');}
 function syncAgentPromptMenuLayout(){
   els.agentPromptForm?.classList.toggle('is-model-menu-open',Boolean(S.agent.modelMenuOpen));
   els.agentPromptForm?.classList.toggle('is-source-menu-open',Boolean(S.agent.sourceMenuOpen));
   els.agentPromptForm?.classList.toggle('is-skill-menu-open',Boolean(S.agent.skillMenuOpen));
-  els.agentPromptForm?.classList.toggle('is-confirm-menu-open',Boolean(S.agent.confirmMenuOpen));
   els.agentSkillBtn?.classList.toggle('is-active',Boolean(S.agent.skillMenuOpen));
   els.agentSkillBtn?.setAttribute('aria-expanded',String(Boolean(S.agent.skillMenuOpen)));
 }
@@ -1816,61 +1823,10 @@ function renderAgentSkillChip(){
   els.agentSkillChip.innerHTML=`<strong class="agent-skill-chip-name">${esc(skill.name)}</strong><span class="agent-skill-chip-version">v${version}</span><button type="button" class="agent-skill-chip-clear" data-agent-skill-clear title="取消技能" aria-label="取消技能">${icon('x')}</button>`;
   renderAgentSkillInputHint();
 }
-function skillRequiredInputGaps(skill,message=''){
-  const gaps=[];
-  const attachments=S.agent.attachments||[];
-  const text=String(message||els.agentPromptInput?.value||'').trim();
-  for(const input of skill?.inputs||[]){
-    if(!input?.required)continue;
-    if(input.id==='productImage'||(input.type==='asset'&&(input.accept||[]).includes('image')&&input.id!=='referenceAsset')){
-      if(!attachments.some(asset=>asset.kind==='image')&&!S.assets.some(asset=>asset.kind==='image'))gaps.push(input.label||'产品图片');
-      continue;
-    }
-    if(input.type==='text'&&['sellingPoints','instruction'].includes(input.id)){
-      if(!text)gaps.push(input.label||'创作描述');
-    }
-  }
-  return [...new Set(gaps)];
-}
 function renderAgentSkillInputHint(){
   if(!els.agentSkillInputHint)return;
-  const skill=(S.skills||[]).find(item=>item.id===S.agent.skillId);
-  if(!skill){els.agentSkillInputHint.classList.add('hidden');els.agentSkillInputHint.innerHTML='';return;}
-  const gaps=skillRequiredInputGaps(skill);
-  if(!gaps.length){els.agentSkillInputHint.classList.add('hidden');els.agentSkillInputHint.innerHTML=`<span>已选 Skill · 必填输入已齐</span>`;return;}
-  els.agentSkillInputHint.classList.remove('hidden');
-  els.agentSkillInputHint.innerHTML=`<strong>缺少必填输入</strong><span>${esc(gaps.join('、'))}</span>`;
-}
-function renderAgentConfirmMode(){
-  if(!els.agentConfirmModeBtn)return;
-  const mode=S.agent.confirmMode==='auto'?'auto':'manual';
-  const open=Boolean(S.agent.confirmMenuOpen);
-  const label=mode==='auto'?'自动生成':'手动确认';
-  const iconName=mode==='auto'?'bolt':'hand-click';
-  els.agentConfirmModeBtn.classList.toggle('is-auto',mode==='auto');
-  els.agentConfirmModeBtn.setAttribute('aria-expanded',String(open));
-  els.agentConfirmModeBtn.setAttribute('aria-label',label);
-  els.agentConfirmModeBtn.title=`确认模式：${label}`;
-  els.agentConfirmModeBtn.dataset.tooltip=`确认模式：${label}`;
-  const iconEl=els.agentConfirmModeBtn.querySelector('[data-agent-confirm-icon]')||els.agentConfirmModeBtn.querySelector('.ui-icon');
-  if(iconEl)iconEl.style.setProperty('--icon',`url('/vendor/icons/${iconName}.svg')`);
-  els.agentConfirmMenu?.classList.toggle('hidden',!open);
-  $$('[data-agent-confirm-mode]',els.agentConfirmMenu).forEach(option=>{
-    const active=option.dataset.agentConfirmMode===mode;
-    option.classList.toggle('active',active);
-    option.setAttribute('aria-checked',String(active));
-    let check=option.querySelector('.agent-confirm-option-check');
-    if(active){
-      if(!check){check=document.createElement('span');check.className='agent-confirm-option-check';check.textContent='✓';option.appendChild(check);}
-    }else if(check)check.remove();
-  });
-  syncAgentPromptMenuLayout();
-}
-function setAgentConfirmMode(mode){
-  S.agent.confirmMode=mode==='auto'?'auto':'manual';
-  localStorage.setItem('libtv.agentConfirmMode',S.agent.confirmMode);
-  S.agent.confirmMenuOpen=false;
-  renderAgentConfirmMode();
+  els.agentSkillInputHint.classList.add('hidden');
+  els.agentSkillInputHint.innerHTML='';
 }
 function agentAttachmentMediaMarkup(asset,className=''){
   const source=esc(asset?.publicUrl||''),label=esc(asset?.filename||'参考文件');
@@ -1899,7 +1855,6 @@ function renderAgentAttachmentPreview(){
 }
 function renderAgentPromptMenu(){
   if(!els.agentPromptSourceMenu)return;
-  renderAgentConfirmMode();
   renderAgentSkillChip();
   renderAgentAttachmentPreview();
   const {token,rows}=agentPromptMenuRows(),visible=rows.length>0&&!S.agent.promptMenuSuppressed&&(S.agent.skillMenuOpen||S.agent.sourceMenuOpen||token);
@@ -1952,78 +1907,26 @@ function agentOutputMarkup(message){
   const visible=message.revealing?message.visibleText||'':message.text||'';
   const actions=ready?`<div class="agent-output-actions"><button type="button" data-agent-message-copy="${esc(message.id)}" aria-label="复制回复" title="复制">${icon('copy')}</button><button type="button" data-agent-message-retry="${esc(message.id)}" aria-label="重新生成" title="重新生成">${icon('refresh')}</button>${sources.length?`<button type="button" class="agent-sources-toggle" data-agent-sources-toggle="${esc(message.id)}" aria-expanded="${message.sourcesOpen===true}"><span>${sources.slice(0,3).map(source=>`<span class="agent-source-dot" title="${esc(source.label||source.title||'来源')}"></span>`).join('')}</span>${sources.length} 个来源</button>`:''}</div>`:'';
   const sourceList=ready&&sources.length?`<div class="agent-sources ${message.sourcesOpen===true?'is-open':''}"><div>${sources.map(agentSourceMarkup).join('')}</div></div>`:'';
-  const clarify=ready&&questions.length?`<div class="agent-clarifying-questions"><strong>先确认几个信息</strong>${questions.map(item=>`<p>${icon('help-circle')}<span>${agentInlineMarkdown(item)}</span></p>`).join('')}</div>`:'';
-  const follow=ready&&followUps.length?`<div class="agent-follow-ups"><strong>继续追问</strong><div class="agent-follow-up-list">${followUps.map((item,index)=>`<button type="button" data-agent-follow-up="${esc(item)}" style="animation-delay:${index*70}ms"><span>${agentInlineMarkdown(item)}</span></button>`).join('')}</div></div>`:'';
-  const textMarkup=message.revealing?`<p class="agent-stream-preview">${esc(visible)}</p>`:agentMessageText(visible);
-  return `<div class="agent-output-text">${textMarkup}${message.revealing?'<span class="agent-stream-caret" aria-hidden="true"></span>':''}</div>${actions}${sourceList}${clarify}${follow}`;
-}
-function agentApprovalAnswer(approval,question){
-  approval.answers??={};
-  return approval.answers[question.id]||(approval.answers[question.id]={values:[],custom:''});
-}
-function agentApprovalHasAnswer(approval,question){const answer=agentApprovalAnswer(approval,question);return answer.values.length>0||Boolean(String(answer.custom||'').trim());}
-function agentApprovalMarkup(approval){
-  if(!approval)return'';
-  if(approval.status==='submitted')return`<div class="agent-approval-sent">${icon('check')}<span>已提交，正在继续</span></div>`;
-  if(approval.status==='dismissed')return`<div class="agent-approval-sent is-muted"><span>已暂缓这次行动</span></div>`;
-  const questions=approval.questions||[],index=Math.max(0,Math.min(Number(approval.index||0),questions.length-1)),question=questions[index];if(!question)return'';
-  const answer=agentApprovalAnswer(approval,question),last=index===questions.length-1,hasAnswer=agentApprovalHasAnswer(approval,question);
-  const options=(question.options||[]).map((option,optionIndex)=>{const value=String(option.value??option.label??option),label=option.label??option,on=answer.values.includes(value);return`<button type="button" class="agent-approval-option ${on?'is-selected':''}" data-agent-approval-option="${esc(approval.id)}" data-agent-approval-option-index="${optionIndex}" aria-pressed="${on}"><span class="agent-approval-control ${question.type==='check'?'is-check':''}">${on?icon('check'):''}</span><span>${esc(label)}</span></button>`;}).join('');
-  const custom=question.allowCustom?`<label class="agent-approval-custom"><span></span><input data-agent-approval-custom="${esc(approval.id)}" value="${esc(answer.custom||'')}" placeholder="输入其他答案…" aria-label="其他答案"></label>`:'';
-  const dots=questions.map((_,i)=>`<button type="button" data-agent-approval-page="${esc(approval.id)}" data-agent-approval-page-index="${i}" class="${i===index?'is-current':i<index?'is-done':''}" aria-label="第 ${i+1} 个问题" aria-current="${i===index?'step':'false'}"></button>`).join('');
-  return `<section class="agent-approval-card" data-agent-approval="${esc(approval.id)}"><div class="agent-approval-body"><div class="agent-approval-head"><strong>${esc(question.q)}</strong><button type="button" data-agent-approval-dismiss="${esc(approval.id)}" aria-label="暂不执行">${icon('x')}</button></div><div class="agent-approval-options">${options}${custom}</div></div><footer><div class="agent-approval-pager"><button type="button" data-agent-approval-prev="${esc(approval.id)}" ${index===0?'disabled':''} aria-label="上一个问题">${icon('chevron-left')}</button><span>${dots}</span><button type="button" data-agent-approval-next="${esc(approval.id)}" ${last?'disabled':''} aria-label="下一个问题">${icon('chevron-right')}</button></div><button type="button" class="agent-approval-send" data-agent-approval-submit="${esc(approval.id)}" ${hasAnswer?'':'disabled'} aria-label="${last?'提交答案':'下一个问题'}">${icon('arrow-up')}</button></footer></section>`;
+  const clarification=ready&&questions.length?`需要补充的信息：\n${questions.map((item,index)=>`${index+1}. ${item}`).join('\n')}`:'';
+  const followUp=ready&&followUps.length?`你也可以继续告诉我：\n${followUps.map((item,index)=>`${index+1}. ${item}`).join('\n')}`:'';
+  const text=ready?[visible,clarification,followUp].filter(Boolean).join('\n\n'):visible;
+  const textMarkup=message.revealing?`<p class="agent-stream-preview">${esc(visible)}</p>`:agentMessageText(text);
+  return `<div class="agent-output-text">${textMarkup}${message.revealing?'<span class="agent-stream-caret" aria-hidden="true"></span>':''}</div>${actions}${sourceList}`;
 }
 function skillRunStepLabel(stepId){
   return ({anchor:'创意锚点',storyboard:'分镜脚本',keyframes:'关键帧',videos:'首帧视频',audio:'声音方案',timeline:'时间线',run:'运行'})[stepId]||stepId;
 }
 function skillRunStatusLabel(status){
-  return ({queued:'待开始',processing:'进行中',awaiting_confirmation:'等待确认',succeeded:'已完成',failed:'失败',canceled:'已取消'})[status]||status||'待开始';
-}
-function agentTaskBadge(status,index){
-  const check='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
-  const fail='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-  if(status==='succeeded')return `<span class="agent-task-badge is-ok" aria-hidden="true">${check}</span>`;
-  if(status==='failed')return `<span class="agent-task-badge is-bad" aria-hidden="true">${fail}</span>`;
-  if(status==='processing'||status==='awaiting_confirmation'){
-    return `<span class="agent-task-badge is-spin" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="var(--agent-line)" stroke-width="2"/><circle cx="12" cy="12" r="10" fill="none" stroke="var(--agent-ink-3)" stroke-width="2" stroke-linecap="round" stroke-dasharray="18 44"/></svg><span>${index+1}</span></span>`;
-  }
-  return `<span class="agent-task-badge is-idle" aria-hidden="true">${index+1}</span>`;
+  return ({queued:'待开始',processing:'进行中',succeeded:'已完成',failed:'失败',canceled:'已取消'})[status]||status||'待开始';
 }
 function agentSkillRunMarkup(skillRun){
-  /* BeautifulUI Task Rows (Capsules) → SkillRun 步骤 */
   if(!skillRun)return'';
   const skill=(S.skills||[]).find(item=>item.id===skillRun.skillId);
   const runId=skillRun.runId||skillRun.id||'';
   const createdIds=[...(skillRun.createdNodeIds||[])].filter(Boolean);
   const steps=Array.isArray(skillRun.steps)?skillRun.steps:[];
-  const pauseLabel=skillRun.pauseAt==='keyframes'?'关键帧生成':skillRun.pauseAt==='videos'?'批量视频生成':'';
   const failedStep=(steps||[]).find(step=>step.status==='failed');
   const failedShotNodes=(S.workflow.nodes||[]).filter(node=>node.data?.skillRunId===runId&&['failed','error'].includes(String(node.data?.status||'')));
-  const rows=steps.length?steps:[{id:'run',status:skillRun.status||'queued',nodeIds:createdIds}];
-  const openDefault=rows.findIndex(step=>['processing','awaiting_confirmation','failed'].includes(step.status||''));
-  const rowsMarkup=rows.map((step,index)=>{
-    const status=step.status||'queued';
-    const nodeCount=Array.isArray(step.nodeIds)?step.nodeIds.length:(step.id==='run'?createdIds.length:0);
-    const amount=nodeCount?`${nodeCount} 节点`:'';
-    const pill=status==='succeeded'
-      ?`<span class="agent-task-pill is-ok">已完成</span>`
-      :status==='failed'
-        ?`<span class="agent-task-pill is-bad">失败</span>`
-        :status==='awaiting_confirmation'
-          ?`<span class="agent-task-pill is-warn">等待确认</span>`
-          :status==='processing'
-            ?`<span class="agent-task-pill is-run">进行中</span>`
-            :'';
-    const details=[
-      amount?{label:'画布节点',meta:amount}:null,
-      step.error?{label:'错误',meta:String(step.error)}:null,
-      skillRun.pauseAt===step.id?{label:'确认点',meta:pauseLabel||'等待继续'}:null,
-      status==='queued'?{label:'状态',meta:'排队中'}:null,
-    ].filter(Boolean);
-    if(!details.length)details.push({label:'状态',meta:skillRunStatusLabel(status)});
-    const open=index===openDefault;
-    return `<div class="agent-task-row is-${esc(status)}${open?' is-open':''}" style="animation-delay:${index*80}ms"><button type="button" class="agent-task-row-btn" data-agent-task-toggle aria-expanded="${open?'true':'false'}">${agentTaskBadge(status,index)}<span class="agent-task-label">${esc(skillRunStepLabel(step.id))}</span>${amount?`<span class="agent-task-amount">${esc(amount)}</span>`:''}${pill}<span class="agent-task-chevron" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="agent-task-details"><div class="agent-task-details-inner"><span class="agent-task-rail" aria-hidden="true"></span><div class="agent-task-detail-list">${details.map(d=>`<div class="agent-task-detail"><span>${esc(d.label)}</span><span>${esc(d.meta)}</span></div>`).join('')}</div></div></div></div>`;
-  }).join('');
   const primary=[];
   const secondary=[];
   if(!skillRunIsTerminal(skillRun))primary.push(`<button type="button" class="agent-card-link danger" data-agent-skill-cancel="${esc(runId)}">停止</button>`);
@@ -2032,16 +1935,15 @@ function agentSkillRunMarkup(skillRun){
   if(failedShotNodes.length)failedShotNodes.slice(0,2).forEach(node=>secondary.push(`<button type="button" class="agent-card-link" data-agent-skill-retry="${esc(runId)}" data-agent-skill-shot="${esc(node.data?.shotId||node.data?.storyboardShot||'')}" data-agent-skill-step="${esc(node.data?.stepId||'')}">重试 ${esc(node.data?.shotId||node.data?.title||'镜头')}</button>`));
   else if(failedStep)secondary.push(`<button type="button" class="agent-card-link" data-agent-skill-retry="${esc(runId)}" data-agent-skill-step="${esc(failedStep.id)}">重试 ${esc(skillRunStepLabel(failedStep.id))}</button>`);
   const actions=[...primary,...secondary].join('');
-  const headMeta=[skillRunStatusLabel(skillRun.status),skillRun.confirmMode==='manual'?'手动确认':'',createdIds.length?`${createdIds.length} 个节点`:''].filter(Boolean).join(' · ');
-  if(skillRun.pauseAt&&skillRun.approval?.phase!==skillRun.pauseAt)skillRun.approval={id:`skill-${runId}-${skillRun.pauseAt}`,status:'pending',index:0,answers:{},action:{type:'continue_skill',runId,phase:skillRun.pauseAt},questions:[{id:'continue',q:`${pauseLabel||'下一阶段'}会继续创建生成任务，要继续吗？`,type:'radio',options:[{label:'继续执行',value:'continue'},{label:'暂不执行',value:'cancel'}]}],phase:skillRun.pauseAt};
-  return `<div class="agent-skill-run-summary agent-task-rows" data-skill-run="${esc(runId)}"><div class="agent-task-rows-head"><strong>${esc(skill?.name||'技能运行')}</strong>${headMeta?`<small>${esc(headMeta)}${skillRun.error?` · ${esc(skillRun.error)}`:''}</small>`:''}</div><div class="agent-task-rows-list">${rowsMarkup}</div>${actions?`<div class="agent-skill-run-actions">${actions}</div>`:''}</div>${skillRun.pauseAt?agentApprovalMarkup(skillRun.approval):''}`;
+  const status=[skillRunStatusLabel(skillRun.status),skillRun.error].filter(Boolean).join(' · ');
+  return actions?`<div class="agent-skill-run-summary agent-skill-run-compact" data-skill-run="${esc(runId)}"><span>${esc(skill?.name||'技能运行')} · ${esc(status||'运行中')}</span><div class="agent-skill-run-actions">${actions}</div></div>`:'';
 }
 function agentMessageMarkup(message){
   const assistant=message.role==='assistant';
-  const thinking=message.thinking&&!message.text&&!message.approval;
+  const thinking=message.thinking&&!message.text;
   const skillRun=message.skillRun||null;
-  const content=thinking?`<div class="agent-thinking-state" role="status" aria-live="polite">${generationLoaderGridMarkup()}<span class="generation-loading-label agent-thinking-label">正在整理创意…</span></div>`:agentMessageAttachmentsMarkup(message.attachments)+(assistant?agentOutputMarkup(message):agentMessageText(message.text));
-  return `<article class="agent-message ${assistant?'agent-message-assistant':'agent-message-user'} ${message.thinking?'is-thinking':''}" data-agent-message="${esc(message.id)}"><div class="agent-message-body">${content}${agentApprovalMarkup(message.approval)}${agentSkillRunMarkup(skillRun)}</div></article>`;
+  const content=thinking?`<div class="agent-thinking-state" role="status" aria-live="polite">${generationLoaderGridMarkup()}<span class="generation-loading-label agent-thinking-label">${esc(message.thinkingText||'正在整理创意…')}</span></div>`:agentMessageAttachmentsMarkup(message.attachments)+(assistant?agentOutputMarkup(message):agentMessageText(message.text));
+  return `<article class="agent-message ${assistant?'agent-message-assistant':'agent-message-user'} ${message.thinking?'is-thinking':''}" data-agent-message="${esc(message.id)}"><div class="agent-message-body">${content}${agentSkillRunMarkup(skillRun)}</div></article>`;
 }
 function renderAgentConversationTitle(){
   if(!els.agentConversationTitle)return;
@@ -2262,8 +2164,7 @@ async function resumePersistedSkillRuns(projectId){
   if(S.projectId!==projectId)return;
   const resuming=S.agent.resumingSkillRuns||(S.agent.resumingSkillRuns=new Set());
   for(const run of runs){
-    if(!run.autoRun||skillRunIsTerminal(run)||run.pauseAt)continue;
-    if(run.status==='queued'&&run.confirmMode==='manual')continue;
+    if(!run.autoRun||skillRunIsTerminal(run))continue;
     const phase=skillRunNextPhase(run),runId=run.runId||run.id;
     if(!phase||!runId||resuming.has(runId))continue;
     resuming.add(runId);
@@ -2277,7 +2178,7 @@ async function loadAgentConversation(conversationId){
   S.agent.conversationId=conversation.id;S.agent.messages=conversation.messages||[];S.agent.skillId='';S.agent.skillVersion=null;S.agent.attachments=[];renderAgentHistory();renderAgentMessages();renderAgentPromptMenu();
 }
 async function loadAgentConversations(projectId){
-  S.agent={...S.agent,conversations:[],conversationId:'',messages:[],skillId:'',skillVersion:null,attachments:[],busy:false,error:'',uploadFromPrompt:false,activeSkillRun:null,skillRuns:[],canceledSkillRuns:new Set(),resumingSkillRuns:new Set(),modelKey:S.agent.modelKey||localStorage.getItem('libtv.agentModel')||'',confirmMode:S.agent.confirmMode||(localStorage.getItem('libtv.agentConfirmMode')==='auto'?'auto':'manual')};
+  S.agent={...S.agent,conversations:[],conversationId:'',messages:[],skillId:'',skillVersion:null,attachments:[],busy:false,error:'',uploadFromPrompt:false,activeSkillRun:null,skillRuns:[],canceledSkillRuns:new Set(),resumingSkillRuns:new Set(),modelKey:S.agent.modelKey||localStorage.getItem('libtv.agentModel')||''};
   try{const data=await api(`/api/projects/${encodeURIComponent(projectId)}/creative-agent/conversations`);S.agent.conversations=data.conversations||[];const preferred=S.agent.conversations.find(item=>item.id===S.agent.conversationId)||S.agent.conversations[0];if(preferred)await loadAgentConversation(preferred.id);else{renderAgentHistory();renderAgentMessages();}}catch(error){toast(`创意会话暂时不可用：${error.message}`,'error');renderAgentMessages();}
 }
 async function renameAgentConversation(conversationId){
@@ -2318,26 +2219,17 @@ function startAgentTextReveal(message){
   const updateOutput=()=>{const preview=els.agentMessages?.querySelector(`[data-agent-message="${CSS.escape(message.id)}"] .agent-stream-preview`);if(!preview)return false;const stickToBottom=agentMessagesNearBottom(els.agentMessages);preview.textContent=message.visibleText;if(stickToBottom)els.agentMessages.scrollTop=els.agentMessages.scrollHeight;return true;};
   const timer=setInterval(()=>{if(!(S.agent.messages||[]).includes(message)){clearInterval(timer);return;}index=Math.min(tokens.length,index+2);message.visibleText=tokens.slice(0,index).join('');if(!updateOutput()){clearInterval(timer);return;}if(index>=tokens.length){clearInterval(timer);message.revealing=false;message.visibleText='';renderAgentMessages();}},45);
 }
-function createAgentApproval(intent,skill,gaps=[]){
-  const missingImage=gaps.some(gap=>gap.includes('图片'));
-  const question=missingImage
-    ?{id:'missing-image',q:'执行前还缺少产品图片，要先补充吗？',type:'radio',options:[{label:'选择并上传图片',value:'upload'},{label:'暂不执行',value:'cancel'}]}
-    :{id:'approve',q:`「${skill?.name||'这个 Skill'}」会向当前画布添加节点并开始执行，要继续吗？`,type:'radio',options:[{label:'继续执行',value:'continue'},{label:'暂不执行',value:'cancel'}]};
-  return{id:`approval-${crypto.randomUUID()}`,status:'pending',index:0,answers:{},action:{type:'apply_skill',...intent},questions:[question]};
-}
-function findAgentApproval(approvalId){
-  for(const message of S.agent.messages||[]){if(message.approval?.id===approvalId)return{approval:message.approval,message};const runApproval=message.skillRun?.approval;if(runApproval?.id===approvalId)return{approval:runApproval,message};}
-  return{};
-}
 async function executeAgentMessage(intent,{appendUser=true}={}){
-  const {message,attachments=[],providerId='',modelId='',skillId='',skillVersion=null,confirmMode='auto'}=intent,productAssetId=attachments.find(asset=>asset.kind==='image')?.id||'';
-  S.agent.busy=true;S.agent.error='';closeAgentPromptMenus();S.agent.confirmMenuOpen=false;renderAgentPromptMenu();syncStudioChrome();await ensureAgentConversation();
+  const {message,attachments=[],providerId='',modelId='',skillId='',skillVersion=null}=intent,productAssetId=attachments.find(asset=>asset.kind==='image')?.id||'';
+  S.agent.busy=true;S.agent.error='';closeAgentPromptMenus();renderAgentPromptMenu();syncStudioChrome();await ensureAgentConversation();
   if(appendUser)S.agent.messages=[...(S.agent.messages||[]),{id:`local-${crypto.randomUUID()}`,role:'user',text:message,attachments,createdAt:new Date().toISOString()}];
   const pending={id:`pending-${crypto.randomUUID()}`,role:'assistant',text:'',thinking:true,createdAt:new Date().toISOString()};S.agent.messages.push(pending);renderAgentMessages();
+  const requestController=new AbortController(),requestTimeout=setTimeout(()=>requestController.abort(),75_000);
   try{
-    const response=await fetch(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(S.agent.conversationId)}/messages`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,providerId,modelId,...(attachments.length?{attachments}:{}),...(skillId?{skillId,skillVersion,confirmMode,...(productAssetId?{productAssetId}:{})}: {})})});
+    const response=await fetch(`/api/projects/${encodeURIComponent(S.projectId)}/creative-agent/conversations/${encodeURIComponent(S.agent.conversationId)}/messages`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,providerId,modelId,...(attachments.length?{attachments}:{}),...(skillId?{skillId,skillVersion,...(productAssetId?{productAssetId}:{})}: {})}),signal:requestController.signal});
     if(!response.ok){const body=await response.json().catch(()=>({}));throw Object.assign(new Error(body.message||body.error||`${response.status} ${response.statusText}`),{missingFields:body.missingFields});}
     const reader=response.body?.getReader();if(!reader)throw new Error('Agent 没有返回可读取的响应');const decoder=new TextDecoder(),state={buffer:''};let doneMessage=null,doneWorkflow=null,doneSkillRun=null,streamFailed=false;const handle=(event,data)=>{
+      if(event==='thinking'){pending.thinking=true;pending.thinkingText=String(data.message||'正在整理创意…');renderAgentMessages();}
       if(event==='delta')pending.previewText=String(data.text||'');
       if(event==='error'){streamFailed=true;pending.thinking=false;pending.text=`这次没有完成：${data.error||'未知错误'}${Array.isArray(data.missingFields)&&data.missingFields.length?`（缺少：${data.missingFields.join('、')}）`:''}`;pending.error=data.error||'';S.agent.error=data.error||'';renderAgentMessages();}
       if(event==='done'){doneMessage=data.message;doneWorkflow=data.workflow||null;doneSkillRun=data.skillRun||data.message?.skillRun||null;}
@@ -2347,29 +2239,15 @@ async function executeAgentMessage(intent,{appendUser=true}={}){
     if(doneMessage){Object.assign(pending,doneMessage,{thinking:false});S.agent.attachments=[];renderAgentPromptMenu();startAgentTextReveal(pending);}
     const title=doneSkillRun?.skillId?((S.skills||[]).find(skill=>skill.id===doneSkillRun.skillId)?.name||message.slice(0,48)):message.slice(0,48);
     S.agent.conversations=[{id:S.agent.conversationId,title,updatedAt:new Date().toISOString()},...(S.agent.conversations||[]).filter(item=>item.id!==S.agent.conversationId)];renderAgentHistory();renderAgentConversationTitle();
-    if(doneWorkflow){S.workflow={version:Number(doneWorkflow.version||2),nodes:doneWorkflow.nodes||[],edges:doneWorkflow.edges||[]};S.workflowBase=clone(S.workflow);S.homeMode=false;S.selectedNodeId=S.selectedEdgeId=null;S.selectedNodeIds=[];renderAll();S.agent.activeSkillRun=doneSkillRun||null;if(doneSkillRun?.autoRun)await runSkillWorkflow({...doneSkillRun,confirmMode:doneSkillRun.confirmMode||confirmMode});S.agent.skillId='';S.agent.skillVersion=null;renderAgentPromptMenu();if(doneSkillRun?.createdNodeIds?.length)focusAgentNodes(doneSkillRun.createdNodeIds.join(','));}
-  }catch(error){pending.thinking=false;pending.text=`这次没有完成：${error.message}${Array.isArray(error.missingFields)&&error.missingFields.length?`（缺少：${error.missingFields.join('、')}）`:''}`;pending.error=error.message;renderAgentMessages();}finally{S.agent.busy=false;syncStudioChrome();}
+    if(doneWorkflow){S.workflow={version:Number(doneWorkflow.version||2),nodes:doneWorkflow.nodes||[],edges:doneWorkflow.edges||[]};S.workflowBase=clone(S.workflow);S.homeMode=false;S.selectedNodeId=S.selectedEdgeId=null;S.selectedNodeIds=[];renderAll();S.agent.activeSkillRun=doneSkillRun||null;S.agent.skillId='';S.agent.skillVersion=null;renderAgentPromptMenu();if(doneSkillRun?.createdNodeIds?.length)focusAgentNodes(doneSkillRun.createdNodeIds.join(','));const phase=skillRunNextPhase(doneSkillRun);if(doneSkillRun?.autoRun&&phase)void runSkillWorkflow(doneSkillRun,{fromPhase:phase}).catch(error=>toast(`SkillRun 执行失败：${error.message}`,'error'));}
+  }catch(error){const message=error?.name==='AbortError'?'文本模型响应超时（75 秒），请重试。':error.message;pending.thinking=false;pending.text=`这次没有完成：${message}${Array.isArray(error.missingFields)&&error.missingFields.length?`（缺少：${error.missingFields.join('、')}）`:''}`;pending.error=message;renderAgentMessages();}finally{clearTimeout(requestTimeout);S.agent.busy=false;syncStudioChrome();}
 }
 async function sendAgentMessage(value){
   if(S.agent.busy)return;const message=String(value||'').trim(),modelKey=agentModelKey(),[providerId,modelId]=modelKey.split('::');if(!message)return;
-  const attachments=clone(S.agent.attachments||[]),skill=(S.skills||[]).find(item=>item.id===S.agent.skillId),intent={message,attachments,providerId,modelId,skillId:S.agent.skillId,skillVersion:S.agent.skillVersion,confirmMode:S.agent.confirmMode};
+  const attachments=clone(S.agent.attachments||[]),skill=(S.skills||[]).find(item=>item.id===S.agent.skillId),intent={message,attachments,providerId,modelId,skillId:S.agent.skillId,skillVersion:S.agent.skillVersion};
   if(!skill){if(!providerId||!modelId)return toast('请先在“模型/API”中配置一个文本模型。','error');return executeAgentMessage(intent);}
-  const gaps=skillRequiredInputGaps(skill,message);renderAgentSkillInputHint();
-  if(S.agent.confirmMode==='manual'||gaps.length){await ensureAgentConversation();const approval=createAgentApproval(intent,skill,gaps);S.agent.messages=[...(S.agent.messages||[]),{id:`local-${crypto.randomUUID()}`,role:'user',text:message,attachments,createdAt:new Date().toISOString()},{id:`local-${crypto.randomUUID()}`,role:'assistant',text:'',approval,createdAt:new Date().toISOString()}];S.agent.attachments=[];renderAgentPromptMenu();renderAgentMessages();return;}
+  renderAgentSkillInputHint();
   return executeAgentMessage(intent);
-}
-async function submitAgentApproval(approvalId){
-  const {approval}=findAgentApproval(approvalId);if(!approval||approval.status!=='pending')return;
-  const questions=approval.questions||[],question=questions[approval.index||0];if(!question||!agentApprovalHasAnswer(approval,question))return;
-  if((approval.index||0)<questions.length-1){approval.index+=1;renderAgentMessages();return;}
-  const answer=agentApprovalAnswer(approval,question),choice=answer.values[0]||String(answer.custom||'').trim();
-  if(choice==='cancel'){approval.status='dismissed';renderAgentMessages();return;}
-  if(choice==='upload'){
-    approval.status='dismissed';els.agentPromptInput.value=approval.action?.message||'';autoResizeAgentPrompt();S.agent.uploadFromPrompt=true;renderAgentMessages();els.fileInput?.click();return;
-  }
-  approval.status='submitted';renderAgentMessages();
-  if(approval.action?.type==='apply_skill')await executeAgentMessage(approval.action,{appendUser:false});
-  if(approval.action?.type==='continue_skill')await continueSkillRun(approval.action.runId,approval.action.phase);
 }
 function agentMaxWidth(){return Math.min(Math.max(440,window.innerWidth*.75),900);}
 function fitAgentViewport(){requestAnimationFrame(()=>{updateView();setTimeout(()=>fitCanvas(),190);});}
@@ -2392,26 +2270,14 @@ function bindAgentWindow(){
     try{await loadAgentConversation(button.dataset.agentConversation);els.agentHistoryMenu.classList.add('hidden');}catch(error){toast(`打开会话失败：${error.message}`,'error');}
   });
   els.agentMessages?.addEventListener('click',event=>{
-    const prompt=event.target.closest('[data-agent-prompt]'),focusNodes=event.target.closest('[data-agent-focus-nodes]'),openAsset=event.target.closest('[data-agent-open-asset]'),skillAssets=event.target.closest('[data-agent-skill-assets]'),skillCancel=event.target.closest('[data-agent-skill-cancel]'),skillRetry=event.target.closest('[data-agent-skill-retry]'),taskToggle=event.target.closest('[data-agent-task-toggle]'),messageCopy=event.target.closest('[data-agent-message-copy]'),messageRetry=event.target.closest('[data-agent-message-retry]'),sourcesToggle=event.target.closest('[data-agent-sources-toggle]'),followUp=event.target.closest('[data-agent-follow-up]'),approvalOption=event.target.closest('[data-agent-approval-option]'),approvalPage=event.target.closest('[data-agent-approval-page]'),approvalPrev=event.target.closest('[data-agent-approval-prev]'),approvalNext=event.target.closest('[data-agent-approval-next]'),approvalSubmit=event.target.closest('[data-agent-approval-submit]'),approvalDismiss=event.target.closest('[data-agent-approval-dismiss]');
-    if(taskToggle){
-      const row=taskToggle.closest('.agent-task-row');
-      if(!row)return;
-      const open=!row.classList.contains('is-open');
-      row.classList.toggle('is-open',open);
-      taskToggle.setAttribute('aria-expanded',open?'true':'false');
-      return;
-    }
-    if(approvalOption){const {approval}=findAgentApproval(approvalOption.dataset.agentApprovalOption),question=approval?.questions?.[approval.index||0];if(!approval||!question)return;const option=question.options?.[Number(approvalOption.dataset.agentApprovalOptionIndex)],value=String(option?.value??option?.label??option);const answer=agentApprovalAnswer(approval,question);answer.values=question.type==='check'?(answer.values.includes(value)?answer.values.filter(item=>item!==value):[...answer.values,value]):[value];if(question.type!=='check')answer.custom='';renderAgentMessages();if(question.type!=='check')setTimeout(()=>submitAgentApproval(approval.id),480);return;}
-    if(approvalPage||approvalPrev||approvalNext){const target=approvalPage||approvalPrev||approvalNext,{approval}=findAgentApproval(target.dataset.agentApprovalPage||target.dataset.agentApprovalPrev||target.dataset.agentApprovalNext);if(!approval)return;const count=approval.questions?.length||1;approval.index=approvalPage?Number(approvalPage.dataset.agentApprovalPageIndex):Math.max(0,Math.min(count-1,Number(approval.index||0)+(approvalNext?1:-1)));renderAgentMessages();return;}
-    if(approvalSubmit){submitAgentApproval(approvalSubmit.dataset.agentApprovalSubmit);return;}
-    if(approvalDismiss){const {approval}=findAgentApproval(approvalDismiss.dataset.agentApprovalDismiss);if(approval){approval.status='dismissed';renderAgentMessages();}return;}
+    const prompt=event.target.closest('[data-agent-prompt]'),focusNodes=event.target.closest('[data-agent-focus-nodes]'),openAsset=event.target.closest('[data-agent-open-asset]'),skillAssets=event.target.closest('[data-agent-skill-assets]'),skillEditPlan=event.target.closest('[data-agent-skill-edit-plan]'),skillCancel=event.target.closest('[data-agent-skill-cancel]'),skillRetry=event.target.closest('[data-agent-skill-retry]'),messageCopy=event.target.closest('[data-agent-message-copy]'),messageRetry=event.target.closest('[data-agent-message-retry]'),sourcesToggle=event.target.closest('[data-agent-sources-toggle]');
     if(messageCopy){const message=(S.agent.messages||[]).find(item=>item.id===messageCopy.dataset.agentMessageCopy);copyTextValue(message?.text||'','回复已复制');return;}
     if(messageRetry){const index=(S.agent.messages||[]).findIndex(item=>item.id===messageRetry.dataset.agentMessageRetry),previous=[...(S.agent.messages||[]).slice(0,index)].reverse().find(item=>item.role==='user');if(previous&&!S.agent.busy)sendAgentMessage(previous.text||'');return;}
     if(sourcesToggle){const message=(S.agent.messages||[]).find(item=>item.id===sourcesToggle.dataset.agentSourcesToggle);if(message){message.sourcesOpen=!message.sourcesOpen;renderAgentMessages();}return;}
-    if(followUp){sendAgentMessage(followUp.dataset.agentFollowUp||'');return;}
     if(focusNodes){focusAgentNodes(focusNodes.dataset.agentFocusNodes);return;}
     if(openAsset){openAgentAsset(openAsset.dataset.agentOpenAsset);return;}
     if(skillAssets){showSkillRunAssets(skillAssets.dataset.agentSkillAssets);return;}
+    if(skillEditPlan){const node=nodeById(skillEditPlan.dataset.agentSkillEditPlan);if(node)openTextOutputPage(node);return;}
     if(skillCancel){cancelSkillRun(skillCancel.dataset.agentSkillCancel);return;}
     if(skillRetry){retrySkillRunShot(skillRetry.dataset.agentSkillRetry,{shotId:skillRetry.dataset.agentSkillShot||'',stepId:skillRetry.dataset.agentSkillStep||''});return;}
     if(prompt){
@@ -2420,14 +2286,13 @@ function bindAgentWindow(){
       els.agentPromptInput.value=text;autoResizeAgentPrompt();els.agentPromptInput.focus();
     }
   });
-  els.agentMessages?.addEventListener('input',event=>{const input=event.target.closest('[data-agent-approval-custom]');if(!input)return;const {approval}=findAgentApproval(input.dataset.agentApprovalCustom),question=approval?.questions?.[approval.index||0];if(!approval||!question)return;const answer=agentApprovalAnswer(approval,question);answer.custom=input.value;if(question.type!=='check')answer.values=[];const card=input.closest('.agent-approval-card'),send=card?.querySelector('[data-agent-approval-submit]');if(send)send.disabled=!agentApprovalHasAnswer(approval,question);});
   els.agentMessages?.addEventListener('keydown',event=>{
     if(!['Enter',' '].includes(event.key))return;
     const openAsset=event.target.closest('[data-agent-open-asset]');
     if(!openAsset)return;event.preventDefault();openAgentAsset(openAsset.dataset.agentOpenAsset);
   });
-  els.agentPromptForm?.addEventListener('click',event=>{const plus=event.target.closest('#agentPromptPlusBtn'),skillBtn=event.target.closest('#agentSkillBtn'),choice=event.target.closest('[data-agent-prompt-choice]'),clearSkill=event.target.closest('[data-agent-skill-clear]'),removeAttachment=event.target.closest('[data-agent-attachment-remove]'),confirmBtn=event.target.closest('#agentConfirmModeBtn'),confirmMode=event.target.closest('[data-agent-confirm-mode]');if(confirmBtn){event.preventDefault();event.stopPropagation();S.agent.confirmMenuOpen=!S.agent.confirmMenuOpen;closeAgentPromptMenus({keep:S.agent.confirmMenuOpen?'confirm':undefined});renderAgentConfirmMode();renderAgentModelSelect();renderAgentPromptMenu();return;}if(confirmMode){event.preventDefault();event.stopPropagation();setAgentConfirmMode(confirmMode.dataset.agentConfirmMode);return;}if(plus){event.preventDefault();event.stopPropagation();closeAgentPromptMenus();els.agentHistoryMenu?.classList.add('hidden');S.agent.promptMenuIndex=0;S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=true;renderAgentModelSelect();renderAgentPromptMenu();els.fileInput?.click();return;}if(skillBtn){event.preventDefault();event.stopPropagation();els.agentHistoryMenu?.classList.add('hidden');S.agent.promptMenuSuppressed=false;S.agent.skillMenuOpen=!S.agent.skillMenuOpen;S.agent.confirmMenuOpen=false;closeAgentPromptMenus({keep:S.agent.skillMenuOpen?'skill':undefined});S.agent.promptMenuIndex=0;renderAgentModelSelect();renderAgentPromptMenu();return;}if(removeAttachment){event.preventDefault();event.stopPropagation();const id=removeAttachment.dataset.agentAttachmentRemove;S.agent.attachments=(S.agent.attachments||[]).filter(asset=>asset.id!==id);renderAgentPromptMenu();return;}if(choice){event.preventDefault();applyAgentPromptChoice(choice.dataset.agentPromptChoice);return;}if(clearSkill){event.preventDefault();S.agent.skillId='';S.agent.skillVersion=null;renderAgentPromptMenu();els.agentPromptInput?.focus();}});
-  els.agentPromptForm?.addEventListener('submit',event=>{event.preventDefault();const value=els.agentPromptInput.value;els.agentPromptInput.value='';closeAgentPromptMenus();S.agent.confirmMenuOpen=false;renderAgentPromptMenu();autoResizeAgentPrompt();sendAgentMessage(value);});
+  els.agentPromptForm?.addEventListener('click',event=>{const plus=event.target.closest('#agentPromptPlusBtn'),skillBtn=event.target.closest('#agentSkillBtn'),choice=event.target.closest('[data-agent-prompt-choice]'),clearSkill=event.target.closest('[data-agent-skill-clear]'),removeAttachment=event.target.closest('[data-agent-attachment-remove]');if(plus){event.preventDefault();event.stopPropagation();closeAgentPromptMenus();els.agentHistoryMenu?.classList.add('hidden');S.agent.promptMenuIndex=0;S.uploadTargetNodeId=null;S.agent.uploadFromPrompt=true;renderAgentModelSelect();renderAgentPromptMenu();els.fileInput?.click();return;}if(skillBtn){event.preventDefault();event.stopPropagation();els.agentHistoryMenu?.classList.add('hidden');S.agent.promptMenuSuppressed=false;S.agent.skillMenuOpen=!S.agent.skillMenuOpen;closeAgentPromptMenus({keep:S.agent.skillMenuOpen?'skill':undefined});S.agent.promptMenuIndex=0;renderAgentModelSelect();renderAgentPromptMenu();return;}if(removeAttachment){event.preventDefault();event.stopPropagation();const id=removeAttachment.dataset.agentAttachmentRemove;S.agent.attachments=(S.agent.attachments||[]).filter(asset=>asset.id!==id);renderAgentPromptMenu();return;}if(choice){event.preventDefault();applyAgentPromptChoice(choice.dataset.agentPromptChoice);return;}if(clearSkill){event.preventDefault();S.agent.skillId='';S.agent.skillVersion=null;renderAgentPromptMenu();els.agentPromptInput?.focus();}});
+  els.agentPromptForm?.addEventListener('submit',event=>{event.preventDefault();const value=els.agentPromptInput.value;els.agentPromptInput.value='';closeAgentPromptMenus();renderAgentPromptMenu();autoResizeAgentPrompt();sendAgentMessage(value);});
   els.agentPromptInput?.addEventListener('input',()=>{S.agent.promptMenuSuppressed=false;closeAgentPromptMenus();S.agent.promptMenuIndex=0;renderAgentPromptMenu();autoResizeAgentPrompt();});
   els.agentPromptInput?.addEventListener('keydown',event=>{const menuOpen=S.agent.skillMenuOpen||S.agent.sourceMenuOpen||agentPromptToken(els.agentPromptInput.value),{rows}=agentPromptMenuRows();if(menuOpen&&rows.length&&(event.key==='ArrowDown'||event.key==='ArrowUp')){event.preventDefault();S.agent.promptMenuIndex=(Number(S.agent.promptMenuIndex||0)+(event.key==='ArrowDown'?1:rows.length-1))%rows.length;renderAgentPromptMenu();return;}if(menuOpen&&rows.length&&event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();applyAgentPromptChoice(S.agent.promptMenuIndex||0);return;}if(event.key==='Escape'&&(S.agent.skillMenuOpen||S.agent.sourceMenuOpen||S.agent.modelMenuOpen||agentPromptToken(els.agentPromptInput.value))){event.preventDefault();S.agent.promptMenuSuppressed=true;closeAgentPromptMenus();renderAgentModelSelect();renderAgentPromptMenu();return;}if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();els.agentPromptForm.requestSubmit();}});
   els.agentDictationBtn?.addEventListener('click',toggleAgentDictation);renderAgentDictation();renderAgentPromptMenu();
@@ -2459,21 +2324,24 @@ function mergeWorkflowGraphs(base,local,remote){
   return merged;
 }
 function workflowGraphSignature(workflow){return JSON.stringify({nodes:workflow?.nodes||[],edges:workflow?.edges||[]});}
+function workflowPersistenceSignature(workflow){const graph=clone({nodes:workflow?.nodes||[],edges:workflow?.edges||[]}),managed=['status','phase','progressMode','progressStartedAt','nextAttemptAt','providerAttempt','providerMaxAttempts','progress','error','jobId','outputText','outputAssetIds','variantAssetIds','selectedVariantIndex','previousOutputAssetIds'];for(const node of graph.nodes){if(!isGenerationNode(node))continue;for(const key of managed)delete node.data?.[key];}return JSON.stringify(graph);}
 function renderWorkflowChanges(previous,next){
   const previousIds=(previous?.nodes||[]).map(node=>node.id),nextIds=(next?.nodes||[]).map(node=>node.id),structural=!sameValue(previousIds,nextIds);
   S.selectedNodeIds=S.selectedNodeIds.filter(id=>nextIds.includes(id));if(S.selectedNodeId&&!nextIds.includes(S.selectedNodeId))S.selectedNodeId=S.selectedNodeIds[0]||null;
   if(structural)renderCanvas();else for(const node of next.nodes){const before=(previous?.nodes||[]).find(item=>item.id===node.id);if(!sameValue(before,node))renderNode(node);}
   updateCanvasSelectionDom();renderEdges();renderInspector();renderReferenceRoleMenu();
 }
-function scheduleSave(){setSaveState('保存中…','saving');S.saveQueued=true;clearTimeout(S.saveTimer);S.saveTimer=setTimeout(()=>{S.saveTimer=null;void saveWorkflow();},350);}
+function updateSaveState(){const error=S.workflowSaveError||S.timelineSaveError,busy=S.saveQueued||S.saveTimer||S.saveInFlight||S.timelineSaveQueued||S.timelineSaveTimer||S.timelineSaveInFlight;if(error)return setSaveState('保存失败','error');setSaveState(busy?'保存中…':'已保存',busy?'saving':'saved');}
+function scheduleSave(){S.workflowSaveError='';S.saveQueued=true;clearTimeout(S.saveTimer);S.saveTimer=setTimeout(()=>{S.saveTimer=null;void saveWorkflow();},350);updateSaveState();}
 async function saveWorkflow(){
   if(!S.projectId)return;S.saveQueued=true;clearTimeout(S.saveTimer);S.saveTimer=null;if(S.saveInFlight)return S.saveInFlight;
   const projectId=S.projectId;
-  S.saveInFlight=(async()=>{let conflicts=0;while(S.saveQueued&&S.projectId===projectId){S.saveQueued=false;const local=clone(S.workflow),base=clone(S.workflowBase||local);if(workflowGraphSignature(local)===workflowGraphSignature(base))continue;try{const saved=await api(`/api/projects/${projectId}/workflow`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(local)});if(S.projectId!==projectId)return;const changedWhileSaving=workflowGraphSignature(S.workflow)!==workflowGraphSignature(local),version=Number(saved.version||local.version||1);S.workflow.version=version;S.workflowBase={...local,version};if(changedWhileSaving)S.saveQueued=true;conflicts=0;}catch(error){if(error.status!==409||conflicts>=2)throw error;conflicts++;const remote=await api(`/api/projects/${projectId}/workflow`);if(S.projectId!==projectId)return;const previous=S.workflow,merged=mergeWorkflowGraphs(base,clone(S.workflow),remote);S.workflow=merged;S.workflowBase=clone(remote);S.saveQueued=true;renderWorkflowChanges(previous,merged);}}setSaveState('已保存');})().catch(error=>{setSaveState('保存失败','error');toast(friendlyError(error.message),'error');}).finally(()=>{S.saveInFlight=null;});
+  S.saveInFlight=(async()=>{let conflicts=0;while(S.saveQueued&&S.projectId===projectId){S.saveQueued=false;const local=clone(S.workflow),base=clone(S.workflowBase||local);if(workflowGraphSignature(local)===workflowGraphSignature(base))continue;try{const saved=await api(`/api/projects/${projectId}/workflow`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(local)});if(S.projectId!==projectId)return;const savedSignature=workflowPersistenceSignature(saved),localSignature=workflowPersistenceSignature(local);if(savedSignature!==localSignature)throw Object.assign(new Error('workflow_save_verification_failed'),{status:409});const changedWhileSaving=workflowGraphSignature(S.workflow)!==workflowGraphSignature(local),version=Number(saved.version||local.version||1);S.workflow.version=version;S.workflowBase={...local,version};if(changedWhileSaving)S.saveQueued=true;S.workflowSaveError='';conflicts=0;}catch(error){if(error.status!==409||conflicts>=2)throw error;conflicts++;const remote=await api(`/api/projects/${projectId}/workflow`);if(S.projectId!==projectId)return;const previous=S.workflow,merged=mergeWorkflowGraphs(base,clone(S.workflow),remote);S.workflow=merged;S.workflowBase=clone(remote);S.saveQueued=true;renderWorkflowChanges(previous,merged);}}})().catch(error=>{S.workflowSaveError=friendlyError(error.message)||'保存失败';toast(S.workflowSaveError,'error');}).finally(()=>{S.saveInFlight=null;updateSaveState();});
+  updateSaveState();
   return S.saveInFlight;
 }
-function scheduleTimelineSave(){setSaveState('保存中…','saving');clearTimeout(S.timelineSaveTimer);S.timelineSaveTimer=setTimeout(()=>{S.timelineSaveTimer=null;void saveTimeline();},300);}
-async function saveTimeline(){clearTimeout(S.timelineSaveTimer);S.timelineSaveTimer=null;try{await api(`/api/projects/${S.projectId}/timeline`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(S.timeline)});setSaveState('已保存');}catch(e){setSaveState('保存失败','error');toast(e.message,'error');}}
+function scheduleTimelineSave(){S.timelineSaveError='';S.timelineSaveQueued=true;clearTimeout(S.timelineSaveTimer);S.timelineSaveTimer=setTimeout(()=>{S.timelineSaveTimer=null;void saveTimeline();},300);updateSaveState();}
+async function saveTimeline(){clearTimeout(S.timelineSaveTimer);S.timelineSaveTimer=null;S.timelineSaveQueued=true;if(S.timelineSaveInFlight)return S.timelineSaveInFlight;const projectId=S.projectId;S.timelineSaveInFlight=(async()=>{while(S.timelineSaveQueued&&S.projectId===projectId){S.timelineSaveQueued=false;const local=clone(S.timeline),saved=await api(`/api/projects/${projectId}/timeline`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(local)});if(S.projectId!==projectId)return;if(JSON.stringify(saved)!==JSON.stringify(local))throw new Error('timeline_save_verification_failed');if(JSON.stringify(S.timeline)!==JSON.stringify(local))S.timelineSaveQueued=true;S.timelineSaveError='';}})().catch(e=>{S.timelineSaveError=friendlyError(e.message)||'保存失败';toast(S.timelineSaveError,'error');}).finally(()=>{S.timelineSaveInFlight=null;updateSaveState();});updateSaveState();return S.timelineSaveInFlight;}
 function exportTimelineError(message){const value=String(message||'');if(/timeline.*empty|no.*(clips?|items?)|empty.*timeline/i.test(value))return'时间线为空，请先生成图片或视频并加入时间线。';if(/ffmpeg|render|encode/i.test(value))return'导出服务暂时不可用，请检查 FFmpeg 配置后重试。';return friendlyError(value)||'导出没有完成，请检查时间线中的素材后重试。';}
 async function exportTimeline(){if(!timelineExportableItems().length){setTimelineOpen(true);toast('时间线为空，请先生成图片或视频并加入时间线。','error');return;}els.exportBtn.disabled=true;els.exportBtn.setAttribute('aria-busy','true');setIconButton(els.exportBtn,'loader-2','导出中…');toast('正在导出 MP4，请稍候…','info');try{await saveTimeline();const asset=await api(`/api/projects/${S.projectId}/timeline/export`,{method:'POST'});await refreshAssets();const preview=window.open(asset.publicUrl,'_blank');toast(preview?'MP4 导出完成，已打开预览':'MP4 导出完成，已加入素材库，请从素材库下载','info');}catch(e){toast(`导出失败：${exportTimelineError(e.message)}`,'error');}finally{els.exportBtn.disabled=false;els.exportBtn.removeAttribute('aria-busy');setIconButton(els.exportBtn,'download','导出');}}
 
@@ -2559,7 +2427,7 @@ els.assetDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();showDr
 els.assetLibraryBtn?.addEventListener('click',()=>{preparePrimarySurface();showDrawer('assetLibraryDrawer');renderAssetLibrary();});
 els.assetLibraryUploadBtn?.addEventListener('click',()=>{S.uploadTargetNodeId=null;S.assetUploadToLibrary=true;S.assetUploadCategory=S.assetLibraryFilter?.category&&S.assetLibraryFilter.category!=='all'?S.assetLibraryFilter.category:'';els.fileInput.click();});
 els.assetLibraryRefreshBtn?.addEventListener('click',refreshAssets);
-els.skillDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();closeSkillDetail();S.skillDetailId=null;showDrawer('skillDrawer');renderSkillLibrary();});els.importSkillBtn?.addEventListener('click',openImportSkillModal);els.importSkillForm?.addEventListener('submit',importSkillFromLiblib);els.importSkillConfirm?.addEventListener('click',importSkillFromLiblib);els.importSkillModalClose?.addEventListener('click',()=>closeModalElement(els.importSkillModal));els.importSkillCancel?.addEventListener('click',()=>closeModalElement(els.importSkillModal));els.importSkillModal?.addEventListener('pointerdown',e=>{if(e.target===els.importSkillModal)closeModalElement(els.importSkillModal);});els.refreshSkillsBtn?.addEventListener('click',refreshSkills);els.skillSearchInput?.addEventListener('input',()=>{S.skillQuery=els.skillSearchInput.value;renderSkillLibrary();});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
+els.skillDrawerBtn?.addEventListener('click',()=>{preparePrimarySurface();closeSkillDetail();S.skillDetailId=null;showDrawer('skillDrawer');renderSkillLibrary();});els.importSkillBtn?.addEventListener('click',openImportSkillModal);els.importSkillForm?.addEventListener('submit',importSkillFromSource);els.importSkillConfirm?.addEventListener('click',importSkillFromSource);els.importSkillModalClose?.addEventListener('click',()=>closeModalElement(els.importSkillModal));els.importSkillCancel?.addEventListener('click',()=>closeModalElement(els.importSkillModal));els.importSkillModal?.addEventListener('pointerdown',e=>{if(e.target===els.importSkillModal)closeModalElement(els.importSkillModal);});els.refreshSkillsBtn?.addEventListener('click',refreshSkills);els.skillSearchInput?.addEventListener('input',()=>{S.skillQuery=els.skillSearchInput.value;renderSkillLibrary();});els.timelineToggleBtn?.addEventListener('click',()=>setTimelineOpen(els.timelineShell.classList.contains('collapsed')));els.timelineCloseBtn?.addEventListener('click',()=>setTimelineOpen(false));
 $$('[data-close-drawer]').forEach(b=>b.addEventListener('click',()=>hideDrawer(b.dataset.closeDrawer)));
 els.providerSettingsBtn?.addEventListener('click',openProviderSettings);els.providerModalClose?.addEventListener('click',()=>closeModalElement(els.providerModal));els.providerSaveBtn?.addEventListener('click',saveProviderSettings);els.providerModal?.addEventListener('pointerdown',e=>{if(e.target===els.providerModal)closeModalElement(els.providerModal);});
 els.helpBtn?.addEventListener('click',()=>{prepareModalOpen(els.helpModal);els.helpModal.classList.remove('hidden');requestAnimationFrame(()=>els.helpModalClose?.focus());});els.helpModalClose?.addEventListener('click',()=>closeModalElement(els.helpModal));els.helpModal?.addEventListener('pointerdown',e=>{if(e.target===els.helpModal)closeModalElement(els.helpModal);});

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -46,8 +46,8 @@ function extractLiblibTemplateUuid(input) {
   let url;
   try { url = new URL(raw); } catch { throw importError('invalid_liblib_url', '请输入有效的 Liblib Skill 分享链接。'); }
   const host = url.hostname.toLowerCase();
-  if (!['liblib.tv', 'www.liblib.tv'].includes(host)) throw importError('invalid_liblib_url', '只支持 liblib.tv 的 Skill 分享链接。');
-  const uuid = url.searchParams.get('uuid') || '';
+  if (!['liblib.tv', 'www.liblib.tv', 'liblib.art', 'www.liblib.art'].includes(host)) throw importError('invalid_liblib_url', '只支持 Liblib Skill 分享链接。');
+  const uuid = url.searchParams.get('uuid') || url.searchParams.get('templateUuid') || '';
   if (!/^[a-f0-9]{32}$/i.test(uuid)) throw importError('invalid_liblib_uuid', '分享链接中没有有效的 Skill UUID。');
   return uuid.toLowerCase();
 }
@@ -87,15 +87,43 @@ function importedKind(remote) {
 }
 
 function importedDuration(remote) {
-  const values = [...String(remote?.outputContent || '').matchAll(/\d+/g)].map((match) => Number(match[0])).filter((value) => value > 0 && value <= 120);
-  return { duration: values[0] || 15, options: [...new Set(values)].slice(0, 4).length ? [...new Set(values)].slice(0, 4) : [15] };
+  const values = [...String(remote?.outputContent || '').matchAll(/(\d+)\s*(?:秒|s\b|sec(?:ond)?s?\b)/gi)].map((match) => Number(match[1])).filter((value) => value > 0 && value <= 120);
+  const options = [...new Set(values)].slice(0, 4);
+  return { duration: options[0] || null, options };
+}
+
+function extractJimengSkillId(input) {
+  const raw = String(input || '').trim();
+  if (/^\d{8,32}$/.test(raw)) return raw;
+  let url;
+  try { url = new URL(raw); } catch { throw importError('invalid_skill_url', '请输入有效的 Skill 详情或分享链接。'); }
+  const host = url.hostname.toLowerCase();
+  if (!/(^|\.)jimeng\.jianying\.com$/.test(host)) return '';
+  const candidates = [
+    url.searchParams.get('skill_id'),
+    url.searchParams.get('skillId'),
+    url.searchParams.get('id'),
+    ...url.pathname.split('/').filter(Boolean).reverse(),
+  ];
+  return candidates.map((value) => String(value || '').trim()).find((value) => /^\d{8,32}$/.test(value)) || '';
+}
+
+function isJimengInput(input) {
+  const raw = String(input || '').trim();
+  if (/^\d{8,32}$/.test(raw)) return true;
+  try {
+    const host = new URL(raw).hostname.toLowerCase();
+    return /(^|\.)jimeng\.jianying\.com$/.test(host);
+  } catch { return false; }
 }
 
 function importedFormat(remote) {
   const text = `${remote?.outputContent || ''}${remote?.inputType || ''}`;
   if (/竖/.test(text) && /横/.test(text)) return { format: '9:16 / 16:9', options: ['9:16', '16:9'], default: '9:16' };
   if (/竖/.test(text)) return { format: '9:16', options: ['9:16'], default: '9:16' };
-  return { format: '16:9', options: ['16:9'], default: '16:9' };
+  if (/16\s*[:：]\s*9|横版/.test(text)) return { format: '16:9', options: ['16:9'], default: '16:9' };
+  if (/1\s*[:：]\s*1|方图/.test(text)) return { format: '1:1', options: ['1:1'], default: '1:1' };
+  return { format: '未指定', options: [], default: '' };
 }
 
 function importedCardSummary(remote) {
@@ -104,50 +132,214 @@ function importedCardSummary(remote) {
   return (source || `一键生成${remote?.name || '创作内容'}`).slice(0, 72);
 }
 
-function importedPromptTemplates(kind) {
+function splitSourceOutputs(value) {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  // Chinese commas are commonly used inside a prose description. Only treat
+  // them as separators when the source did not publish sentence-like prose.
+  const separator = /、|[；;\n]/.test(text)
+    ? /[、；;\n]/
+    : !/[。.!！？?]/.test(text) && /[，,]/.test(text)
+      ? /[，,]/
+      : null;
+  return (separator ? text.split(separator) : [text]).map((item) => item.trim()).filter(Boolean).slice(0, 12);
+}
+
+function importedSourceContract(remote, snapshot) {
+  const value = (key) => safeText(remote?.[key] || snapshot?.[key] || '', 1200);
+  const inputType = value('inputType');
+  const outputContent = value('outputContent');
+  return {
+    name: value('name'),
+    description: value('description'),
+    useScenario: value('useScenario'),
+    inputType,
+    outputContent,
+    outputItems: splitSourceOutputs(outputContent),
+    sourceVersion: value('version'),
+    resultType: Number(remote?.resultType || snapshot?.resultType || 0) || null,
+    sourceType: Number(remote?.sourceType || snapshot?.sourceType || 0) || null,
+    showMarkdown: Boolean(remote?.showMarkdown ?? snapshot?.showMarkdown),
+  };
+}
+
+function sourceContractPrompt(contract) {
+  const lines = [
+    '【来源 Skill 的公开执行契约】',
+    `名称：${contract.name || '未命名 Skill'}`,
+    contract.description ? `说明：${contract.description}` : '',
+    contract.useScenario ? `使用场景：${contract.useScenario}` : '',
+    contract.inputType ? `输入：${contract.inputType}` : '输入：来源未公开具体字段；以用户创作描述和已附素材为准。',
+    contract.outputContent ? `交付物：${contract.outputContent}` : '交付物：来源未公开具体条目；按 Skill 的结果类型交付。',
+    contract.sourceVersion ? `来源版本：${contract.sourceVersion}` : '',
+    '仅把以上内容当作该 Skill 的公开配置；不得声称或编造来源未公开的私有画布、隐藏提示词或模型参数。',
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+function importedPromptTemplates(kind, contract) {
+  const sourceRules = sourceContractPrompt(contract);
+  const planSystem = `你是 Skill 执行导演。必须先遵守下列来源公开执行契约，再补全用户提供的变量；每项已声明交付物都要在计划中有对应步骤。来源没有公开的规则不能臆造。\n\n${sourceRules}`;
+  const planPrompt = `根据来源公开执行契约和用户当前需求制定可编辑执行计划。\n\n用户需求：{{INSTRUCTION}}\n\n请按“输入核对 → 来源声明的交付物逐项制作 → 验收”输出；对缺失输入只标明待补，不自行虚构。`;
   if (kind === '图片') return {
-    videoPlanSystem: '你是视觉创意总监。把用户的图片需求拆成主体、场景、构图、风格、光线和连续性约束，输出简洁可执行的生成计划。不要新增未指定的主体。',
-    videoPlanPrompt: '请拆解以下图片生成需求：{{INSTRUCTION}}。输出主体、场景、构图、风格、光线、参考素材使用方式和负面约束。',
-    imagePrompt: '图片生成指令：{{INSTRUCTION}}。保持主体身份、结构、材质和风格稳定，画面清晰，避免随机新增主体、变形、文字和水印。画幅 {{ASPECT_RATIO}}。',
+    videoPlanSystem: planSystem,
+    videoPlanPrompt: planPrompt,
+    imagePrompt: `${sourceRules}\n\n图片执行：{{INSTRUCTION}}。请严格遵守来源的输入和交付物定义，并采用上游已确认的计划；未声明的主体、文字、品牌和风格不可擅自新增。画幅 {{ASPECT_RATIO}}。`,
   };
   if (kind === '音频') return {
-    videoPlanSystem: '你是声音导演。把用户的音频需求拆成旁白、音乐、音效、节奏和情绪约束，输出简洁可执行的声音方案。',
-    videoPlanPrompt: '请拆解以下音频生成需求：{{INSTRUCTION}}。输出声音角色、节奏、乐器或音色、进入与收束位置、与画面关系。',
-    videoPrompt: '音频制作指令：{{INSTRUCTION}}。保持风格统一，时长约 {{DURATION_SEC}} 秒。',
+    videoPlanSystem: planSystem,
+    videoPlanPrompt: planPrompt,
+    videoPrompt: `${sourceRules}\n\n音频执行：{{INSTRUCTION}}。请严格按来源公开交付物制作，并采用上游已确认的计划；时长 {{DURATION_SEC}} 秒。`,
   };
   if (kind === '文本') return {
-    videoPlanSystem: '你是创意文案导演。把用户需求整理成可执行的文案方案，输出结构清晰、可直接用于后续制作的文本。',
-    videoPlanPrompt: '请拆解以下文本创作需求：{{INSTRUCTION}}。输出主题、结构、语气、关键信息点和交付格式。',
-    videoPrompt: '文本创作指令：{{INSTRUCTION}}。',
+    videoPlanSystem: planSystem,
+    videoPlanPrompt: planPrompt,
+    videoPrompt: `${sourceRules}\n\n文本执行：{{INSTRUCTION}}。请严格按来源公开交付物制作，并采用上游已确认的计划。`,
   };
   return {
-    videoPlanSystem: '你是视频导演和提示词工程师。把用户一句话拆成主体、动作、场景、镜头、风格、情绪和连续性约束，输出简洁可执行的生成计划。不要新增未指定的主体或剧情。',
-    videoPlanPrompt: '请拆解以下视频生成需求：{{INSTRUCTION}}。输出主体、动作链、场景与光线、镜头运动、风格与情绪、连续性约束和负面约束。',
-    videoPrompt: '视频生成指令：{{INSTRUCTION}}。保持主体身份、服装、场景和镜头连续，动作清晰可追踪；不得随机增加主体、变脸、换装、肢体变形、穿模、无指令切镜或画面文字。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。',
+    videoPlanSystem: planSystem,
+    videoPlanPrompt: planPrompt,
+    videoPrompt: `${sourceRules}\n\n视频执行：{{INSTRUCTION}}。请严格按来源公开交付物制作，并采用上游已确认的计划；来源未声明的主体、剧情、文字和风格不可擅自新增。目标时长 {{DURATION_SEC}} 秒，画幅 {{ASPECT_RATIO}}。`,
   };
 }
 
 function importedSkillMarkdown(skill) {
-  return `---\nname: ${skill.id}\ndescription: ${String(skill.description || 'Imported Liblib Skill').replace(/\r?\n/g, ' ')}\nmetadata:\n  short-description: Imported from LiblibTV\n---\n\n# ${skill.name}\n\nThis project-local Skill was imported from LiblibTV. Select it in the Agent, provide the requested instruction and optional reference material, then run the generated canvas workflow.\n\nSource: ${skill.source?.url || ''}\n`;
+  const definition = skill.source?.definition || {};
+  if (skill.source?.provider === '即梦AI' && skill.source?.rawInstruction) {
+    return `---\nname: ${skill.id}\ndescription: ${String(skill.description || 'Imported Jimeng Skill').replace(/\r?\n/g, ' ')}\nmetadata:\n  short-description: Imported from Jimeng\n---\n\n# ${skill.name}\n\n${skill.source.rawInstruction}\n\n来源：${skill.source?.url || ''}\n`;
+  }
+  return `---\nname: ${skill.id}\ndescription: ${String(skill.description || 'Imported Liblib Skill').replace(/\r?\n/g, ' ')}\nmetadata:\n  short-description: Imported from LiblibTV\n---\n\n# ${skill.name}\n\nThis project-local Skill was imported from LiblibTV. Its execution plan must preserve the source's publicly available input and output contract; it must not invent unexposed private prompts or canvas logic.\n\n## Public source contract\n\n- Input: ${definition.inputType || skill.source?.inputType || 'Not published'}\n- Outputs: ${definition.outputContent || skill.source?.outputContent || 'Not published'}\n- Use scenario: ${definition.useScenario || skill.usage || 'Not published'}\n- Source version: ${definition.sourceVersion || skill.sourceVersion || 'Not published'}\n\nSource: ${skill.source?.url || ''}\n`;
 }
 
-function normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, existing) {
+function jimengShowcaseExamples(remote) {
+  return (Array.isArray(remote?.showcaseMedia) ? remote.showcaseMedia : [])
+    .map((item, index) => {
+      const url = String(item?.showcaseUrl || '').trim();
+      const type = String(item?.type || '').toLowerCase();
+      return url && (type === 'image' || type === 'video') ? { type, url, label: `案例 ${index + 1}` } : null;
+    })
+    .filter(Boolean);
+}
+
+export function normalizeImportedJimengSkill(remote, shareUrl, existing) {
+  const skillId = String(remote?.skillId || remote?.id || '').trim();
+  const instruction = String(remote?.instruction || '');
+  if (!skillId || !instruction) throw importError('jimeng_skill_invalid', '即梦返回的数据中没有完整的 Skill instruction。', 422);
+  const tags = String(remote?.tag || '').split(',').map((tag) => tag.trim()).filter(Boolean);
+  const id = existing?.id || `jimeng-skill-${skillId}`;
+  const name = String(remote?.skillName || remote?.name || `即梦 Skill ${skillId}`).trim();
+  const description = String(remote?.description || '').trim();
+  const promptSuffix = '\n\n【用户当前需求】\n{{INSTRUCTION}}';
+  const definition = {
+    name,
+    description,
+    instruction,
+    tags,
+    sourceId: skillId,
+    sourceVersion: remote?.updateTime ? new Date(Number(remote.updateTime)).toISOString() : '',
+  };
+  return {
+    id,
+    version: Number(existing?.version || 1),
+    sourceVersion: String(remote?.updateTime || '1'),
+    name: name.slice(0, 80),
+    category: tags[0] || '即梦AI Skill',
+    kind: '文本',
+    cover: String(remote?.showcaseMedia?.find((item) => item?.type === 'image')?.showcaseUrl || ''),
+    author: String(remote?.effectiveUser?.name || '即梦AI'),
+    description: description.slice(0, 4000),
+    cardSummary: description.slice(0, 160) || '按即梦AI原始 instruction 执行',
+    usage: description,
+    howToUse: '在 Agent 中选择该 Skill，提供创作需求；执行时以保存的原始 instruction 为唯一规则源。',
+    tags: [...new Set([...tags, '即梦AI'])].slice(0, 8),
+    source: {
+      provider: '即梦AI',
+      skillId,
+      url: shareUrl,
+      importedAt: new Date().toISOString(),
+      importerVersion: 1,
+      rawInstruction: instruction,
+      raw: remote,
+      definition,
+    },
+    inputs: [
+      { id: 'instruction', label: '创作需求', type: 'text', required: false, placeholder: '按来源 Skill instruction 提供创作需求' },
+      { id: 'referenceAsset', label: '参考素材', type: 'asset', required: false, accept: ['image', 'video', 'audio'] },
+    ],
+    outputs: ['来源 Skill instruction 定义的全部产物'],
+    fixedSteps: ['完整读取并遵守来源 Skill instruction', '按来源 instruction 的阶段和工具顺序执行', '对照来源 instruction 的硬约束验收'],
+    rules: { instruction, source: '即梦AI', sourceId: skillId, disclosure: '执行规则完整保留自来源 Skill instruction。' },
+    promptTemplates: {
+      videoPlanSystem: instruction,
+      videoPlanPrompt: `${instruction}${promptSuffix}`,
+      videoPrompt: `${instruction}${promptSuffix}`,
+      imagePrompt: `${instruction}${promptSuffix}`,
+    },
+    examples: jimengShowcaseExamples(remote),
+    execution: { workflow: 'generic-plan', adapter: 'single-plan', requiresExplicitSelection: true, autoRun: true, sourceFaithful: true },
+  };
+}
+
+async function fetchJimengSkill(skillId, shareUrl) {
+  const endpoint = 'https://jimeng.jianying.com/mweb/v1/creation_agent/v2/skill/market/list';
+  const categories = ['drama', 'ecommerce', 'creative', 'social', 'others'];
+  try {
+    const responses = await Promise.all(categories.map(async (tag) => {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json', origin: 'https://jimeng.jianying.com', referer: shareUrl },
+        body: JSON.stringify({ source: 3, tag_list: [tag], is_active: true, is_test: false }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }));
+    const skill = responses.flatMap((payload) => payload?.data?.skills || []).find((item) => String(item?.skill_id || '') === skillId);
+    if (!skill) throw importError('jimeng_skill_not_found', '即梦技能不存在、未公开，或链接不是具体技能详情链接。', 404);
+    return skill;
+  } catch (error) {
+    if (error?.code) throw error;
+    throw importError('jimeng_fetch_failed', `无法读取即梦 Skill：${error.message}`, 502);
+  }
+}
+
+export async function importJimengSkill(input) {
+  const skillId = extractJimengSkillId(input);
+  if (!skillId) throw importError('jimeng_skill_id_required', '请粘贴即梦具体技能的详情/分享链接；技能广场首页不包含单个 Skill 的规则。');
+  const shareUrl = /^\d{8,32}$/.test(String(input || '').trim()) ? `https://jimeng.jianying.com/ai-tool/home?activeTab=skill&skill_id=${skillId}` : String(input).trim();
+  const remote = await fetchJimengSkill(skillId, shareUrl);
+  const existing = SKILLS.find((skill) => skill.source?.provider === '即梦AI' && skill.source?.skillId === skillId);
+  const generated = normalizeImportedJimengSkill(remote, shareUrl, existing);
+  const skill = existing ? { ...existing, ...generated, id: existing.id } : generated;
+  const skillDir = join(SKILLS_DIR, skill.id);
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(join(skillDir, 'skill.json'), `${JSON.stringify(skill, null, 2)}\n`, 'utf8');
+  writeFileSync(join(skillDir, 'SKILL.md'), importedSkillMarkdown(skill), 'utf8');
+  reloadSkills();
+  return { skill: publicSkill(skillById(skill.id)), created: !existing, updated: Boolean(existing), sourceUrl: shareUrl };
+}
+
+export async function importSkill(input) {
+  return isJimengInput(input) ? importJimengSkill(input) : importLiblibSkill(input);
+}
+
+export function normalizeImportedLiblibSkill(remote, snapshot, templateUuid, shareUrl, existing) {
   const kind = importedKind(remote);
   const duration = importedDuration(remote);
   const format = importedFormat(remote);
   const examples = importedExamples(remote, snapshot);
+  const contract = importedSourceContract(remote, snapshot);
   const tags = (Array.isArray(remote?.tags) ? remote.tags.map((tag) => tag?.tagLabel || tag?.name || tag).filter(Boolean) : []);
-  const description = safeText(remote?.description || `${remote?.name || 'Liblib Skill'} 创作预设。`, 280);
-  const instruction = kind === '图片'
-    ? '输入主体、场景、风格和构图需求。'
-    : kind === '音频'
-      ? '输入旁白、音乐或音效需求。'
-      : kind === '文本'
-        ? '输入文案主题、语气和结构需求。'
-        : '输入主体、动作、场景和风格需求。';
+  const description = safeText(contract.description || `${remote?.name || 'Liblib Skill'} 创作预设。`, 280);
+  const inputHint = contract.inputType || (kind === '图片' ? '输入图片创作需求。' : kind === '音频' ? '输入音频创作需求。' : kind === '文本' ? '输入文本创作需求。' : '输入视频创作需求。');
   const id = existing?.id || `liblib-skill-${templateUuid.slice(0, 12)}`;
   const genericWorkflow = kind === '图片' ? 'generic-image' : kind === '音频' || kind === '文本' ? 'generic-plan' : 'generic-video';
-  const howKind = kind === '图片' ? '输入图片需求' : kind === '音频' ? '输入音频需求' : kind === '文本' ? '输入文本需求' : '输入视频需求';
+  const fixedSteps = [
+    contract.inputType ? `核对来源要求的输入：${contract.inputType}` : '核对用户创作描述与已附素材',
+    '依据来源公开说明生成可编辑执行计划',
+    ...contract.outputItems.map((item) => `制作并核对来源声明的交付物：${item}`),
+    '仅在全部公开交付物完成后结束本次 Skill 运行',
+  ];
   return {
     id,
     version: Number(existing?.version || 1),
@@ -159,28 +351,30 @@ function normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, exist
     author: String(remote?.ownerName || remote?.nickname || 'LiblibTV'),
     description,
     cardSummary: importedCardSummary(remote),
-    usage: String(remote?.useScenario || ''),
-    howToUse: `在 Agent 中选择该 Skill，${howKind}，按需添加参考素材；发送后执行工作流。`,
+    usage: contract.useScenario,
+    howToUse: `在 Agent 中选择该 Skill，按来源要求提供“${contract.inputType || '创作描述'}”；先确认执行计划，再生成来源声明的交付物。`,
     tags: [...new Set([...tags, 'LiblibTV'])].slice(0, 8),
-    source: { provider: 'LiblibTV', templateUuid, skillUuid: remote?.skillUuid || '', skillKey: remote?.skillKey || '', inputType: String(remote?.inputType || ''), outputContent: String(remote?.outputContent || ''), url: shareUrl, importedAt: new Date().toISOString() },
+    source: { provider: 'LiblibTV', templateUuid, skillUuid: remote?.skillUuid || '', skillKey: remote?.skillKey || '', inputType: contract.inputType, outputContent: contract.outputContent, url: shareUrl, importedAt: new Date().toISOString(), importerVersion: 2, definition: contract },
     inputs: [
-      { id: 'instruction', label: '创作描述', type: 'text', required: true, placeholder: instruction || '输入你的创作描述' },
+      { id: 'instruction', label: contract.inputType || '创作描述', type: 'text', required: false, placeholder: inputHint },
       { id: 'referenceAsset', label: '参考素材', type: 'asset', required: false, accept: kind === '图片' ? ['image'] : kind === '音频' ? ['audio', 'image', 'video'] : ['image', 'video'] },
-      ...(kind === '视频' || kind === '音频' ? [{ id: 'durationSec', label: '目标时长', type: 'select', required: true, default: duration.duration, options: duration.options }] : []),
-      ...(kind === '文本' ? [] : [{ id: 'aspectRatio', label: '画幅', type: 'select', required: true, default: format.default, options: format.options }]),
+      ...(duration.duration ? [{ id: 'durationSec', label: '目标时长', type: 'select', required: false, default: duration.duration, options: duration.options }] : []),
+      ...(kind !== '文本' && format.default ? [{ id: 'aspectRatio', label: '画幅', type: 'select', required: false, default: format.default, options: format.options }] : []),
     ],
-    outputs: [String(remote?.outputContent || `${kind}生成结果`).trim(), '自动加入画布的生成节点', ...(kind === '视频' ? ['自动加入 Timeline 的视频成片草稿'] : [])],
-    fixedSteps: kind === '图片'
-      ? ['提取主体、场景、构图、风格和光线约束', '有参考素材时锁定主体身份与视觉连续性', '按目标画幅生成图片节点', '保留结果并回到画布继续创作']
-      : kind === '音频'
-        ? ['提取旁白、音乐、音效和节奏约束', '生成可执行的声音方案节点', '保留结果并回到画布继续混音']
-        : kind === '文本'
-          ? ['提取主题、结构与语气', '生成可执行文案方案', '保留结果并回到画布继续创作']
-          : ['提取主体、动作、场景、镜头、风格和情绪约束', '有参考图或视频时锁定主体与动作连续性', '按目标画幅与时长生成视频节点', '将成功的视频结果自动加入 Timeline'],
-    rules: { format: format.format, ...(kind === '视频' || kind === '音频' ? { durationSec: duration.duration, durationOptions: duration.options, shotDurationSec: duration.duration } : {}), shotCount: 1, continuity: '保持主体身份、服装、材质、场景和光线连续。', safety: '禁止随机新增主体、变脸、换装、肢体变形、穿模、无指令切镜和画面文字。' },
-    promptTemplates: importedPromptTemplates(kind),
+    outputs: contract.outputItems.length ? contract.outputItems : [String(remote?.outputContent || `${kind}生成结果`).trim()],
+    fixedSteps: fixedSteps.slice(0, 12),
+    rules: {
+      inputContract: contract.inputType || '来源未公开具体输入字段',
+      outputContract: contract.outputItems.length ? contract.outputItems : contract.outputContent || '来源未公开具体交付物',
+      ...(contract.useScenario ? { useScenario: contract.useScenario } : {}),
+      ...(contract.sourceVersion ? { sourceVersion: contract.sourceVersion } : {}),
+      ...(format.default ? { format: format.format } : {}),
+      ...(duration.duration ? { durationSec: duration.duration, durationOptions: duration.options } : {}),
+      disclosure: '仅执行来源公开的输入、输出和说明；来源未公开的私有画布、提示词或参数不会被臆造。',
+    },
+    promptTemplates: importedPromptTemplates(kind, contract),
     examples,
-    execution: { workflow: genericWorkflow, adapter: kind === '图片' ? 'single-image' : kind === '音频' || kind === '文本' ? 'single-plan' : 'single-video', requiresExplicitSelection: true, autoRun: true, generateKeyframes: false, generateShotVideos: kind === '视频', appendVideosToTimeline: kind === '视频', audioMode: 'full' },
+    execution: { workflow: genericWorkflow, adapter: kind === '图片' ? 'single-image' : kind === '音频' || kind === '文本' ? 'single-plan' : 'single-video', requiresExplicitSelection: true, autoRun: true, generateKeyframes: false, generateShotVideos: kind === '视频', appendVideosToTimeline: kind === '视频', audioMode: 'full', sourceFaithful: true },
   };
 }
 
@@ -202,15 +396,15 @@ export async function importLiblibSkill(input) {
   if (!['图片', '视频', '音频', '文本'].includes(kind)) throw importError('unsupported_liblib_kind', '当前只支持文本、图片、视频和音频类型 Skill 导入。', 422);
   const snapshot = parseSnapshotData(remote.snapshotData);
   const existing = SKILLS.find((skill) => skill.source?.templateUuid === templateUuid);
-  const generated = normalizedImportedSkill(remote, snapshot, templateUuid, shareUrl, existing);
-  const skill = existing
-    ? { ...existing, ...generated, id: existing.id, promptTemplates: existing.promptTemplates, execution: existing.execution, fixedSteps: existing.fixedSteps, rules: existing.rules, inputs: existing.inputs, outputs: existing.outputs }
-    : generated;
+  const generated = normalizeImportedLiblibSkill(remote, snapshot, templateUuid, shareUrl, existing);
+  // Re-import is a repair/update operation. Keeping the prior generated fields
+  // here made old generic prompts permanent even when Liblib data was refreshed.
+  const skill = existing ? { ...existing, ...generated, id: existing.id } : generated;
   const skillDir = join(SKILLS_DIR, skill.id);
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(join(skillDir, 'skill.json'), `${JSON.stringify(skill, null, 2)}\n`, 'utf8');
   const skillReadme = join(skillDir, 'SKILL.md');
-  if (!existsSync(skillReadme)) writeFileSync(skillReadme, importedSkillMarkdown(skill), 'utf8');
+  writeFileSync(skillReadme, importedSkillMarkdown(skill), 'utf8');
   reloadSkills();
   return { skill: publicSkill(skillById(skill.id)), created: !existing, updated: Boolean(existing), sourceUrl: shareUrl };
 }
@@ -322,8 +516,7 @@ function makeVideoNode({ id, prompt, position, skillId, shot, sourceId, aspectRa
 }
 
 function buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, referenceKind, instruction, durationSec, aspectRatio }) {
-  const creativeInstruction = safeText(instruction, 4000);
-  if (!creativeInstruction) throw Object.assign(new Error('instruction_required'), { status: 400 });
+  const creativeInstruction = safeText(instruction, 4000) || '请先生成可编辑的创作计划，缺失的信息由用户在计划中补充。';
   const reference = safeText(referenceAssetId, 160);
   const ratio = String(aspectRatio || skill.inputs?.find((input) => input.id === 'aspectRatio')?.default || '9:16');
   const requestedDuration = Math.max(1, Number(durationSec || skill.rules?.durationSec || 15));
@@ -391,6 +584,9 @@ function buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, 
     nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material', stepId: 'anchor' } });
     addEdge(assetId, videoId, referenceAsset === 'image' ? 'first-frame' : 'reference-video');
   }
+  // The approved plan is part of the final provider prompt, so edits to the
+  // planning node are not silently discarded before media generation.
+  addEdge(planId, videoId, 'script');
 
   const currentNodes = Array.isArray(existingWorkflow?.nodes) ? existingWorkflow.nodes : [];
   const currentEdges = Array.isArray(existingWorkflow?.edges) ? existingWorkflow.edges : [];
@@ -408,8 +604,7 @@ function buildCinematicVfxWorkflow({ skill, existingWorkflow, referenceAssetId, 
 }
 
 function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, instruction, aspectRatio }) {
-  const creativeInstruction = safeText(instruction, 4000);
-  if (!creativeInstruction) throw Object.assign(new Error('instruction_required'), { status: 400 });
+  const creativeInstruction = safeText(instruction, 4000) || '请先生成可编辑的创作计划，缺失的信息由用户在计划中补充。';
   const reference = safeText(referenceAssetId, 160);
   const ratio = String(aspectRatio || skill.inputs?.find((input) => input.id === 'aspectRatio')?.default || '16:9');
   const base = positionForExistingWorkflow(existingWorkflow);
@@ -457,6 +652,7 @@ function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, 
     nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material', stepId: 'anchor' } });
     edges.push({ id: `e-${randomUUID()}`, source: assetId, target: imageId, role: 'reference-image' });
   }
+  edges.push({ id: `e-${randomUUID()}`, source: planId, target: imageId, role: 'script' });
   const currentNodes = Array.isArray(existingWorkflow?.nodes) ? existingWorkflow.nodes : [];
   const currentEdges = Array.isArray(existingWorkflow?.edges) ? existingWorkflow.edges : [];
   return {
@@ -473,8 +669,7 @@ function buildGenericImageWorkflow({ skill, existingWorkflow, referenceAssetId, 
 }
 
 function buildPlanOnlyWorkflow({ skill, existingWorkflow, instruction, durationSec, aspectRatio }) {
-  const creativeInstruction = safeText(instruction, 4000);
-  if (!creativeInstruction) throw Object.assign(new Error('instruction_required'), { status: 400, message: '请先填写创作描述。' });
+  const creativeInstruction = safeText(instruction, 4000) || '请先生成可编辑的创作计划，缺失的信息由用户在计划中补充。';
   const ratio = String(aspectRatio || skill.inputs?.find((input) => input.id === 'aspectRatio')?.default || '16:9');
   const requestedDuration = Math.max(1, Number(durationSec || skill.rules?.durationSec || 15));
   const base = positionForExistingWorkflow(existingWorkflow);
@@ -505,8 +700,137 @@ function buildPlanOnlyWorkflow({ skill, existingWorkflow, instruction, durationS
   };
 }
 
+function sourceOutputType(output, fallbackKind) {
+  const value = String(output || '');
+  if (/成片|视频|短片|动画/.test(value)) return 'video';
+  if (/三视图|静帧|场景图|画面|图像|图片|海报|封面/.test(value)) return 'image';
+  if (/旁白|配音|BGM|音乐|音效/.test(value)) return 'audio-plan';
+  if (/脚本|分镜|文案|方案|描述|提示词/.test(value)) return 'text-plan';
+  return fallbackKind === '图片' ? 'image' : fallbackKind === '视频' ? 'video' : 'text-plan';
+}
+
+function buildSourceFaithfulWorkflow({ skill, existingWorkflow, referenceAssetId, referenceKind, instruction, durationSec, aspectRatio }) {
+  const creativeInstruction = safeText(instruction, 4000) || '请先生成可编辑的创作计划，缺失的信息由用户在计划中补充。';
+  const reference = safeText(referenceAssetId, 160);
+  const ratio = String(aspectRatio || skill.inputs?.find((input) => input.id === 'aspectRatio')?.default || '16:9');
+  const requestedDuration = Math.max(1, Number(durationSec || skill.rules?.durationSec || 15));
+  const base = positionForExistingWorkflow(existingWorkflow);
+  const tokens = { INSTRUCTION: creativeInstruction, DURATION_SEC: requestedDuration, ASPECT_RATIO: ratio };
+  const outputs = Array.isArray(skill.source?.definition?.outputItems) && skill.source.definition.outputItems.length
+    ? skill.source.definition.outputItems
+    : splitSourceOutputs(skill.source?.outputContent || skill.outputs?.join('、'));
+  const nodes = [];
+  const edges = [];
+  const addEdge = (source, target, role) => edges.push({ id: `e-${randomUUID()}`, source, target, ...(role ? { role } : {}) });
+  const planId = `skill-source-plan-${randomUUID()}`;
+  nodes.push(makeTextNode({
+    id: planId,
+    title: `${skill.name} · 来源执行计划`,
+    preset: 'video_script',
+    prompt: replaceTokens(skill.promptTemplates.videoPlanPrompt, tokens),
+    system: skill.promptTemplates.videoPlanSystem,
+    position: { x: base.x, y: base.y },
+    skillId: skill.id,
+    workflowStage: 'vfx-plan',
+    extra: { skillGate: 'source-plan', sourceContract: skill.source?.definition || {} },
+  }));
+
+  let imageIndex = 0;
+  let videoIndex = 0;
+  let textIndex = 0;
+  let audioIndex = 0;
+  let lastImageId = '';
+  const videoNodeIds = [];
+  const audioPlanNodeIds = [];
+  const refAssetId = reference ? `skill-source-asset-${randomUUID()}` : '';
+  if (refAssetId) {
+    nodes.push({ id: refAssetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: reference, skillId: skill.id, workflowStage: 'reference-material', stepId: 'anchor' } });
+  }
+
+  for (const output of outputs.length ? outputs : [`${skill.kind}生成结果`]) {
+    const outputType = sourceOutputType(output, skill.kind);
+    const outputPrompt = `${replaceTokens(skill.promptTemplates.videoPlanPrompt, tokens)}\n\n本节点只交付来源声明的内容：${output}。`;
+    if (outputType === 'text-plan' || outputType === 'audio-plan') {
+      const isAudio = outputType === 'audio-plan';
+      const nodeId = `skill-source-${isAudio ? 'audio' : 'text'}-${randomUUID()}`;
+      nodes.push(makeTextNode({
+        id: nodeId,
+        title: `${skill.name} · ${output}`,
+        preset: 'rewrite',
+        prompt: outputPrompt,
+        system: skill.promptTemplates.videoPlanSystem,
+        position: { x: base.x + 540, y: base.y + (isAudio ? 360 + audioIndex++ * 260 : textIndex++ * 260) },
+        skillId: skill.id,
+        workflowStage: isAudio ? 'music-plan' : 'vfx-plan',
+        extra: isAudio ? { audioStatus: 'plan-ready' } : {},
+      }));
+      addEdge(planId, nodeId, 'script');
+      if (isAudio) audioPlanNodeIds.push(nodeId);
+      continue;
+    }
+    if (outputType === 'image') {
+      const nodeId = `skill-source-image-${randomUUID()}`;
+      nodes.push({
+        id: nodeId,
+        type: 'imageGen',
+        position: { x: base.x + 540, y: base.y + 360 + imageIndex++ * 420 },
+        data: {
+          title: `${skill.name} · ${output}`,
+          modelKey: '',
+          prompt: `${replaceTokens(skill.promptTemplates.imagePrompt || skill.promptTemplates.videoPrompt, tokens)}\n\n本节点只交付来源声明的内容：${output}。`,
+          status: 'idle', progress: 0,
+          params: { aspectRatio: ratio, quality: '1K', variants: 1 },
+          expanded: false,
+          actionId: reference && referenceKind === 'image' ? 'image.edit' : 'image.generate',
+          skillId: skill.id, workflowStage: 'skill-image', stepId: 'keyframes', shotId: `O${imageIndex}`, storyboardShot: `O${imageIndex}`, storyboardStatus: 'approved', layoutWidth: 500,
+        },
+      });
+      addEdge(planId, nodeId, 'script');
+      if (refAssetId && referenceKind === 'image') addEdge(refAssetId, nodeId, 'reference-image');
+      lastImageId = nodeId;
+      continue;
+    }
+    const nodeId = `skill-source-video-${randomUUID()}`;
+    const capability = lastImageId || referenceKind === 'image' ? 'video.image_to_video' : referenceKind === 'video' ? 'video.reference' : 'video.generate';
+    nodes.push({
+      id: nodeId,
+      type: 'videoGen',
+      position: { x: base.x + 1080, y: base.y + 360 + videoIndex * 420 },
+      data: {
+        title: `${skill.name} · ${output}`,
+        modelKey: '',
+        prompt: `${replaceTokens(skill.promptTemplates.videoPrompt, tokens)}\n\n本节点只交付来源声明的内容：${output}。`,
+        status: 'idle', progress: 0,
+        params: { duration: requestedDuration, aspectRatio: ratio, resolution: '720p', audioMode: skill.execution?.audioMode || 'full' },
+        expanded: false, forcedCapability: capability, actionId: capability,
+        skillId: skill.id, workflowStage: 'skill-video', stepId: 'videos', shotId: `O${++videoIndex}`, storyboardShot: `O${videoIndex}`, storyboardDurationSec: requestedDuration, storyboardStatus: 'approved', layoutWidth: 500,
+      },
+    });
+    addEdge(planId, nodeId, 'script');
+    if (lastImageId) addEdge(lastImageId, nodeId, 'first-frame');
+    else if (refAssetId) addEdge(refAssetId, nodeId, referenceKind === 'image' ? 'first-frame' : 'reference-video');
+    videoNodeIds.push(nodeId);
+  }
+  const currentNodes = Array.isArray(existingWorkflow?.nodes) ? existingWorkflow.nodes : [];
+  const currentEdges = Array.isArray(existingWorkflow?.edges) ? existingWorkflow.edges : [];
+  return {
+    skillId: skill.id,
+    skillVersion: skill.version,
+    mode: 'production',
+    nodes: [...currentNodes, ...nodes],
+    edges: [...currentEdges, ...edges],
+    createdNodeIds: nodes.map((node) => node.id),
+    videoNodeIds,
+    audioPlanNodeIds,
+    input: { referenceAssetId: reference, instruction: creativeInstruction, durationSec: requestedDuration, aspectRatio: ratio },
+  };
+}
+
 export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, sellingPoints, brandName, durationSec, aspectRatio, referenceAssetId, referenceKind, instruction }) {
   if (!skill) throw Object.assign(new Error('skill_not_found'), { status: 404 });
+  if (skill.execution?.sourceFaithful) {
+    return buildSourceFaithfulWorkflow({ skill, existingWorkflow, referenceAssetId, referenceKind, instruction: instruction || sellingPoints, durationSec, aspectRatio });
+  }
   if (skill.execution?.adapter === 'single-plan' || skill.execution?.workflow === 'generic-plan') {
     return buildPlanOnlyWorkflow({ skill, existingWorkflow, instruction: instruction || sellingPoints, durationSec, aspectRatio });
   }
@@ -518,15 +842,14 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
   }
   const product = safeText(productAssetId, 160);
   const points = safeText(sellingPoints, 2000);
-  if (!product) throw Object.assign(new Error('product_image_required'), { status: 400, message: '缺少必填输入：产品图片', missingFields: ['产品图片'] });
-  if (!points) throw Object.assign(new Error('selling_points_required'), { status: 400, message: '缺少必填输入：产品卖点', missingFields: ['产品卖点'] });
+  const planningPoints = points || '产品卖点待用户在创意锚点与分镜中补充。';
   const ratio = String(aspectRatio || skill.inputs.find((input) => input.id === 'aspectRatio')?.default || '16:9');
   const duration = Number(durationSec || skill.rules.durationSec || 15);
   const brand = safeText(brandName, 120) || '品牌产品';
   const base = positionForExistingWorkflow(existingWorkflow);
   const tokens = {
     BRAND: brand,
-    SELLING_POINTS: points,
+    SELLING_POINTS: planningPoints,
     DURATION_SEC: duration,
     ASPECT_RATIO: ratio,
     PRODUCT_BINDING: '产品图片已作为主体参考绑定到每个关键帧节点',
@@ -535,8 +858,8 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
   const edges = [];
   const addEdge = (source, target, role) => edges.push({ id: `e-${randomUUID()}`, source, target, ...(role ? { role } : {}) });
 
-  const assetId = `skill-asset-${randomUUID()}`;
-  nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: product, skillId: skill.id, workflowStage: 'product-reference', stepId: 'anchor' } });
+  const assetId = product ? `skill-asset-${randomUUID()}` : '';
+  if (assetId) nodes.push({ id: assetId, type: 'asset', position: { x: base.x - 570, y: base.y }, data: { assetId: product, skillId: skill.id, workflowStage: 'product-reference', stepId: 'anchor' } });
 
   const anchorId = `skill-anchor-${randomUUID()}`;
   nodes.push(makeTextNode({
@@ -561,25 +884,16 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
     position: { x: base.x + 540, y: base.y },
     skillId: skill.id,
     workflowStage: 'storyboard',
-    extra: { skillGate: 'storyboard', requiresApproval: false },
+    extra: {
+      skillGate: 'storyboard',
+      requiresApproval: true,
+      skillRules: skill.rules || {},
+      skillProductAssetId: product,
+      skillProductAssetNodeId: assetId,
+      aspectRatio: ratio,
+    },
   }));
   addEdge(anchorId, storyboardId, 'script');
-
-  const shots = skill.promptTemplates.shotImages || [];
-  const motions = skill.promptTemplates.shotVideos || [];
-  shots.forEach((imagePrompt, index) => {
-    const shot = `S${index + 1}`;
-    const rowY = base.y + 430 + index * 420;
-    const imageId = `skill-image-${shot.toLowerCase()}-${randomUUID()}`;
-    const videoId = `skill-video-${shot.toLowerCase()}-${randomUUID()}`;
-    const filledImage = replaceTokens(imagePrompt, tokens);
-    const filledVideo = replaceTokens(motions[index] || '', tokens);
-    nodes.push(makeImageNode({ id: imageId, prompt: filledImage, position: { x: base.x, y: rowY }, skillId: skill.id, shot, sourceId: storyboardId, aspectRatio: ratio, productAssetId: product }));
-    nodes.push(makeVideoNode({ id: videoId, prompt: filledVideo, position: { x: base.x + 520, y: rowY }, skillId: skill.id, shot, sourceId: storyboardId, aspectRatio: ratio, audioMode: skill.execution.audioMode || 'full' }));
-    addEdge(storyboardId, imageId, 'script');
-    addEdge(assetId, imageId, 'reference-image');
-    addEdge(imageId, videoId, 'first-frame');
-  });
 
   const voiceId = `skill-voice-${randomUUID()}`;
   nodes.push(makeTextNode({
@@ -618,7 +932,8 @@ export function buildSkillWorkflow({ skill, existingWorkflow, productAssetId, se
     nodes: [...currentNodes, ...nodes],
     edges: [...currentEdges, ...edges],
     createdNodeIds: nodes.map((node) => node.id),
-    videoNodeIds: nodes.filter((node) => node.type === 'videoGen').map((node) => node.id),
+    // Media nodes are compiled from the approved storyboard, never from static templates.
+    videoNodeIds: [],
     audioPlanNodeIds: [voiceId, musicId],
     input: { productAssetId: product, sellingPoints: points, brandName: brand, durationSec: duration, aspectRatio: ratio },
   };

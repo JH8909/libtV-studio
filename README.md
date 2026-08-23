@@ -1,6 +1,6 @@
-# LibTV Studio Complete v2.0
+# QUill Complete v2.0
 
-A local-first AI video creation workspace inspired by the current LibTV product interaction model: a full-screen spatial canvas, direct text/image/video nodes, third-party model APIs, reusable Assets and a professional frame Timeline.
+A local-first AI video creation workspace: a full-screen spatial canvas, direct text/image/video nodes, third-party model APIs, reusable Assets and a professional frame Timeline.
 
 **No ComfyUI. No local GPU runtime.** The Standalone version runs on Node.js 22+ without `npm install`, PostgreSQL, Redis, MinIO or Docker. Generation uses the third-party providers configured in the local model settings.
 
@@ -42,7 +42,7 @@ Agent model output is strictly validated into read-only creative cards by the lo
 
 ## Canvas interaction
 
-The Standalone UI was rebuilt around the LibTV-style spatial interaction requested for this project:
+The Standalone UI was rebuilt around the QUill-style spatial interaction requested for this project:
 - Full-screen dark dotted infinite workspace instead of permanent sidebars.
 - **Double-click blank canvas** → Add Node catalog at the clicked world coordinate.
 - **Right-click blank canvas** → Add Node / Fit / mouse mode / Assets / Timeline actions.
@@ -88,7 +88,7 @@ Current providers:
 
 Image nodes expose prompt, model, aspect ratio/quality controls and show generated output inline. Provider results are downloaded into the project Asset Library before reuse.
 
-LibTV-style node interactions (v2.2):
+QUill-style node interactions (v2.2):
 - **参考素材 panel** — Image and Video nodes can attach references directly from the Asset Library (no edges required). Roles are auto-assigned by asset kind and video mode (`first-frame` / `last-frame` / `reference-image` / `reference-video` / `reference-audio`) and can be switched or removed inside the node.
 - **Best-of-N variants** — set 变体 to 2 or 4 and one Image generation returns that many candidates; pick the keeper on the node's filmstrip. The selected image is what flows downstream and to the Timeline.
 - **添加到时间线** on Image nodes (parity with Video nodes); double-click an image/video preview to open it full-size.
@@ -191,9 +191,9 @@ The existing v1.2 OpenChatCut-style editing surface remains intact:
 - Selected clip → AI Reference with `timelineItemId`, `sourceInFrame`, `sourceOutFrame`
 - HTTP Range (`206`) media serving for stable video seek/preview
 
-### Professional editing (LibTV-style)
+### Professional editing (QUill-style)
 
-The clip inspector adds a **专业编辑** section for two LibTV-style controllable regeneration flows. Both reuse the existing generation invariants (references, constraints, job state) and both require FFmpeg for keyframe extraction:
+The clip inspector adds a **专业编辑** section for two QUill-style controllable regeneration flows. Both reuse the existing generation invariants (references, constraints, job state) and both require FFmpeg for keyframe extraction:
 
 - **重拍此段 (anchor-locked reshoot)** — `POST /api/projects/:id/timeline/reshoot`. The server extracts the clip's source boundary frames (`anchor-in` at `sourceInFrame`, `anchor-out` at `sourceOutFrame`) into image assets and submits a `video.first_last_frame` generation with those anchors as references. On success the new video **replaces the clip in place**, preserving timing, track, transform and fades.
 - **续写接片 (tail-frame continuation)** — `POST /api/projects/:id/timeline/extend`. The last source frame of the selected clip becomes the `first-frame` of a `video.image_to_video` generation; on success a new clip is **appended right after** the selected one. Chain it repeatedly to build long sequences.

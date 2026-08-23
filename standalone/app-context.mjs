@@ -63,7 +63,8 @@ if (retiredProviderKeys.length) {
   writeFileSync(PROVIDER_SETTINGS_FILE, JSON.stringify(providerSettings, null, 2));
 }
 
-const cfg = (key, fallback = "") => String(providerSettings[key] || process.env[key] || fallback);
+const DISABLED_PROVIDER_MODEL = "__none__";
+const cfg = (key, fallback = "") => providerSettings[key] === DISABLED_PROVIDER_MODEL ? "" : String(providerSettings[key] || process.env[key] || fallback);
 
 export const runtimeConfig = {
   AGNES_API_KEY: "",
@@ -235,7 +236,10 @@ function syncGenerationJobToCanvas(job) {
     }
   }
   if (changed) {
-    project.workflowRevision = Number(project.workflowRevision || 1) + 1;
+    // Generation status is runtime metadata. It is persisted into the workflow
+    // for reloads, but must not advance the optimistic-lock version used for
+    // user graph edits; otherwise every provider progress tick conflicts with
+    // the browser's next workflow save.
     project.updatedAt = now();
   }
   return changed;
@@ -478,7 +482,7 @@ export function providerRetryPhase(error) {
   if (error?.status === 429) return "rate_limited";
   if (
     error?.status === 503 &&
-    /queue\s+(?:is\s+)?full|capacity|overloaded|server\s+busy|temporar(?:ily)?\s+unavailable|队列.*满|服务.*繁忙|稍后重试/i.test(
+    /queue\s+(?:is\s+)?full|capacity|overloaded|server\s+busy|service\s*busy|serviceunavailable(?:error)?|temporar(?:ily)?\s+unavailable|队列.*满|服务.*繁忙|稍后重试/i.test(
       String(error?.message || ""),
     )
   ) {

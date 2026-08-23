@@ -69,14 +69,20 @@ try {
   if (!streamText.includes('event: thinking') || !streamText.includes('event: delta') || !streamText.includes('event: done') || streamText.includes('event: cards')) throw new Error(`creative SSE contract mismatch: ${streamText}`);
   const detail = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}`);
   const assistant = detail.messages.at(-1);
-  if (!assistant?.text.includes('冷静的夜行者') || assistant.cards || assistant.followUps?.length !== 2) throw new Error('continuous creative output was not persisted');
+  if (!assistant?.text.includes('冷静的夜行者') || !assistant.text.includes('你也可以继续告诉我') || assistant.cards || assistant.followUps?.length) throw new Error('continuous creative output was not normalized to text');
   const clarificationConversation = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations`, { method: 'POST' });
   const clarificationStream = await fetch(`${base}/api/projects/${project.id}/creative-agent/conversations/${clarificationConversation.id}/messages`, { method: 'POST', ...jsonBody({ message: '帮我写一个15秒短视频脚本，产品是男士包', providerId: 'deepseek', modelId: 'fake-deepseek-text' }) });
   if (!clarificationStream.ok) throw new Error(await clarificationStream.text());
   await clarificationStream.text();
   const clarificationDetail = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${clarificationConversation.id}`);
   const clarification = clarificationDetail.messages.at(-1);
-  if (!clarification?.questions?.length || clarification.followUps?.length) throw new Error('underspecified script request did not ask clarifying questions');
+  if (!clarification?.text.includes('需要补充的信息') || !clarification.text.includes('请直接回复以上信息') || clarification.questions?.length || clarification.followUps?.length) throw new Error('underspecified script request did not ask clarifying questions in text');
+  const answerStream = await fetch(`${base}/api/projects/${project.id}/creative-agent/conversations/${clarificationConversation.id}/messages`, { method: 'POST', ...jsonBody({ message: '目标平台抖音，年轻女性受众，16:9，轻松高级风格', providerId: 'deepseek', modelId: 'fake-deepseek-text' }) });
+  if (!answerStream.ok) throw new Error(await answerStream.text());
+  await answerStream.text();
+  const answeredDetail = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${clarificationConversation.id}`);
+  const answered = answeredDetail.messages.at(-1);
+  if (!answered?.text.includes('冷静的夜行者') || answered.questions?.length || answered.followUps?.length) throw new Error('clarification answer did not continue into creative output');
   await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}/messages/${assistant.id}`, { method: 'PATCH', ...jsonBody({ feedback: 'up' }) });
   const reloaded = await jsonRequest(`/api/projects/${project.id}/creative-agent/conversations/${created.id}`);
   if (reloaded.messages.at(-1)?.feedback !== 'up') throw new Error('message feedback was not persisted');
@@ -98,7 +104,7 @@ try {
   const html = await readFile(join(ROOT, 'public', 'index.html'), 'utf8');
   const server = await readFile(join(ROOT, 'server.mjs'), 'utf8');
   if (/harness|DeepSeek Harness|harnessFrame|harnessPort|3002/i.test(`${source}\n${html}`)) throw new Error('legacy Harness runtime reference remains in Standalone UI');
-  if (!server.includes('CREATIVE_AGENT_TIMEOUT_MS || 180_000')) throw new Error('creative Agent timeout default is still too short');
+  if (!server.includes('CREATIVE_AGENT_TIMEOUT_MS || 60_000')) throw new Error('creative Agent timeout default is not bounded');
   if (!html.includes('对话只给建议；使用技能才会改画布') || !html.includes('id="agentCloseBtn"') || !source.includes("event==='error'") || !source.includes('renameAgentConversation')) throw new Error('agent UX polish markers missing');
   console.log(JSON.stringify({ ok: true, directApi: true, persistedConversation: true, continuousOutput: true, persistedFeedback: true, renamedConversation: true, deletedConversation: true, canvasUnchanged: true, generationJobsUnchanged: true }, null, 2));
 } finally {

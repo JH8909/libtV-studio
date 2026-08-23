@@ -20,6 +20,8 @@ export function skillRunStepsFromNodes(nodes = [], skill) {
   const byStep = Object.fromEntries(STEP_ORDER.map((id) => [id, { id, status: 'queued', nodeIds: [], shotIds: [] }]));
   const workflow = skill?.execution?.workflow;
   const isGeneric = ['cinematic-vfx', 'generic-video', 'generic-image'].includes(workflow);
+  const isSourceFaithful = skill?.execution?.sourceFaithful === true;
+  const isPlannedProduction = skill?.id === 'new-chinese-tvc';
 
   for (const node of nodes) {
     const stage = node?.data?.workflowStage;
@@ -31,6 +33,9 @@ export function skillRunStepsFromNodes(nodes = [], skill) {
   }
 
   if (isGeneric) {
+    if (isSourceFaithful) {
+      return STEP_ORDER.filter((id) => byStep[id].nodeIds.length || id === 'timeline').map((id) => byStep[id]);
+    }
     if (!byStep.anchor.nodeIds.length && byStep.keyframes.nodeIds.length) {
       // generic-image may only have plan + image
     }
@@ -39,12 +44,15 @@ export function skillRunStepsFromNodes(nodes = [], skill) {
       .map((id) => byStep[id]);
   }
 
-  return STEP_ORDER.map((id) => byStep[id]).filter((step) => step.nodeIds.length || step.id === 'timeline');
+  // Planned production Skills create media nodes after the storyboard is
+  // generated. Keep future phases so they can receive compiled node IDs.
+  return STEP_ORDER
+    .map((id) => byStep[id])
+    .filter((step) => isPlannedProduction || step.nodeIds.length || step.id === 'timeline');
 }
 
-export function createSkillRunRecord({ projectId, skill, result, confirmMode = 'auto' }) {
+export function createSkillRunRecord({ projectId, skill, result }) {
   const runId = randomUUID();
-  const mode = confirmMode === 'manual' ? 'manual' : 'auto';
   const createdNodes = (result?.nodes || []).filter((node) => (result?.createdNodeIds || []).includes(node.id));
   const steps = skillRunStepsFromNodes(createdNodes, skill).map((step) => ({
     ...step,
@@ -57,8 +65,6 @@ export function createSkillRunRecord({ projectId, skill, result, confirmMode = '
     skillId: skill.id,
     skillVersion: Number(skill.version || 1),
     status: 'queued',
-    confirmMode: mode,
-    pauseAt: null,
     inputValues: { ...(result?.input || {}) },
     steps,
     assetIds: [],
@@ -96,6 +102,8 @@ function nodeTerminalStatus(status) {
 
 export function syncSkillRunProgress(run, workflow) {
   if (!run) return run;
+  delete run.confirmMode;
+  delete run.pauseAt;
   if (run.status === 'canceled') {
     run.updatedAt = now();
     return run;
@@ -129,8 +137,7 @@ export function syncSkillRunProgress(run, workflow) {
     }
   }
   run.assetIds = [...assetIds];
-  if (run.pauseAt) run.status = 'awaiting_confirmation';
-  else if ((run.steps || []).some((step) => step.status === 'failed')) {
+  if ((run.steps || []).some((step) => step.status === 'failed')) {
     run.status = 'failed';
     run.error = (run.steps || []).find((step) => step.status === 'failed')?.error || 'SkillRun 失败';
   } else if ((run.steps || []).some((step) => step.status === 'canceled')) {
@@ -156,8 +163,6 @@ export function publicSkillRun(run) {
     skillId: run.skillId,
     skillVersion: run.skillVersion,
     status: run.status,
-    confirmMode: run.confirmMode,
-    pauseAt: run.pauseAt,
     inputValues: run.inputValues,
     input: run.inputValues,
     steps: run.steps,
@@ -175,11 +180,4 @@ export function publicSkillRun(run) {
 export function skillPhaseNodeIds(run, phase) {
   const step = (run?.steps || []).find((item) => item.id === phase);
   return [...(step?.nodeIds || [])];
-}
-
-export function nextManualPause(run, completedPhase) {
-  if (run?.confirmMode !== 'manual') return null;
-  if (completedPhase === 'storyboard') return 'keyframes';
-  if (completedPhase === 'keyframes') return 'videos';
-  return null;
 }

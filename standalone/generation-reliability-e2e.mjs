@@ -12,6 +12,7 @@ const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/
 const captures = [];
 const polls = new Map();
 const submitAttempts = new Map();
+const imageAttempts = new Map();
 const textAttempts = new Map();
 const taskPrompts = new Map();
 let activeVideoTask = '';
@@ -32,6 +33,13 @@ const fake = http.createServer(async (request, response) => {
   response.setHeader('content-type', 'application/json');
   if (request.method === 'POST' && request.url === '/agnes/v1/images/generations') {
     const remote = String(body.prompt || '').includes('remote-source');
+    const prompt = String(body.prompt || '');
+    const attempt = (imageAttempts.get(prompt) || 0) + 1;
+    imageAttempts.set(prompt, attempt);
+    if (prompt === 'service-busy-image' && attempt < 3) {
+      response.statusCode = 503;
+      return response.end(JSON.stringify({ message: 'Service busy: ServiceUnavailableError' }));
+    }
     return response.end(JSON.stringify({ data: [{ b64_json: pngBase64, ...(remote ? { url: 'https://cdn.agnes.test/reference.png' } : {}) }] }));
   }
   if (request.method === 'POST' && request.url === '/agnes/v1/videos') {
@@ -162,6 +170,8 @@ try {
 
   const remoteImage = await generateImage('remote-source');
   if (remoteImage.outputs[0]?.metadata?.providerUrl !== 'https://cdn.agnes.test/reference.png') throw new Error('Agnes provider URL was not retained');
+  const busyImage = await generateImage('service-busy-image');
+  if (busyImage.status !== 'succeeded' || imageAttempts.get('service-busy-image') !== 3) throw new Error(`image Service busy retry failed: ${JSON.stringify(busyImage)}`);
   const first = await submit(project.id, videoModel.modelId, 'serial-first', [{ assetId: remoteImage.outputs[0].id, role: 'first-frame' }], { requestId: 'same-request', sourceNodeId: 'same-node' });
   const duplicateRequest = await submit(project.id, videoModel.modelId, 'serial-first', [{ assetId: remoteImage.outputs[0].id, role: 'first-frame' }], { requestId: 'same-request', sourceNodeId: 'same-node' });
   const duplicateNode = await submit(project.id, videoModel.modelId, 'serial-first', [{ assetId: remoteImage.outputs[0].id, role: 'first-frame' }], { requestId: 'different-request', sourceNodeId: 'same-node' });
@@ -209,7 +219,7 @@ try {
   const publicRequest = captures.find(capture => capture.url === '/agnes/v1/videos' && capture.body?.prompt === 'public-local');
   if (!String(publicRequest?.body?.image || '').startsWith(`${base}/media/assets/`)) throw new Error('PUBLIC_BASE_URL was not used for local image');
 
-  console.log(JSON.stringify({ ok: true, longAssetServed: true, assetDelete: true, preflight: true, localOnly: true, providerUrl: true, idempotent: true, providerSerial: true, retryAttempts: rateTerminal.attempt, queueBusyRetries: queueTerminal.attempt, textNetworkRetries: textAttempts.get('network-retry'), runningCanceled: true, queuedCanceled: true }, null, 2));
+  console.log(JSON.stringify({ ok: true, longAssetServed: true, assetDelete: true, preflight: true, localOnly: true, providerUrl: true, idempotent: true, providerSerial: true, retryAttempts: rateTerminal.attempt, queueBusyRetries: queueTerminal.attempt, imageBusyRetries: imageAttempts.get('service-busy-image'), textNetworkRetries: textAttempts.get('network-retry'), runningCanceled: true, queuedCanceled: true }, null, 2));
 } finally {
   child.kill('SIGTERM');
   fake.close();

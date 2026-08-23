@@ -1,4 +1,4 @@
-# LibTV Studio 全量产品缺口审计与落地记录
+# QUill 全量产品缺口审计与落地记录
 
 > 审计日期：2026-08-20  
 > 审计范围：Standalone 本地产品、当前 Agent/Skill/Canvas/Timeline 交互，以及 `Project → Workflow → GenerationJob → Asset → TimelineItem` 主链路。  

@@ -1,12 +1,12 @@
-# LibTV Studio 产品架构与 TVC Skill 工作流
+# QUill 产品架构与 TVC Skill 工作流
 
 > 状态：产品方案草案
 >
-> 范围：基于 TapNow Canvas 的产品审计结果，结合 LibTV Studio 当前的 `Project → Workflow → GenerationJob → Asset → TimelineItem → GenerationReference` 契约，规划 Agent、Skill 与画布的协作方式。
+> 范围：基于 TapNow Canvas 的产品审计结果，结合 QUill 当前的 `Project → Workflow → GenerationJob → Asset → TimelineItem → GenerationReference` 契约，规划 Agent、Skill 与画布的协作方式。
 
 ## 1. 产品判断
 
-LibTV Studio 不应只做成“多个图片/视频生成节点的集合”。它的核心产品应是：
+QUill 不应只做成“多个图片/视频生成节点的集合”。它的核心产品应是：
 
 > Agent 负责理解和编排，Skill 负责固定方法，Canvas 负责呈现和编辑，GenerationJob 负责执行，Asset/Timeline 负责沉淀结果。
 
@@ -48,7 +48,7 @@ flowchart LR
 
 ### 2.1 六个产品层
 
-| 层级 | 职责 | LibTV Studio 对应 |
+| 层级 | 职责 | QUill 对应 |
 |---|---|---|
 | 项目层 | 画布、项目切换、保存、分享 | `Project`、工作区顶栏 |
 | 画布层 | 节点、连线、引用、时间线 | `Workflow`、Canvas、Timeline |
@@ -270,6 +270,6 @@ sequenceDiagram
 
 ## 10. 结论
 
-LibTV Studio 下一阶段最重要的不是再增加更多生成按钮，而是建立一个稳定的“Skill → SkillRun → Canvas Nodes → Assets → Timeline”执行链。
+QUill 下一阶段最重要的不是再增加更多生成按钮，而是建立一个稳定的“Skill → SkillRun → Canvas Nodes → Assets → Timeline”执行链。
 
 只要这条链稳定，后续新增 TVC、UGC、产品海报、角色设计、分镜拆解等 Skill，主要变成新增配置和提示词，不需要重复开发一套界面。

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://libtv.studio/schemas/skill.json",
-  "title": "LibTV Skill",
+  "title": "QUill Skill",
   "description": "Skill 广场与 Agent 共用的 Skill 元数据。UI 文案字段分工见 standalone/skills/README.md。",
   "type": "object",
   "required": ["id", "version", "name", "category", "kind", "description", "cardSummary", "howToUse", "inputs", "outputs", "fixedSteps", "rules", "promptTemplates", "execution"],

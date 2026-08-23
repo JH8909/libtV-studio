@@ -1,4 +1,4 @@
-# LibTV Studio — 统一设计规范
+# QUill — 统一设计规范
 
 > **版本**：2026-08-19 v1.2（Standalone `standalone/public`）  
 > **适用范围**：Standalone 运行时 UI（画布、侧栏、Agent、技能广场、模态层）  
